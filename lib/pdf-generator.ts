@@ -117,7 +117,7 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       if (Array.isArray(fillStr) && fillStr.length >= 3) {
         doc.setFillColor(fillStr[0], fillStr[1], fillStr[2]);
       } else if (typeof fillStr === 'number') {
-        doc.setFillColor(fillStr);
+        (doc as any).setFillColor(fillStr);
       } else {
         doc.setFillColor(255, 255, 255);
       }

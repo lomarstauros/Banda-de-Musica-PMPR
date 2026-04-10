@@ -2,13 +2,13 @@
 
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch } from 'firebase/firestore';
 
-export default function NewSwapPage() {
+function NewSwapForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const scaleId = searchParams?.get('scaleId');
@@ -365,5 +365,13 @@ export default function NewSwapPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function NewSwapPage() {
+  return (
+    <Suspense fallback={<div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div></div>}>
+      <NewSwapForm />
+    </Suspense>
   );
 }

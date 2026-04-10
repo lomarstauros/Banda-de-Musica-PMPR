@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "A member of the Banda PMPR (musician, manager, or admin)",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The Firebase Auth UID" },
+        "name": { "type": "string", "description": "Full name" },
+        "email": { "type": "string", "format": "email", "description": "Institutional email" },
+        "re": { "type": "string", "description": "Military identification number" },
+        "rank": { "type": "string", "description": "Military rank" },
+        "instrument": { "type": "string", "description": "Main musical instrument" },
+        "role": { "type": "string", "enum": ["musician", "manager", "admin"], "description": "Access level" },
+        "active": { "type": "boolean", "description": "Whether the account is active" },
+        "photoUrl": { "type": "string", "format": "uri", "description": "Profile picture URL" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["uid", "name", "email", "re", "role", "active"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile documents"
+    }
+  }
+}

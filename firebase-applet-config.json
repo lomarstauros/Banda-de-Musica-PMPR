@@ -1,0 +1,10 @@
+{
+  "projectId": "banda-de-musica-pmpr",
+  "appId": "1:450288699709:web:2cb0cffd8d923c1361dd54",
+  "apiKey": "AIzaSyDDp2JfXtiBN2LhpWQU14_hGq3ZehACjcw",
+  "authDomain": "banda-de-musica-pmpr.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "banda-de-musica-pmpr.firebasestorage.app",
+  "messagingSenderId": "450288699709",
+  "measurementId": ""
+}

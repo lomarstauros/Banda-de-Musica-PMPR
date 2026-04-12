@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -18,6 +18,10 @@ export default function LoginPage() {
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Email Verification State
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +66,14 @@ export default function LoginPage() {
     try {
       if (isLogin) {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
+
+        if (!userCred.user.emailVerified) {
+          setNeedsVerification(true);
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
+
         // Verify if force password reset flag is active
         const profileSnap = await getDoc(doc(db, "profiles", userCred.user.uid));
         
@@ -85,7 +97,14 @@ export default function LoginPage() {
           instrument: '',
           photo_url: 'https://picsum.photos/seed/profile/200/200'
         });
-        router.push('/profile');
+
+        await sendEmailVerification(userCred.user);
+        await signOut(auth);
+        
+        setIsLogin(true);
+        setNeedsVerification(true);
+        setVerificationSent(true);
+        setLoading(false);
       }
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
@@ -109,15 +128,15 @@ export default function LoginPage() {
           <span className="material-symbols-outlined text-5xl text-white z-10 drop-shadow-md">music_note</span>
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {needsPasswordReset ? 'Segurança Inicial' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta')}
+          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Segurança Inicial' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta'))}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {needsPasswordReset ? 'Sua conta foi criada por um gestor com senha provisória. Digite sua nova senha de uso pessoal.' : (isLogin ? 'Acesse suas escalas de serviço' : 'Preencha seus dados para começar')}
+          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada por um gestor com senha provisória. Digite sua nova senha de uso pessoal.' : (isLogin ? 'Acesse suas escalas de serviço' : 'Preencha seus dados para começar'))}
         </p>
       </div>
 
       <motion.div 
-        key={needsPasswordReset ? "reset" : (isLogin ? "login" : "register")}
+        key={needsVerification ? "verify" : (needsPasswordReset ? "reset" : (isLogin ? "login" : "register"))}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -164,6 +183,34 @@ export default function LoginPage() {
               {loading ? 'SALVANDO...' : 'ATUALIZAR E ENTRAR'}
             </button>
           </form>
+        ) : needsVerification ? (
+          <div className="flex flex-col gap-6 items-center text-center">
+            <div className="size-20 rounded-full border-4 border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-2">
+              <span className="material-symbols-outlined text-[40px]">mark_email_unread</span>
+            </div>
+            
+            <p className="text-slate-600 dark:text-slate-300">
+              {verificationSent 
+                ? "Criamos sua conta! Um link de verificação foi enviado para " 
+                : "Seu login foi bloqueado. Você precisa confirmar o e-mail "}
+              <strong className="text-slate-900 dark:text-white block mt-1">{email}</strong>
+            </p>
+            
+            <div className="bg-slate-50 dark:bg-[#151e2c] p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
+              Procure na sua caixa de entrada principal ou na pasta de <strong>Spam/Lixo Eletrônico</strong>. Clique no link do e-mail e depois volte aqui para fazer login.
+            </div>
+
+            <button 
+              onClick={() => {
+                setNeedsVerification(false);
+                setIsLogin(true);
+                setPassword('');
+              }}
+              className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+            >
+              JÁ VERIFIQUEI, FAZER LOGIN
+            </button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <label className="flex flex-col w-full">

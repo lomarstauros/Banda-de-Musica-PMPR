@@ -22,6 +22,7 @@ export default function DashboardPage() {
   // scaleId → { confirmed: boolean, notifId: string | null }
   const [viewedScales, setViewedScales] = useState<Record<string, { confirmed: boolean; notifId: string | null }>>({});
   const [verifying, setVerifying] = useState<string | null>(null);
+  const [isPending, setIsPending] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -36,13 +37,18 @@ export default function DashboardPage() {
         const docRef = doc(db, 'profiles', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setProfile(docSnap.data());
+          const profileData = docSnap.data();
+          if (profileData.status === 'pending') {
+            setIsPending(true);
+            setLoadingScales(false);
+            return;
+          }
+          setProfile(profileData);
 
           // 2. Fetch Scales — regra de visibilidade:
           //    - Funções especiais (Administrativo, Regente, Comando) → veem TODAS as escalas
           //    - Escala sem músicos → aparece para todos
           //    - Escala com músicos → aparece só para os escalados
-          const profileData = docSnap.data();
           const userInstrument = (profileData.instrument || '').trim().toLowerCase();
           const FULL_VISIBILITY_ROLES = ['administrativo', 'regente', 'comando'];
           const hasFullVisibility = FULL_VISIBILITY_ROLES.includes(userInstrument);
@@ -145,6 +151,23 @@ export default function DashboardPage() {
       setVerifying(null);
     }
   };
+
+  if (isPending) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-6 text-center font-sans">
+        <div className="bg-white dark:bg-[#1A202C] p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 max-w-sm flex flex-col items-center">
+          <div className="size-20 rounded-full border-4 border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-4 ring-8 ring-amber-50 dark:ring-amber-900/5">
+            <span className="material-symbols-outlined text-[40px] animate-pulse">hourglass_empty</span>
+          </div>
+          <h2 className="text-[#111318] dark:text-white text-xl font-bold mb-2">Conta em Análise</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            O seu cadastro foi recebido com sucesso na base de dados, mas o acesso ao escalonamento precisa ser liberado oficialmente por um Gestor do Comando. Retorne mais tarde.
+          </p>
+          <LogoutButton />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col antialiased selection:bg-primary/20">

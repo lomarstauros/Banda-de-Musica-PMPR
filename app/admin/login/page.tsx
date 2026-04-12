@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
       
       if (profileSnap.exists()) {
         const data = profileSnap.data();
-        if (data.role === 'admin') {
+        if (data.role === 'admin' || data.role === 'master') {
           router.push('/admin/swaps');
         } else {
           await auth.signOut();

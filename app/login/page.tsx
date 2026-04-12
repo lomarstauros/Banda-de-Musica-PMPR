@@ -95,7 +95,8 @@ export default function LoginPage() {
           phone: '',
           rank: '',
           instrument: '',
-          photo_url: 'https://picsum.photos/seed/profile/200/200'
+          photo_url: 'https://picsum.photos/seed/profile/200/200',
+          status: 'pending'
         });
 
         await sendEmailVerification(userCred.user);

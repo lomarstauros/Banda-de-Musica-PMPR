@@ -44,6 +44,7 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isPending, setIsPending] = useState(false);
   const { user, logout, loading: authLoading } = useFirebase();
   const [formData, setFormData] = useState({
     name: '',
@@ -70,6 +71,11 @@ export default function ProfilePage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
+          if (data.status === 'pending') {
+            setIsPending(true);
+            setLoading(false);
+            return;
+          }
           setFormData({
             name: data.name || '',
             warName: data.war_name || '',
@@ -161,6 +167,23 @@ export default function ProfilePage() {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-6 text-center font-sans">
+        <div className="bg-white dark:bg-[#1A202C] p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 max-w-sm flex flex-col items-center">
+          <div className="size-20 rounded-full border-4 border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-4 ring-8 ring-amber-50 dark:ring-amber-900/5">
+            <span className="material-symbols-outlined text-[40px] animate-pulse">hourglass_empty</span>
+          </div>
+          <h2 className="text-[#111318] dark:text-white text-xl font-bold mb-2">Conta em Análise</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            O seu cadastro foi recebido na base de dados, mas o acesso completo ao seu perfil e formulários de música ainda precisa ser liberado oficialmente por um Gestor do Comando.
+          </p>
+          <LogoutButton />
+        </div>
       </div>
     );
   }

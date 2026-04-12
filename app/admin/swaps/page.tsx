@@ -232,6 +232,9 @@ export default function AdminSwapsPage() {
           <Link href="/admin/scales"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Histórico Escalas</button></Link>
           <Link href="/admin/notices/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-5 text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-200 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm">Novo Aviso</button></Link>
           <Link href="/admin/musicians"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Efetivo</button></Link>
+          {profile?.role === 'master' && (
+            <Link href="/admin/master"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-5 text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm">Painel Master</button></Link>
+          )}
         </div>
 
         <main className="flex-1 p-4 flex flex-col gap-6 pb-24">

@@ -59,7 +59,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (authLoading) return;
-      if (!user) {
+      if (!user || !user.emailVerified) {
         router.push('/login');
         return;
       }
@@ -165,7 +165,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user) {
+  if (!user || !user.emailVerified) {
     return null;
   }
 

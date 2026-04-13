@@ -68,7 +68,13 @@ export default function AdminLoginPage() {
 
       <div className="w-full bg-center bg-no-repeat bg-cover flex flex-col justify-end overflow-hidden bg-gray-100 dark:bg-gray-800 min-h-[220px] relative" 
         style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAx-ExPnpWaPu-pHNMuENvAWhEZz_rPAfhC6cXHf5cY0YBvS8bXJN6LgEOuSI_7z6RfLuxtuzjrP6i9RDi46d4svkO3Gd-Snp0uy7w-hvzwxkRNa-QWnmC-z9a80yG0_L9n8Ut__uKqZIEuLNc-S_sewxs8H-mW-T_mteqlqRMMES5xQxSfq8qkMCdwpH4gvR13AVRtPjVFS3jUXbWXXMHPvmAzen-7xgBQO8EB3tgIENfC4e89TME0wScMha5k1jgasgZ-_6lQKQ3c")' }}>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+        
+        {/* Floating Brasão */}
+        <div className="absolute top-4 right-4 size-16 z-10 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center shadow-2xl">
+          <img src="/brasao_banda.png" alt="Brasão Banda" className="w-12 h-12 object-contain drop-shadow-lg" />
+        </div>
+
         <div className="relative p-6">
           <div className="inline-flex items-center gap-2 bg-primary/90 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-2 backdrop-blur-sm shadow-sm">
             <span className="material-symbols-outlined text-[16px]">security</span>

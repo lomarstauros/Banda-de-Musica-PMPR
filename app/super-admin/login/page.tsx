@@ -46,9 +46,10 @@ export default function SuperAdminLogin() {
       >
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-red-500/20 rounded-full blur-[80px] pointer-events-none"></div>
 
-        <div className="flex flex-col gap-2 items-center text-center relative z-10 relative mb-4">
-          <div className="size-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-900 border border-red-500/30 flex items-center justify-center shadow-lg shadow-red-900/50 mb-2">
-             <span className="material-symbols-outlined text-[32px] text-white">admin_panel_settings</span>
+        <div className="flex flex-col gap-2 items-center text-center relative z-10 mb-4">
+          <div className="size-24 rounded-2xl bg-gradient-to-br from-red-600 to-red-900 border border-red-500/30 flex items-center justify-center shadow-lg shadow-red-900/50 mb-2 overflow-hidden relative group">
+             <div className="absolute inset-0 bg-black/20 z-0"></div>
+             <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-2 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">Sistema Master</h1>
           <p className="text-sm font-medium text-gray-400">Acesso Restrito ao Gestor Geral</p>

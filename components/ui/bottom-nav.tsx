@@ -9,7 +9,7 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 export function BottomNav() {
   const pathname = usePathname() || '';
   const { user } = useFirebase();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userRole, setUserRole] = useState<'user' | 'admin' | 'master'>('user');
   const [pendingSwaps, setPendingSwaps] = useState(0);
 
   useEffect(() => {
@@ -17,8 +17,13 @@ export function BottomNav() {
       if (user) {
         try {
           const snap = await getDoc(doc(db, 'profiles', user.uid));
-          if (snap.exists() && snap.data().role === 'admin') {
-            setIsAdmin(true);
+          if (snap.exists()) {
+            const role = snap.data().role?.toLowerCase();
+            if (role === 'master') {
+              setUserRole('master');
+            } else if (role === 'admin') {
+              setUserRole('admin');
+            }
           }
         } catch (error) {
           console.error("Erro ao verificar admin na bottom nav:", error);
@@ -53,7 +58,12 @@ export function BottomNav() {
           <span className="text-[10px] font-bold">Agenda</span>
         </Link>
 
-        {isAdmin ? (
+        {userRole === 'master' ? (
+          <Link href="/admin/master" className={`flex flex-col items-center justify-center h-full gap-1 group transition-colors ${pathname === '/admin/master' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400'}`}>
+            <span className={`material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform ${pathname === '/admin/master' ? 'filled drop-shadow-[0_2px_4px_rgba(217,119,6,0.4)]' : ''}`}>admin_panel_settings</span>
+            <span className="text-[10px] font-bold">Master</span>
+          </Link>
+        ) : userRole === 'admin' ? (
           <Link href="/admin/swaps" className={`flex flex-col items-center justify-center h-full gap-1 group transition-colors ${pathname.startsWith('/admin') ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-primary'}`}>
             <span className={`material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform ${pathname.startsWith('/admin') ? 'filled' : ''}`}>shield_person</span>
             <span className="text-[10px] font-bold">Gestão</span>

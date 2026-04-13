@@ -342,8 +342,9 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       doc.setFont('helvetica', 'bold');
       const wFuncao = doc.getTextWidth(funcao);
 
-      const maxWidth = Math.max(wAssinado, wName, wFuncao);
-      const centerX = rightX - (maxWidth / 2);
+      // Usar um eixo X central FIXO para alinhar todas as assinaturas perfeitamente.
+      // Eixo de referência: 35mm para a esquerda a partir da margem direita.
+      const centerX = rightX - 35;
 
       doc.setFont('helvetica', 'bolditalic');
       doc.setTextColor(160, 70, 0);

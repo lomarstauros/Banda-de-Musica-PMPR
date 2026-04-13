@@ -317,34 +317,11 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       footerY += 12;
     }
 
-    const drawSignRight = (y: number, fullName: string, warName: string, funcao: string) => {
+    const drawSignRight = (y: number, fullName: string, funcao: string) => {
       doc.setFontSize(8);
 
-      doc.setFont('helvetica', 'bolditalic');
-      const wAssinado = doc.getTextWidth('(Assinado eletronicamente)');
-
-      const parts = splitByWarName(fullName, warName);
-      let wName = 0;
-      let wPre = 0, wBold = 0, wPost = 0;
-      if (parts) {
-        doc.setFont('helvetica', 'normal');
-        wPre = parts.before ? doc.getTextWidth(parts.before) : 0;
-        doc.setFont('helvetica', 'bold');
-        wBold = doc.getTextWidth(parts.bold);
-        doc.setFont('helvetica', 'normal');
-        wPost = parts.after ? doc.getTextWidth(parts.after) : 0;
-        wName = wPre + wBold + wPost;
-      } else {
-        doc.setFont('helvetica', 'normal');
-        wName = doc.getTextWidth(fullName);
-      }
-
-      doc.setFont('helvetica', 'bold');
-      const wFuncao = doc.getTextWidth(funcao);
-
-      // Usar um eixo X central FIXO para alinhar todas as assinaturas perfeitamente.
-      // Eixo de referência: 35mm para a esquerda a partir da margem direita.
-      const centerX = rightX - 35;
+      // Eixo de referência: 40mm para a esquerda a partir da margem direita.
+      const centerX = rightX - 40;
 
       doc.setFont('helvetica', 'bolditalic');
       doc.setTextColor(160, 70, 0);
@@ -352,25 +329,12 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       doc.setTextColor(0, 0, 0);
 
       const nameY = y + 5;
-      if (parts) {
-        let cx = centerX - (wName / 2);
-        if (parts.before) {
-          doc.setFont('helvetica', 'normal');
-          doc.text(parts.before, cx, nameY);
-          cx += wPre;
-        }
-        doc.setFont('helvetica', 'bold');
-        doc.text(parts.bold, cx, nameY);
-        cx += wBold;
-        if (parts.after) {
-          doc.setFont('helvetica', 'normal');
-          doc.text(parts.after, cx, nameY);
-        }
-      } else {
-        doc.setFont('helvetica', 'normal');
-        doc.text(fullName, centerX, nameY, { align: 'center' });
-      }
+      
+      // Nome completo em negrito, resolvendo problemas de cálculo width
+      doc.setFont('helvetica', 'bold');
+      doc.text(fullName, centerX, nameY, { align: 'center' });
 
+      // Função em fonte normal
       doc.setFont('helvetica', 'bold');
       doc.text(funcao, centerX, nameY + 5, { align: 'center' });
       doc.setFont('helvetica', 'normal');
@@ -378,20 +342,18 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
 
     if (regentePerson) {
       const fname = `${(regentePerson.rank || '').toUpperCase()} ${(regentePerson.name || '').toUpperCase()}`;
-      const war = (regentePerson.war_name || '').toUpperCase();
-      drawSignRight(footerY, fname, war, 'Maestro Chefe da Banda de Música.');
+      drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     } else if (exp.regenteMaestro) {
-      drawSignRight(footerY, exp.regenteMaestro.toUpperCase(), '', 'Maestro Chefe da Banda de Música.');
+      drawSignRight(footerY, exp.regenteMaestro.toUpperCase(), 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     }
 
     if (sargPerson) {
       const fname = `${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`;
-      const war = (sargPerson.war_name || '').toUpperCase();
-      drawSignRight(footerY, fname, war, 'Sargenteante da Banda de Música');
+      drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
     } else if (exp.sargenteacao) {
-      drawSignRight(footerY, exp.sargenteacao.toUpperCase(), '', 'Sargenteante da Banda de Música');
+      drawSignRight(footerY, exp.sargenteacao.toUpperCase(), 'Sargenteante da Banda de Música');
     }
 
     // ── DOWNLOAD ────

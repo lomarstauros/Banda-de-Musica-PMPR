@@ -5,9 +5,15 @@ import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import firebaseConfig from '@/firebase-applet-config.json';
+
+const secondaryApp = getApps().find(app => app.name === 'SecondaryApp') || initializeApp(firebaseConfig, 'SecondaryApp');
+const secondaryAuth = getAuth(secondaryApp);
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -57,42 +63,49 @@ export default function AdminNewMusicianPage() {
     return () => unsubscribe();
   }, []);
 
-  const checkEmailExists = async (email: string) => {
-    if (!email || !email.includes('@')) return;
-    setCheckingEmail(true);
-    setEmailError(null);
-    try {
-      const q = query(collection(db, 'profiles'), where('email', '==', email.trim().toLowerCase()));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setEmailError('Este e-mail já está sendo utilizado por outro usuário.');
-      }
-    } catch (e) {
-      console.error('Erro ao verificar e-mail:', e);
-    } finally {
-      setCheckingEmail(false);
-    }
+  const generateEmail = (warName: string, fullName: string) => {
+    const baseName = (warName || fullName.split(' ')[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return baseName ? `${baseName}@bm.pmpr.com` : '';
   };
 
+  useEffect(() => {
+    const autoEmail = generateEmail(formData.war_name, formData.name);
+    setFormData(prev => ({ ...prev, email: autoEmail }));
+  }, [formData.war_name, formData.name]);
+
   const handleSave = async () => {
-    if (!formData.name || !formData.email) {
-      alert('Por favor, preencha o nome e o e-mail.');
+    if (!formData.name) {
+      alert('Por favor, preencha o nome.');
       return;
     }
-    if (emailError) {
-      alert('Corrija o e-mail antes de salvar.');
+    const provisionalEmail = generateEmail(formData.war_name, formData.name);
+    if (!provisionalEmail) {
+      alert('Preencha um nome ou nome de guerra para gerar o e-mail provisório.');
       return;
     }
+
     setLoading(true);
     try {
-      await addDoc(collection(db, 'profiles'), {
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, provisionalEmail, '123456');
+      const newUid = userCred.user.uid;
+
+      await setDoc(doc(db, 'profiles', newUid), {
         ...formData,
-        uid: 'pending_' + Math.random().toString(36).substr(2, 9),
+        email: provisionalEmail,
+        uid: newUid,
         createdAt: serverTimestamp(),
+        forcePasswordReset: true,
+        status: formData.active ? 'active' : 'pending' // active because admin created
       });
+
+      await secondaryAuth.signOut();
       router.push('/admin/musicians');
-    } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'profiles');
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-in-use') {
+        alert('Falha: O e-mail automático (' + provisionalEmail + ') já está em uso por outro militar. Altere o nome de guerra para gerar um e-mail único.');
+      } else {
+        handleFirestoreError(error, OperationType.CREATE, 'profiles');
+      }
     } finally {
       setLoading(false);
     }
@@ -185,32 +198,18 @@ export default function AdminNewMusicianPage() {
             </div>
 
             <label className={labelCls}>
-              <span className={labelTextCls}>E-mail Institucional <span className="text-red-400">*</span></span>
+              <span className={labelTextCls}>E-mail Provisório (Automático)</span>
               <input
-                className={`w-full rounded-xl border bg-white dark:bg-gray-900 px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-gray-900 dark:text-white ${
-                  emailError ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 dark:border-gray-700'
-                }`}
+                disabled
+                className={`w-full rounded-xl border bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed`}
                 value={formData.email}
-                onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
-                  setEmailError(null);
-                }}
-                onBlur={(e) => checkEmailExists(e.target.value)}
                 type="email"
-                placeholder="email@pmpr.pr.gov.br"
+                placeholder="Será gerado automaticamente"
               />
-              {checkingEmail && (
-                <p className="text-xs text-gray-400 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
-                  Verificando disponibilidade...
-                </p>
-              )}
-              {emailError && (
-                <p className="text-xs text-red-500 flex items-center gap-1 font-medium">
-                  <span className="material-symbols-outlined text-[14px]">error</span>
-                  {emailError}
-                </p>
-              )}
+              <p className="text-xs text-primary mt-1 flex items-center gap-1 font-medium">
+                <span className="material-symbols-outlined text-[14px]">info</span>
+                A senha padrão será 123456. O usuário redefinirá no primeiro acesso.
+              </p>
             </label>
 
             <label className={labelCls}>

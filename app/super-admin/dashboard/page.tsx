@@ -26,6 +26,11 @@ export default function SuperAdminDashboard() {
     role: 'musician' // musician | admin
   });
 
+  const generateEmail = (fullName: string) => {
+    const baseName = (fullName.split(' ')[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return baseName ? `${baseName}@bm.pmpr.com` : '';
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -37,13 +42,15 @@ export default function SuperAdminDashboard() {
       // The user requested '12345' as standard password, though Firebase requires 6 chars minimum usually. We will use '123456' as standard. 
       // Wait! The user asked for "12345". I will send "123456" and tell them in UI because Firebase rejects 5 chars. Or I use "123456". Let's use 123456 and explain.
       const standardPassword = '123456'; 
-      const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.email, standardPassword);
+      const provisionalEmail = generateEmail(formData.name);
+      
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, provisionalEmail, standardPassword);
       const newUid = userCred.user.uid;
 
       // 2. Set profile in Firestore with forcePasswordReset flag
       await setDoc(doc(db, 'profiles', newUid), {
         name: formData.name,
-        email: formData.email,
+        email: provisionalEmail,
         role: formData.role,
         forcePasswordReset: true,
         created_at: new Date().toISOString()
@@ -130,13 +137,13 @@ export default function SuperAdminDashboard() {
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">E-mail Operacional</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-500">E-mail Operacional (Automático)</span>
             <input 
-              required
+              disabled
               type="email" 
-              value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="oficial@pmpr.br"
+              value={generateEmail(formData.name)}
+              className="bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-gray-400 focus:outline-none cursor-not-allowed"
+              placeholder="oficial@bm.pmpr.com"
             />
           </label>
 

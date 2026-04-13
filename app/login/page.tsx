@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, sendEmailVerification, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, updateEmail, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -16,6 +16,7 @@ export default function LoginPage() {
   
   // Password Reset State
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -42,17 +43,26 @@ export default function LoginPage() {
     setError(null);
     try {
       if (auth.currentUser) {
+        if (newEmail) {
+          await updateEmail(auth.currentUser, newEmail);
+        }
         await updatePassword(auth.currentUser, newPassword);
+        
         const userRef = doc(db, "profiles", auth.currentUser.uid);
-        // Mark as completed
         await updateDoc(userRef, {
-          forcePasswordReset: false
+          forcePasswordReset: false,
+          email: newEmail || auth.currentUser.email
         });
+        
         setNeedsPasswordReset(false);
         router.push('/dashboard');
       }
     } catch (err: any) {
-      setError('Erro ao atualizar a senha segura: ' + err.message);
+      if (err.code === 'auth/requires-recent-login') {
+        setError('Por questões de segurança, refaça o login antes de alterar o e-mail provisório.');
+      } else {
+        setError('Erro ao atualizar credenciais: ' + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -129,10 +139,10 @@ export default function LoginPage() {
           <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Segurança Inicial' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta'))}
+          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta'))}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada por um gestor com senha provisória. Digite sua nova senha de uso pessoal.' : (isLogin ? 'Acesse suas escalas de serviço' : 'Preencha seus dados para começar'))}
+          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : (isLogin ? 'Acesse suas escalas de serviço' : 'Preencha seus dados para começar'))}
         </p>
       </div>
 
@@ -146,6 +156,18 @@ export default function LoginPage() {
       >
         {needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
+            <label className="flex flex-col w-full">
+              <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Novo E-mail (Definitivo)</p>
+              <input 
+                className="flex w-full rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary focus:border-primary h-14 px-[15px]" 
+                placeholder="seu.email@pessoal.com" 
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                required
+              />
+            </label>
+
             <label className="flex flex-col w-full">
               <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Nova Senha Pessoal</p>
               <input 

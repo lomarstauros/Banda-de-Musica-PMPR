@@ -77,14 +77,7 @@ export default function LoginPage() {
       if (isLogin) {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-        if (!userCred.user.emailVerified) {
-          setNeedsVerification(true);
-          await signOut(auth);
-          setLoading(false);
-          return;
-        }
-
-        // Verify if force password reset flag is active
+        // Verify if force password reset flag is active first (for provisional accounts)
         const profileSnap = await getDoc(doc(db, "profiles", userCred.user.uid));
         
         if (profileSnap.exists()) {
@@ -92,9 +85,18 @@ export default function LoginPage() {
           if (profileData.forcePasswordReset) {
             setNeedsPasswordReset(true);
             setLoading(false);
-            return; // Hold here safely
+            return; // Hold here safely to force reset flow
           }
         }
+
+        // If not provisional, enforce email verification
+        if (!userCred.user.emailVerified) {
+          setNeedsVerification(true);
+          await signOut(auth);
+          setLoading(false);
+          return;
+        }
+
         router.push('/dashboard');
       } else {
         const userCred = await createUserWithEmailAndPassword(auth, email, password);

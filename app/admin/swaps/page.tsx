@@ -12,7 +12,7 @@ import { fmtDate } from '@/lib/format-date';
 
 export default function AdminSwapsPage() {
   const { user } = useFirebase();
-  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string } | null>(null);
+  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; role?: string } | null>(null);
   const [swaps, setSwaps] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);

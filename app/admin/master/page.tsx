@@ -53,23 +53,35 @@ export default function MasterPanelPage() {
   }, [router]);
 
   const handleApprove = async (id: string, name: string) => {
+    if (!id) {
+      alert("Erro do sistema: ID do usuário inválido.");
+      return;
+    }
     if (window.confirm(`Tem certeza que deseja aprovar o acesso de ${name}?`)) {
       try {
         await updateDoc(doc(db, 'profiles', id), {
           status: 'active'
         });
+        alert(`Acesso de ${name} aprovado com sucesso!`);
       } catch (error: any) {
-        alert('Erro ao aprovar: ' + error.message);
+        console.error("Erro ao aprovar:", error);
+        alert('Falha ao aprovar: Ocorreu um erro de permissão ou conexão. Detalhes: ' + error.message);
       }
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
+    if (!id) {
+      alert("Erro do sistema: ID do usuário inválido.");
+      return;
+    }
     if (window.confirm(`ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE o perfil de ${name}? Esta ação bloqueará o usuário permanentemente no aplicativo.`)) {
       try {
         await deleteDoc(doc(db, 'profiles', id));
+        alert(`Perfil de ${name} excluído com sucesso.`);
       } catch (error: any) {
-        alert('Erro ao excluir: ' + error.message);
+        console.error("Erro ao excluir:", error);
+        alert('Falha ao excluir: Detalhes: ' + error.message);
       }
     }
   };

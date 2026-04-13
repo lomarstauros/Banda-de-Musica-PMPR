@@ -71,7 +71,7 @@ export default function ProfilePage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.status === 'pending') {
+          if (data.status === 'pending' && data.role?.toLowerCase() !== 'master') {
             setIsPending(true);
             setLoading(false);
             return;

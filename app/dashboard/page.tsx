@@ -38,7 +38,7 @@ export default function DashboardPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const profileData = docSnap.data();
-          if (profileData.status === 'pending') {
+          if (profileData.status === 'pending' && profileData.role?.toLowerCase() !== 'master') {
             setIsPending(true);
             setLoadingScales(false);
             return;

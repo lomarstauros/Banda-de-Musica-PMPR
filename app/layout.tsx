@@ -16,9 +16,14 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800&family=Spline+Sans:wght@300;400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body suppressHydrationWarning className="bg-background-light dark:bg-background-dark font-sans antialiased text-slate-900 dark:text-white">
+      <body suppressHydrationWarning className="bg-background-light dark:bg-background-dark font-sans antialiased text-slate-900 dark:text-white flex flex-col min-h-screen">
         <FirebaseProvider>
-          {children}
+          <div className="flex-1 flex flex-col relative w-full">
+            {children}
+          </div>
+          <footer className="w-full py-3 mt-auto text-center text-[11px] sm:text-xs text-slate-500/80 dark:text-slate-400/80 bg-background-light/50 dark:bg-background-dark/50 backdrop-blur-sm relative z-50 border-t border-slate-200/50 dark:border-slate-800/50">
+            <p className="font-medium tracking-wide">&copy; {new Date().getFullYear()} Stauros Studios&reg;. Todos os direitos reservados.</p>
+          </footer>
         </FirebaseProvider>
       </body>
     </html>

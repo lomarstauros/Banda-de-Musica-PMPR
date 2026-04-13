@@ -124,9 +124,9 @@ export default function LoginPage() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden group/design-root bg-background-light dark:bg-background-dark">
       <div className="flex flex-col items-center justify-center pt-16 pb-8 px-4 w-full">
-        <div className="h-28 w-28 rounded-xl bg-[#1c1f27] flex items-center justify-center mb-6 overflow-hidden border border-[#3b4354] shadow-xl relative">
+        <div className="h-28 w-28 rounded-xl bg-[#1c1f27] flex items-center justify-center mb-6 overflow-hidden border border-[#3b4354] shadow-xl relative group">
           <div className="absolute inset-0 bg-gradient-to-br from-[#135bec]/40 to-transparent"></div>
-          <span className="material-symbols-outlined text-5xl text-white z-10 drop-shadow-md">music_note</span>
+          <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
           {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Segurança Inicial' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta'))}

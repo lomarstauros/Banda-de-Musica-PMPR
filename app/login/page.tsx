@@ -43,8 +43,11 @@ export default function LoginPage() {
     setError(null);
     try {
       if (auth.currentUser) {
-        if (newEmail) {
+        if (newEmail && newEmail !== auth.currentUser.email) {
           await updateEmail(auth.currentUser, newEmail);
+          if (!newEmail.endsWith('@bm.pmpr.com')) {
+            await sendEmailVerification(auth.currentUser);
+          }
         }
         await updatePassword(auth.currentUser, newPassword);
         
@@ -89,8 +92,8 @@ export default function LoginPage() {
           }
         }
 
-        // If not provisional, enforce email verification
-        if (!userCred.user.emailVerified) {
+        // If not provisional, enforce email verification (except for @bm.pmpr.com domains)
+        if (!userCred.user.emailVerified && !userCred.user.email?.endsWith('@bm.pmpr.com')) {
           setNeedsVerification(true);
           await signOut(auth);
           setLoading(false);
@@ -111,7 +114,9 @@ export default function LoginPage() {
           status: 'pending'
         });
 
-        await sendEmailVerification(userCred.user);
+        if (!email.endsWith('@bm.pmpr.com')) {
+          await sendEmailVerification(userCred.user);
+        }
         await signOut(auth);
         
         setIsLogin(true);

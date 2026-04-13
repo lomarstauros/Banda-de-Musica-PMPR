@@ -60,7 +60,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       if (authLoading) return;
-      if (!user || !user.emailVerified) {
+      if (!user || (!user.emailVerified && !user.email?.endsWith('@bm.pmpr.com'))) {
         router.push('/login');
         return;
       }
@@ -188,7 +188,7 @@ export default function ProfilePage() {
     );
   }
 
-  if (!user || !user.emailVerified) {
+  if (!user || (!user.emailVerified && !user.email?.endsWith('@bm.pmpr.com'))) {
     return null;
   }
 

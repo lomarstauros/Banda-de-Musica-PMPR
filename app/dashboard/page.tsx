@@ -26,7 +26,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || !user.emailVerified) {
+    if (!user || (!user.emailVerified && !user.email?.endsWith('@bm.pmpr.com'))) {
       router.push('/login');
       return;
     }

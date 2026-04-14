@@ -10,7 +10,8 @@ import { useRouter } from 'next/navigation';
 
 export default function MasterPanelPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
+  const [activeTab, setActiveTab] = useState<'pending' | 'all' | 'logs'>('pending');
+  const [logs, setLogs] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,15 +36,20 @@ export default function MasterPanelPage() {
 
         const q = query(collection(db, 'profiles'), orderBy('name', 'asc'));
         
-        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
-          const docs = snapshot.docs
-            .map(d => ({ id: d.id, ...d.data() }))
-            .sort(sortByRankThenName);
-          setUsers(docs);
-          setLoading(false);
+        const qLogs = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(50));
+        const unsubscribeLogs = onSnapshot(qLogs, (snapshot) => {
+          const docs = snapshot.docs.map(d => ({ 
+            id: d.id, 
+            ...d.data(),
+            dateObj: d.data().timestamp?.toDate() || new Date()
+          }));
+          setLogs(docs);
         });
 
-        return () => unsubscribeSnapshot();
+        return () => {
+          unsubscribeSnapshot();
+          unsubscribeLogs();
+        };
       } else {
         router.push('/admin/login');
       }
@@ -136,37 +142,60 @@ export default function MasterPanelPage() {
             >
               Todos ({allExceptMaster.length})
             </button>
-          </div>
-
-          <Link href="/admin/master/logs">
-            <button className="w-full bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
-                  <span className="material-symbols-outlined text-[28px]">policy</span>
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="text-sm font-bold uppercase tracking-tight">Auditoria de Segurança</span>
-                  <span className="text-[10px] text-white/60">Ver histórico completo de alterações em escalas</span>
-                </div>
-              </div>
-              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">chevron_right</span>
+            <button 
+              onClick={() => setActiveTab('logs')}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'logs' ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+            >
+              Auditoria
             </button>
-          </Link>
-
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-              <span className="material-symbols-outlined">search</span>
-            </div>
-            <input 
-              className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none" 
-              placeholder="Buscar por nome ou email..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
           </div>
+
+          {activeTab !== 'logs' && (
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                <span className="material-symbols-outlined">search</span>
+              </div>
+              <input 
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-amber-500 outline-none" 
+                placeholder="Buscar por nome ou email..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          )}
 
           <div className="flex flex-col gap-3">
-            {filteredUsers.map((user) => (
+            {activeTab === 'logs' ? (
+              <div className="flex flex-col gap-3">
+                {logs.map((log) => (
+                  <div key={log.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 shadow-sm flex flex-col gap-2">
+                    <div className="flex justify-between items-center mb-1">
+                      {log.action === 'create' && <span className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">Criação</span>}
+                      {log.action === 'update' && <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">Edição</span>}
+                      {log.action === 'delete' && <span className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider">Exclusão</span>}
+                      <span className="text-[9px] font-bold text-gray-400">
+                        {log.dateObj.toLocaleDateString('pt-BR')} • {log.dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="size-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-[10px] font-black text-amber-700">
+                        {log.userName?.charAt(0) || 'A'}
+                      </div>
+                      <p className="text-xs font-bold text-gray-900 dark:text-white uppercase truncate">{log.userName}</p>
+                    </div>
+                    <p className="text-xs text-primary dark:text-blue-400 font-bold break-words mt-1 border-l-2 border-amber-500 pl-2">
+                      {log.entityTitle}
+                    </p>
+                  </div>
+                ))}
+                {logs.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                    <span className="material-symbols-outlined text-[48px] mb-2">history</span>
+                    <p className="text-sm text-center px-4">Nenhum log registrado ainda.</p>
+                  </div>
+                )}
+              </div>
+            ) : filteredUsers.map((user) => (
               <div key={user.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all group">
                 <div className="flex items-start gap-3">
                   <div className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 font-bold text-sm uppercase border border-gray-200 dark:border-gray-700 shrink-0">
@@ -214,12 +243,13 @@ export default function MasterPanelPage() {
                 </div>
               </div>
             ))}
-            {filteredUsers.length === 0 && (
+            {activeTab !== 'logs' && filteredUsers.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                 <span className="material-symbols-outlined text-[48px] mb-2">shield_locked</span>
                 <p className="text-sm text-center px-4">Nenhum perfil encontrado nesta categoria.</p>
               </div>
             )}
+
           </div>
         </main>
       </div>

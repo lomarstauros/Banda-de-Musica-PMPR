@@ -36,6 +36,14 @@ export default function MasterPanelPage() {
 
         const q = query(collection(db, 'profiles'), orderBy('name', 'asc'));
         
+        const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
+          const docs = snapshot.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .sort(sortByRankThenName);
+          setUsers(docs);
+          setLoading(false);
+        });
+
         const qLogs = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(50));
         const unsubscribeLogs = onSnapshot(qLogs, (snapshot) => {
           const docs = snapshot.docs.map(d => ({ 

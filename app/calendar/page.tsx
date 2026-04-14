@@ -85,7 +85,8 @@ export default function CalendarPage() {
 
   const getEventsForDay = (day: number) => {
     return events.filter(e => {
-      const eventDate = new Date(e.date);
+      if (!e.date) return false;
+      const eventDate = new Date(`${e.date}T12:00:00`);
       return eventDate.getDate() === day && 
              eventDate.getMonth() === currentMonth && 
              eventDate.getFullYear() === currentYear;

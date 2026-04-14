@@ -337,10 +337,10 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-center z-10">
                   <div className="size-14 rounded-xl bg-white dark:bg-[#1A202C] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center shrink-0 group-hover:border-primary/30 transition-colors">
                     <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                      {new Date(scale.date).toLocaleDateString('pt-BR', { month: 'short' })}
+                      {new Date(`${scale.date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' })}
                     </span>
                     <span className="text-xl font-bold text-[#111318] dark:text-white">
-                      {new Date(scale.date).toLocaleDateString('pt-BR', { day: '2-digit' })}
+                      {new Date(`${scale.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit' })}
                     </span>
                   </div>
                 </div>

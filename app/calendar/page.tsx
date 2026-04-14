@@ -131,8 +131,7 @@ export default function CalendarPage() {
             <span className={`flex size-8 items-center justify-center rounded-full text-sm font-medium transition-all ${isSelected ? 'text-white bg-primary shadow-lg shadow-primary/30 font-bold' : (isToday ? 'border-2 border-primary text-primary font-bold' : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800')}`}>
               {day}
             </span>
-            {hasEvent && !isSelected && <span className="size-1 rounded-full bg-slate-400 dark:bg-slate-500 mt-[-2px]"></span>}
-            {isSelected && <span className="size-1 rounded-full bg-primary mt-[-2px] opacity-0"></span>}
+            <span className={`size-1 rounded-full mt-[-2px] ${hasEvent ? (isSelected ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-500') : 'opacity-0'}`}></span>
           </div>
         </button>
       );
@@ -153,8 +152,7 @@ export default function CalendarPage() {
             <span className={`flex size-8 items-center justify-center rounded-full text-sm font-medium transition-all ${isSelected ? 'text-white bg-primary shadow-lg shadow-primary/30 font-bold' : (isToday ? 'border-2 border-primary text-primary font-bold' : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800')}`}>
               {day}
             </span>
-            {hasEvent && !isSelected && <span className="size-1 rounded-full bg-slate-400 dark:bg-slate-500 mt-[-2px]"></span>}
-            {isSelected && <span className="size-1 rounded-full bg-primary mt-[-2px] opacity-0"></span>}
+            <span className={`size-1 rounded-full mt-[-2px] ${hasEvent ? (isSelected ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-500') : 'opacity-0'}`}></span>
           </div>
         </button>
       );

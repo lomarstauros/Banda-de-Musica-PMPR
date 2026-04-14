@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -90,14 +91,31 @@ export default function SuperAdminDashboard() {
 
       <main className="max-w-xl mx-auto p-6 flex flex-col gap-8">
         
-        <div className="bg-red-900/10 border border-red-900/30 rounded-2xl p-6 flex flex-col gap-2">
-          <h2 className="text-xl font-bold flex items-center gap-2 text-white">
-            <span className="material-symbols-outlined text-red-500">person_add</span>
-            Gerador de Credenciais
-          </h2>
-          <p className="text-sm text-gray-400">
-            Crie novas contas para Músicos ou Gestores. A conta será criada com a senha padrão <strong>123456</strong> e o usuário será obrigado a trocar a senha no primeiro acesso.
-          </p>
+        <div className="flex flex-col gap-3">
+          <div className="bg-red-900/10 border border-red-900/30 rounded-2xl p-6 flex flex-col gap-2">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+              <span className="material-symbols-outlined text-red-500">person_add</span>
+              Gerador de Credenciais
+            </h2>
+            <p className="text-sm text-gray-400">
+              Crie novas contas para Músicos ou Gestores. A conta será criada com a senha padrão <strong>123456</strong> e o usuário será obrigado a trocar a senha no primeiro acesso.
+            </p>
+          </div>
+
+          <Link href="/admin/master/logs">
+            <button className="bg-white/5 border border-white/10 hover:bg-white/10 rounded-2xl p-6 flex items-center justify-between transition-all group">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-xl bg-red-600/20 flex items-center justify-center text-red-500 group-hover:scale-110 transition-transform">
+                  <span className="material-symbols-outlined text-[32px]">security</span>
+                </div>
+                <div className="flex flex-col text-left">
+                  <h3 className="text-lg font-bold text-white uppercase tracking-tight">Auditoria de Escalas</h3>
+                  <p className="text-xs text-gray-400">Verificar quem alterou datas e horários</p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-gray-500 group-hover:translate-x-1 transition-transform">arrow_forward_ios</span>
+            </button>
+          </Link>
         </div>
 
         <form onSubmit={handleCreateUser} className="flex flex-col gap-5 bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl relative overflow-hidden">

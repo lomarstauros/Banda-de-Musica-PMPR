@@ -89,11 +89,12 @@ export default function MasterLogsPage() {
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
       <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl">
         <header className="sticky top-0 z-10 bg-amber-600 dark:bg-amber-800 text-white px-4 py-4 flex items-center justify-between border-b border-amber-700 shadow-md">
-          <Link href="/admin/master">
-            <button className="flex items-center justify-center p-2 rounded-full hover:bg-black/20 transition-colors">
-              <span className="material-symbols-outlined">arrow_back_ios_new</span>
-            </button>
-          </Link>
+          <button 
+            onClick={() => router.back()}
+            className="flex items-center justify-center p-2 rounded-full hover:bg-black/20 transition-colors"
+          >
+            <span className="material-symbols-outlined">arrow_back_ios_new</span>
+          </button>
           <div className="flex flex-col items-center flex-1">
             <h1 className="text-lg font-bold">Logs de Segurança</h1>
             <span className="text-[10px] uppercase font-black tracking-widest opacity-80 underline underline-offset-4 decoration-amber-400">Auditoria de Escalas</span>

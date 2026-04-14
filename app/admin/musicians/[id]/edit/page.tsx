@@ -255,7 +255,7 @@ export default function AdminEditMusicianPage() {
             </div>
 
             <label className={labelCls}>
-              <span className={labelTextCls}>E-mail Institucional <span className="text-red-400">*</span></span>
+              <span className={labelTextCls}>E-mail <span className="text-red-400">*</span></span>
               <input
                 className={`w-full rounded-xl border bg-white dark:bg-gray-900 px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-gray-900 dark:text-white ${
                   emailError ? 'border-red-400 focus:ring-red-300' : 'border-gray-200 dark:border-gray-700'

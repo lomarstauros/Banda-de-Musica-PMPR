@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
 
 
@@ -233,6 +233,27 @@ export default function AdminNewScalePage() {
           });
         });
         await batch.commit();
+      }
+
+      // Registro de Auditoria
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+          const adminData = adminSnap.data();
+          const adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+
+          await addDoc(collection(db, "audit_logs"), {
+            userId: currentUser.uid,
+            userName: adminName,
+            action: 'create',
+            entityId: scaleRef.id,
+            entityTitle: formData.title,
+            timestamp: serverTimestamp()
+          });
+        }
+      } catch (auditErr) {
+        console.error("Erro ao registrar log de auditoria:", auditErr);
       }
 
       setSuccess(true);

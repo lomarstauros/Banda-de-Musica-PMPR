@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
@@ -31,6 +31,27 @@ export default function AdminScalesListPage() {
     if (window.confirm(`Tem certeza que deseja excluir a escala "${title}"?`)) {
       try {
         await deleteDoc(doc(db, 'scales', id));
+
+        // Registro de Auditoria
+        try {
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+            const adminData = adminSnap.data();
+            const adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+
+            await addDoc(collection(db, "audit_logs"), {
+              userId: currentUser.uid,
+              userName: adminName,
+              action: 'delete',
+              entityId: id,
+              entityTitle: title,
+              timestamp: serverTimestamp()
+            });
+          }
+        } catch (auditErr) {
+          console.error("Erro ao registrar log de auditoria:", auditErr);
+        }
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `scales/${id}`);
       }

@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, serverTimestamp, query, orderBy, limit, getDocs, collection, writeBatch } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp, query, orderBy, limit, getDocs, collection, writeBatch, addDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { sortByRankThenName } from '@/lib/sort-military';
 
@@ -228,6 +228,27 @@ export default function AdminEditScalePage() {
         repertoire,
         updatedAt: serverTimestamp()
       });
+
+      // Registro de Auditoria
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+          const adminData = adminSnap.data();
+          const adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+
+          await addDoc(collection(db, "audit_logs"), {
+            userId: currentUser.uid,
+            userName: adminName,
+            action: 'update',
+            entityId: params.id as string,
+            entityTitle: formData.title,
+            timestamp: serverTimestamp()
+          });
+        }
+      } catch (auditErr) {
+        console.error("Erro ao registrar log de auditoria:", auditErr);
+      }
 
       // Disparar notificações apenas para músicos recém-adicionados
       const newlyAdded = musiciansData.filter((m: any) => !previousMusicianIds.includes(m.id));

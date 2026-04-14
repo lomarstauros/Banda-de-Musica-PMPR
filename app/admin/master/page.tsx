@@ -138,6 +138,21 @@ export default function MasterPanelPage() {
             </button>
           </div>
 
+          <Link href="/admin/master/logs">
+            <button className="w-full bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/20 active:scale-[0.98] transition-all group">
+              <div className="flex items-center gap-3">
+                <div className="size-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
+                  <span className="material-symbols-outlined text-[28px]">policy</span>
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-sm font-bold uppercase tracking-tight">Auditoria de Segurança</span>
+                  <span className="text-[10px] text-white/60">Ver histórico completo de alterações em escalas</span>
+                </div>
+              </div>
+              <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">chevron_right</span>
+            </button>
+          </Link>
+
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
               <span className="material-symbols-outlined">search</span>

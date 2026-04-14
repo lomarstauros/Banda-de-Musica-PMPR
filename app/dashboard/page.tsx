@@ -11,11 +11,20 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
+import { getCurrentMilitaryStatus } from '@/lib/military-status';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useFirebase();
   const router = useRouter();
-  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; instrument?: string } | null>(null);
+  const [profile, setProfile] = useState<{ 
+    war_name?: string; 
+    rank?: string; 
+    photo_url?: string; 
+    instrument?: string;
+    militaryStatus?: string;
+    statusStartDate?: string;
+    statusEndDate?: string;
+  } | null>(null);
   const [nextScales, setNextScales] = useState<any[]>([]);
   const [loadingScales, setLoadingScales] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -205,6 +214,19 @@ export default function DashboardPage() {
       </header>
 
       <main className="flex-1 overflow-x-hidden flex flex-col gap-6 p-4 max-w-md mx-auto w-full">
+        {profile && getCurrentMilitaryStatus(profile) && (
+          <section className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/20 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+            <div className="size-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shrink-0">
+              <span className="material-symbols-outlined text-[24px]">event_busy</span>
+            </div>
+            <div className="flex flex-col">
+              <h4 className="text-red-800 dark:text-red-300 font-bold text-sm">Afastamento Ativo</h4>
+              <p className="text-red-600/80 dark:text-red-400/80 text-xs leading-relaxed">
+                Você está atualmente em situação de <strong className="uppercase">{getCurrentMilitaryStatus(profile)}</strong> até {fmtDate(profile.statusEndDate)}. Durante este período, você não poderá ser escalado para novos eventos.
+              </p>
+            </div>
+          </section>
+        )}
         <section className="flex flex-col gap-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-[#111318] dark:text-white text-lg font-bold">Próxima Escala</h3>

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
+import { isMusicianAvailable } from '@/lib/military-status';
 import { sortByRankThenName } from '@/lib/sort-military';
 
 
@@ -127,23 +128,6 @@ export default function AdminNewScalePage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const isMusicianAvailable = (musician: any, scaleDate: string) => {
-    if (!musician.militaryStatus || musician.militaryStatus === 'Ativo') return true;
-    if (!musician.statusStartDate || !musician.statusEndDate || !scaleDate) return true;
-
-    const start = new Date(musician.statusStartDate);
-    const end = new Date(musician.statusEndDate);
-    const scale = new Date(scaleDate);
-
-    // Ajusta as horas para ignorar o tempo na comparação
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-    scale.setHours(12, 0, 0, 0);
-
-    const isBlocked = scale >= start && scale <= end;
-    return !isBlocked;
   };
 
   const handleMusicianToggle = (id: string) => {

@@ -7,6 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
+import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 
 export default function AdminMusiciansListPage() {
@@ -104,30 +105,32 @@ export default function AdminMusiciansListPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {filteredMusicians.map((musician) => (
-              <div key={musician.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
-                <div className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 font-bold text-sm uppercase border border-gray-200 dark:border-gray-700">
-                  {musician.name?.split(' ').map((n: string) => n[0]).join('') || '??'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{musician.name}</h3>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      musician.role === 'admin' || musician.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                      musician.role === 'Gestor' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                      'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                    }`}>
-                      {musician.role === 'musician' ? 'Músico' :
-                       musician.role === 'admin' ? 'Admin' :
-                       musician.role === 'manager' ? 'Gestor' :
-                       musician.role}
-                    </span>
-                    {musician.militaryStatus && musician.militaryStatus !== 'Ativo' && (
-                      <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                        {musician.militaryStatus}
-                      </span>
-                    )}
+            {filteredMusicians.map((musician) => {
+              const currentStatus = getCurrentMilitaryStatus(musician);
+              return (
+                <div key={musician.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
+                  <div className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 font-bold text-sm uppercase border border-gray-200 dark:border-gray-700">
+                    {musician.name?.split(' ').map((n: string) => n[0]).join('') || '??'}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{musician.name}</h3>
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                        musician.role === 'admin' || musician.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                        musician.role === 'Gestor' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                      }`}>
+                        {musician.role === 'musician' ? 'Músico' :
+                         musician.role === 'admin' ? 'Admin' :
+                         musician.role === 'manager' ? 'Gestor' :
+                         musician.role}
+                      </span>
+                      {currentStatus && (
+                        <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                          {currentStatus}
+                        </span>
+                      )}
+                    </div>
                   <p className="text-xs text-gray-500 truncate">{musician.instrument}</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -144,7 +147,8 @@ export default function AdminMusiciansListPage() {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+          })}
             {filteredMusicians.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                 <span className="material-symbols-outlined text-[48px] mb-2">person_off</span>

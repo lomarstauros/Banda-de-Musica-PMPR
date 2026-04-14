@@ -10,7 +10,6 @@ import { auth, db } from '@/lib/firebase';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   
@@ -77,60 +76,34 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      if (isLogin) {
-        const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
 
-        // Verify if force password reset flag is active first (for provisional accounts)
-        const profileSnap = await getDoc(doc(db, "profiles", userCred.user.uid));
-        
-        if (profileSnap.exists()) {
-          const profileData = profileSnap.data();
-          if (profileData.forcePasswordReset) {
-            setNeedsPasswordReset(true);
-            setLoading(false);
-            return; // Hold here safely to force reset flow
-          }
-        }
-
-        // If not provisional, enforce email verification (except for @bm.pmpr.com domains)
-        if (!userCred.user.emailVerified && !userCred.user.email?.toLowerCase().includes('bm.pmpr.com')) {
-          setNeedsVerification(true);
-          await signOut(auth);
+      // Verify if force password reset flag is active first (for provisional accounts)
+      const profileSnap = await getDoc(doc(db, "profiles", userCred.user.uid));
+      
+      if (profileSnap.exists()) {
+        const profileData = profileSnap.data();
+        if (profileData.forcePasswordReset) {
+          setNeedsPasswordReset(true);
           setLoading(false);
-          return;
+          return; // Hold here safely to force reset flow
         }
-
-        router.push('/dashboard');
-      } else {
-        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-        await setDoc(doc(db, "profiles", userCred.user.uid), {
-          id: userCred.user.uid,
-          name: '',
-          email: email,
-          phone: '',
-          rank: '',
-          instrument: '',
-          photo_url: 'https://picsum.photos/seed/profile/200/200',
-          status: 'pending'
-        });
-
-        if (!email.toLowerCase().includes('bm.pmpr.com')) {
-          await sendEmailVerification(userCred.user);
-        }
-        await signOut(auth);
-        
-        setIsLogin(true);
-        setNeedsVerification(true);
-        setVerificationSent(true);
-        setLoading(false);
       }
+
+      // If not provisional, enforce email verification (except for @bm.pmpr.com domains)
+      if (!userCred.user.emailVerified && !userCred.user.email?.toLowerCase().includes('bm.pmpr.com')) {
+        setNeedsVerification(true);
+        await signOut(auth);
+        setLoading(false);
+        return;
+      }
+
+      router.push('/dashboard');
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
         setError('E-mail ou senha incorretos.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('Este e-mail já está sendo usado por outra conta.');
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError('O login por E-mail não está ativado no Firebase.');
+      } else if (err.code === 'auth/user-not-found') {
+        setError('Usuário não encontrado. Entre em contato com o Comando para seu primeiro acesso.');
       } else {
         setError(err.message || 'Erro ao processar sua requisição.');
       }
@@ -146,15 +119,15 @@ export default function LoginPage() {
           <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : (isLogin ? 'Bem-vindo, Músico' : 'Criar Nova Conta'))}
+          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : (isLogin ? 'Acesse suas escalas de serviço' : 'Preencha seus dados para começar'))}
+          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço')}
         </p>
       </div>
 
       <motion.div 
-        key={needsVerification ? "verify" : (needsPasswordReset ? "reset" : (isLogin ? "login" : "register"))}
+        key={needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login")}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -233,7 +206,6 @@ export default function LoginPage() {
             <button 
               onClick={() => {
                 setNeedsVerification(false);
-                setIsLogin(true);
                 setPassword('');
               }}
               className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
@@ -267,7 +239,7 @@ export default function LoginPage() {
               <div className="flex w-full items-stretch rounded-lg shadow-sm">
                 <input 
                   className="flex w-full min-w-0 flex-1 rounded-l-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary focus:border-primary h-14 px-[15px] text-base font-normal leading-normal placeholder:text-slate-400 dark:placeholder:text-[#9da6b9] border-r-0" 
-                  placeholder={isLogin ? "Digite sua senha" : "Crie uma senha forte"} 
+                  placeholder="Digite sua senha" 
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -296,35 +268,20 @@ export default function LoginPage() {
               </div>
             )}
 
-            {isLogin && (
-              <div className="flex justify-end -mt-3">
-                <a className="text-sm font-medium text-slate-500 hover:text-primary dark:text-[#9da6b9] dark:hover:text-white transition-colors" href="#">
-                  Esqueci minha senha
-                </a>
-              </div>
-            )}
-
             <div className="flex flex-col gap-4 mt-2">
               <button 
                 type="submit"
                 disabled={loading}
                 className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
               >
-                {loading ? 'PROCESSANDO...' : (isLogin ? 'ACESSAR' : 'CRIAR CONTA')}
+                {loading ? 'PROCESSANDO...' : 'ACESSAR'}
               </button>
-              
-              <button 
-                type="button" 
-                onClick={() => {
-                  setIsLogin(!isLogin);
-                  setError(null);
-                }}
-                className="flex items-center justify-center w-full py-2 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white transition-colors"
-              >
-                <span className="text-sm font-medium">
-                  {isLogin ? 'Ainda não tem conta? Clique aqui' : 'Já tem uma conta? Faça login'}
-                </span>
-              </button>
+
+              <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 mt-2">
+                 <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
+                   <strong>Primeiro acesso?</strong> Utilize o e-mail provisório (@bm.pmpr.com) e a senha padrão (123456) fornecidos pelo Comando para configurar sua conta definitiva.
+                 </p>
+              </div>
 
               <button type="button" className="flex items-center justify-center gap-2 w-full py-2 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white transition-colors opacity-80 hover:opacity-100">
                 <span className="material-symbols-outlined text-[32px]">face</span>

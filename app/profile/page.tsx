@@ -54,7 +54,8 @@ export default function ProfilePage() {
     rank: '',
     instrument: '',
     photoUrl: '',
-    cpf: ''
+    cpf: '',
+    re: ''
   });
 
   useEffect(() => {
@@ -84,7 +85,8 @@ export default function ProfilePage() {
             rank: data.rank || '',
             instrument: data.instrument || '',
             photoUrl: data.photo_url || 'https://picsum.photos/seed/profile/200/200',
-            cpf: data.cpf || ''
+            cpf: data.cpf || '',
+            re: data.re || ''
           });
         }
       } catch (error: any) {
@@ -150,7 +152,8 @@ export default function ProfilePage() {
         // instrumento é gerenciado exclusivamente pelo gestor — nunca salvo aqui
         photo_url: formData.photoUrl,
         phone: formData.phone,
-        cpf: formData.cpf
+        cpf: formData.cpf,
+        re: formData.re
       }, { merge: true });
 
 
@@ -300,6 +303,14 @@ export default function ProfilePage() {
                   value={formData.cpf} 
                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
+                  type="text"
+              <label className="flex flex-col flex-1">
+                <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">RE / Identificação</p>
+                <input 
+                  className="flex w-full min-w-0 flex-1 rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 px-[15px] text-base font-normal leading-normal transition-all" 
+                  value={formData.re} 
+                  onChange={(e) => setFormData(prev => ({ ...prev, re: formatRG(e.target.value) }))}
+                  placeholder="0.000.000-0"
                   type="text"
                 />
               </label>

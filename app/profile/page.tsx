@@ -304,6 +304,8 @@ export default function ProfilePage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
                   placeholder="000.000.000-00"
                   type="text"
+                />
+              </label>
               <label className="flex flex-col flex-1">
                 <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">RE / Identificação</p>
                 <input 

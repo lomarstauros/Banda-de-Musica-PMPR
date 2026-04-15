@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, updateEmail, sendEmailVerification, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, verifyBeforeUpdateEmail, sendEmailVerification, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -22,6 +22,9 @@ export default function LoginPage() {
   // Email Verification State
   const [needsVerification, setNeedsVerification] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+
+  // Email change pending verification
+  const [emailChangePending, setEmailChangePending] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,26 +45,43 @@ export default function LoginPage() {
     setError(null);
     try {
       if (auth.currentUser) {
-        if (newEmail && newEmail !== auth.currentUser.email) {
-          await updateEmail(auth.currentUser, newEmail);
-          if (!newEmail.toLowerCase().includes('bm.pmpr.com')) {
-            await sendEmailVerification(auth.currentUser);
-          }
-        }
+        // 1. Update the password first (this doesn't require email verification)
         await updatePassword(auth.currentUser, newPassword);
         
         const userRef = doc(db, "profiles", auth.currentUser.uid);
-        await updateDoc(userRef, {
-          forcePasswordReset: false,
-          email: newEmail || auth.currentUser.email
-        });
-        
-        setNeedsPasswordReset(false);
-        router.push('/dashboard');
+        const isChangingEmail = newEmail && newEmail.toLowerCase() !== auth.currentUser.email?.toLowerCase();
+
+        if (isChangingEmail) {
+          // 2. Use verifyBeforeUpdateEmail - sends a verification link to the new email
+          // The email in Firebase Auth will only change after the user clicks the link
+          await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+          
+          // 3. Save pending email and mark password reset as done in Firestore
+          await updateDoc(userRef, {
+            forcePasswordReset: false,
+            pendingEmail: newEmail,
+            email: auth.currentUser.email // Keep current email until verified
+          });
+
+          // Show success message about email verification
+          setNeedsPasswordReset(false);
+          setEmailChangePending(true);
+        } else {
+          // No email change, just update the profile
+          await updateDoc(userRef, {
+            forcePasswordReset: false,
+            email: auth.currentUser.email
+          });
+          
+          setNeedsPasswordReset(false);
+          router.push('/dashboard');
+        }
       }
     } catch (err: any) {
       if (err.code === 'auth/requires-recent-login') {
-        setError('Por questões de segurança, refaça o login antes de alterar o e-mail provisório.');
+        setError('Por questões de segurança, refaça o login antes de alterar suas credenciais.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Operação não permitida. Verifique as configurações do Firebase.');
       } else {
         setError('Erro ao atualizar credenciais: ' + err.message);
       }
@@ -119,22 +139,49 @@ export default function LoginPage() {
           <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')}
+          {emailChangePending ? 'Confirme seu Novo E-mail' : (needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico'))}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço')}
+          {emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço'))}
         </p>
       </div>
 
       <motion.div 
-        key={needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login")}
+        key={emailChangePending ? "emailPending" : (needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login"))}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3 }}
         className="flex flex-col w-full max-w-[420px] mx-auto px-6 gap-6"
       >
-        {needsPasswordReset ? (
+        {emailChangePending ? (
+          <div className="flex flex-col gap-6 items-center text-center">
+            <div className="size-20 rounded-full border-4 border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 flex items-center justify-center text-green-500 dark:text-green-400 mb-2">
+              <span className="material-symbols-outlined text-[40px]">mark_email_read</span>
+            </div>
+            
+            <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-4 text-green-700 dark:text-green-300 text-sm">
+              <p className="font-semibold mb-1">✅ Senha atualizada com sucesso!</p>
+            </div>
+
+            <p className="text-slate-600 dark:text-slate-300">
+              Enviamos um link de verificação para:
+              <strong className="text-slate-900 dark:text-white block mt-1">{newEmail}</strong>
+            </p>
+            
+            <div className="bg-slate-50 dark:bg-[#151e2c] p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
+              Acesse a caixa de entrada do novo e-mail e clique no link de confirmação. Após confirmar, seu e-mail de login será atualizado automaticamente.
+              Verifique também a pasta de <strong>Spam/Lixo Eletrônico</strong>.
+            </div>
+
+            <button 
+              onClick={() => router.push('/dashboard')}
+              className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+            >
+              CONTINUAR PARA O SISTEMA
+            </button>
+          </div>
+        ) : needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
             <label className="flex flex-col w-full">
               <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Novo E-mail (Definitivo)</p>

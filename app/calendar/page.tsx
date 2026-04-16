@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { generateDailyScalesPDF } from '@/lib/pdf-generator';
 
 export default function CalendarPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -226,7 +227,18 @@ export default function CalendarPage() {
 
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">{capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}</h3>
-          {selectedEvents.length > 0 && <button className="text-primary text-sm font-semibold hover:underline">Ver tudo</button>}
+          {selectedEvents.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button className="text-primary text-sm font-semibold hover:underline">Ver tudo</button>
+              <button 
+                onClick={() => generateDailyScalesPDF(selectedEvents)}
+                title="Baixar todas as escalas do dia"
+                className="flex items-center justify-center size-9 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
+              >
+                <span className="material-symbols-outlined text-[22px]">download</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-3 px-4 pb-8">

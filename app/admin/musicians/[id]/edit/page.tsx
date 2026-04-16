@@ -8,7 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
-import { updateUserAuthEmail } from '@/app/actions/auth-actions';
+import { updateUserAuthEmail, resetUserAccess } from '@/app/actions/auth-actions';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -182,6 +182,33 @@ export default function AdminEditMusicianPage() {
         setSaving(false);
       }
     }
+  const handleResetAccess = async () => {
+    if (!window.confirm('Isso vai redefinir o e-mail de login para o que está no formulário e a senha para "123456". Deseja continuar?')) {
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const targetEmail = formData.email.trim().toLowerCase();
+      const res = await resetUserAccess(params.id as string, targetEmail);
+      
+      if (res.success) {
+        // Marcar no Firestore que precisa trocar senha no primeiro acesso
+        const docRef = doc(db, 'profiles', params.id as string);
+        await updateDoc(docRef, {
+           forcePasswordReset: true,
+           email: targetEmail
+        });
+        setOriginalEmail(targetEmail);
+        alert('Acesso redefinido com sucesso! O músico deve usar a senha 123456.');
+      } else {
+        alert(res.error);
+      }
+    } catch (e: any) {
+      alert('Erro ao processar reset: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputCls = 'w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 text-sm focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-gray-900 dark:text-white';
@@ -299,6 +326,16 @@ export default function AdminEditMusicianPage() {
                 </p>
               )}
             </label>
+
+            <button
+               type="button"
+               onClick={handleResetAccess}
+               disabled={saving}
+               className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-400 text-xs font-bold hover:bg-amber-100 transition-all disabled:opacity-50"
+            >
+               <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+               REDEFINIR ACESSO (SENHA 123456)
+            </button>
 
             <label className={labelCls}>
               <span className={labelTextCls}>Celular</span>

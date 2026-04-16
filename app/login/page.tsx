@@ -105,7 +105,12 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await sendPasswordResetEmail(auth, forgotEmail);
+      const targetEmail = forgotEmail.trim().toLowerCase();
+      if (!targetEmail) {
+        setError('Por favor, informe seu e-mail.');
+        return;
+      }
+      await sendPasswordResetEmail(auth, targetEmail);
       setForgotEmailSent(true);
     } catch (err: any) {
       if (err.code === 'auth/user-not-found') {
@@ -128,7 +133,8 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      const userCred = await signInWithEmailAndPassword(auth, cleanEmail, password.trim());
 
       // Verify if force password reset flag is active first (for provisional accounts)
       const profileSnap = await getDoc(doc(db, "profiles", userCred.user.uid));
@@ -157,9 +163,9 @@ export default function LoginPage() {
       if (err.code === 'auth/invalid-credential') {
         setError('E-mail ou senha incorretos.');
       } else if (err.code === 'auth/user-not-found') {
-        setError('Usuário não encontrado. Entre em contato com o Comando para seu primeiro acesso.');
+        setError('Usuário não encontrado. O gestor precisa cadastrar seu e-mail pessoal antes do primeiro acesso.');
       } else {
-        setError(err.message || 'Erro ao processar sua requisição.');
+        setError(`Erro técnico [${err.code}]: ` + (err.message || 'Erro ao processar sua requisição.'));
       }
       setLoading(false);
     }

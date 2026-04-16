@@ -148,10 +148,21 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     doc.text(`ESCALA PARA O DIA ${dateLabel}`, pageWidth / 2, curY, { align: 'center' });
     curY += 10;
   } else {
-    // Se não for o primeiro cabeçalho, apenas um espaçamento ou linha divisória
-    doc.setDrawColor(200);
-    doc.line(margin, curY - 5, pageWidth - margin, curY - 5);
+    // ── BARRA SEPARADORA PARA NOVOS SERVIÇOS --------------------------------
+    doc.setFillColor(19, 91, 236); // Cor Primária #135bec
+    doc.rect(margin, curY - 10, pageWidth - 2 * margin, 8, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    const serviceTitle = (scale.title || 'SERVIÇO').toUpperCase();
+    const serviceTime = scale.startTime ? ` às ${scale.startTime}` : '';
+    doc.text(`PRÓXIMO SERVIÇO: ${serviceTitle}${serviceTime}`, pageWidth / 2, curY - 4.5, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
     doc.setDrawColor(0);
+    curY += 2; // Pequeno ajuste de respiro após a barra
   }
 
   // ── HORÁRIO label --------------------------------------------------------
@@ -412,9 +423,9 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
 
     let currentY = 15;
     scales.forEach((scale, index) => {
-      // Se não for a primeira escala, adicionar um espaçamento
+      // Se não for a primeira escala, adicionar um espaçamento maior para o divisor
       if (index > 0) {
-        currentY += 15;
+        currentY += 25; // Espaço para a barra azul e respiro
         // Check if there's enough space for at least the details table
         if (currentY > 230) {
           doc.addPage();

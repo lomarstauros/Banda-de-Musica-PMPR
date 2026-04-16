@@ -69,14 +69,7 @@ export default function CalendarPage() {
         ...doc.data()
       }));
 
-      const visibleScales = allScales.filter((scale: any) => {
-        if (hasFullVisibility) return true; // Administrativo/Regente/Comando veem tudo
-        const hasMusicians = scale.musicians && scale.musicians.length > 0;
-        if (!hasMusicians) return true; // sem efetivo definido → visível para todos
-        return scale.musicians.some((m: any) => m.id === user.uid); // apenas se escalado
-      });
-
-      setEvents(visibleScales);
+      setEvents(allScales);
       setLoadingEvents(false);
     });
 

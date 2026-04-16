@@ -386,12 +386,13 @@ export default function LoginPage() {
               </div>
             </label>
 
-            <label className="flex flex-col w-full">
+            <div className="flex flex-col w-full">
               <div className="flex justify-between items-center pb-2">
                 <p className="text-slate-900 dark:text-white text-base font-medium leading-normal">Senha</p>
                 <button 
                   type="button"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowForgotPassword(true);
                     setError(null);
                     setForgotEmail(email);
@@ -410,16 +411,20 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-                <div 
-                  onClick={() => setShowPassword(!showPassword)}
+                <button 
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPassword(!showPassword);
+                  }}
                   className="text-slate-400 dark:text-[#9da6b9] flex border border-l-0 border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] items-center justify-center pr-[15px] pl-2 rounded-r-lg cursor-pointer hover:text-primary transition-colors"
                 >
                   <span className="material-symbols-outlined text-[24px]">
                     {showPassword ? "visibility_off" : "visibility"}
                   </span>
-                </div>
+                </button>
               </div>
-            </label>
+            </div>
 
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 flex flex-col gap-2">

@@ -182,6 +182,8 @@ export default function AdminEditMusicianPage() {
         setSaving(false);
       }
     }
+  };
+
   const handleResetAccess = async () => {
     if (!window.confirm('Isso vai redefinir o e-mail de login para o que está no formulário e a senha para "123456". Deseja continuar?')) {
       return;

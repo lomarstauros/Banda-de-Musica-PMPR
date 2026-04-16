@@ -32,6 +32,8 @@ export default function LoginPage() {
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -57,9 +59,12 @@ export default function LoginPage() {
         const isChangingEmail = newEmail && newEmail.toLowerCase() !== auth.currentUser.email?.toLowerCase();
 
         if (isChangingEmail) {
+          const actionCodeSettings = {
+            url: window.location.origin + '/login',
+            handleCodeInApp: true,
+          };
           // 2. Use verifyBeforeUpdateEmail - sends a verification link to the new email
-          // The email in Firebase Auth will only change after the user clicks the link
-          await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+          await verifyBeforeUpdateEmail(auth.currentUser, newEmail, actionCodeSettings);
           
           // 3. Save pending email and mark password reset as done in Firestore
           await updateDoc(userRef, {
@@ -140,7 +145,8 @@ export default function LoginPage() {
       // If not provisional, enforce email verification (except for @bm.pmpr.com domains)
       if (!userCred.user.emailVerified && !userCred.user.email?.toLowerCase().includes('bm.pmpr.com')) {
         setNeedsVerification(true);
-        await signOut(auth);
+        // We don't sign target out immediately to allow them to click "Resend Verification"
+        // await signOut(auth); 
         setLoading(false);
         return;
       }
@@ -154,6 +160,68 @@ export default function LoginPage() {
       } else {
         setError(err.message || 'Erro ao processar sua requisição.');
       }
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resendLoading) return;
+    
+    setResendLoading(true);
+    setResendSuccess(false);
+    setError(null);
+
+    try {
+      if (auth.currentUser) {
+        const actionCodeSettings = {
+          url: window.location.origin + '/login',
+          handleCodeInApp: true,
+        };
+
+        if (emailChangePending && newEmail) {
+          // Case where user is changing email (provisionary flow)
+          await verifyBeforeUpdateEmail(auth.currentUser, newEmail, actionCodeSettings);
+        } else {
+          // Regular verification case
+          await sendEmailVerification(auth.currentUser, actionCodeSettings);
+        }
+        
+        setResendSuccess(true);
+        // Reset success state after 10 seconds
+        setTimeout(() => setResendSuccess(false), 10000);
+      } else {
+        setError('Sessão expirada. Por favor, tente fazer o login novamente.');
+      }
+    } catch (err: any) {
+      console.error("Resend error:", err);
+      if (err.code === 'auth/too-many-requests') {
+        setError('Muitas tentativas de reenvio. Aguarde alguns minutos antes de tentar novamente.');
+      } else if (err.code === 'auth/requires-recent-login') {
+        setError('Para reenviar o e-mail, por favor realize o login novamente.');
+        await signOut(auth);
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        setError('Erro ao reenviar e-mail de verificação: ' + (err.message || 'Erro desconhecido.'));
+      }
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleVerificationCheck = async () => {
+    // If they were in needsVerification state, they are technically logged in but showing the prompt.
+    // We sign out and refresh to let them try login again (which will check verification status)
+    setLoading(true);
+    try {
+      await signOut(auth);
+      setNeedsVerification(false);
+      setEmailChangePending(false);
+      setVerificationSent(false);
+      setError(null);
+      setPassword('');
+    } catch (err) {
+      console.error("Sign out error:", err);
+    } finally {
       setLoading(false);
     }
   };
@@ -281,12 +349,29 @@ export default function LoginPage() {
               Verifique também a pasta de <strong>Spam/Lixo Eletrônico</strong>.
             </div>
 
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
-            >
-              CONTINUAR PARA O SISTEMA
-            </button>
+            <div className="w-full flex flex-col gap-3">
+              {resendSuccess && (
+                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3 text-green-700 dark:text-green-300 text-xs flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  E-mail de verificação reenviado com sucesso!
+                </div>
+              )}
+
+              <button 
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="text-primary text-sm font-medium hover:underline disabled:opacity-50"
+              >
+                {resendLoading ? 'REENVIANDO...' : 'Não recebi o e-mail? Reenviar agora'}
+              </button>
+
+              <button 
+                onClick={() => router.push('/dashboard')}
+                className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+              >
+                CONTINUAR PARA O SISTEMA
+              </button>
+            </div>
           </div>
         ) : needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
@@ -357,15 +442,36 @@ export default function LoginPage() {
               Procure na sua caixa de entrada principal ou na pasta de <strong>Spam/Lixo Eletrônico</strong>. Clique no link do e-mail e depois volte aqui para fazer login.
             </div>
 
-            <button 
-              onClick={() => {
-                setNeedsVerification(false);
-                setPassword('');
-              }}
-              className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
-            >
-              JÁ VERIFIQUEI, FAZER LOGIN
-            </button>
+            <div className="w-full flex flex-col gap-3">
+              {resendSuccess && (
+                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3 text-green-700 dark:text-green-300 text-xs flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                  E-mail de verificação reenviado com sucesso!
+                </div>
+              )}
+
+              {error && needsVerification && (
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3 text-red-700 dark:text-red-300 text-xs text-center">
+                  {error}
+                </div>
+              )}
+
+              <button 
+                onClick={handleResendVerification}
+                disabled={resendLoading}
+                className="text-primary text-sm font-medium hover:underline disabled:opacity-50"
+              >
+                {resendLoading ? 'REENVIANDO...' : 'Não recebi o e-mail? Reenviar agora'}
+              </button>
+
+              <button 
+                onClick={handleVerificationCheck}
+                disabled={loading}
+                className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+              >
+                {loading ? 'PROCESSANDO...' : 'JÁ VERIFIQUEI, FAZER LOGIN'}
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">

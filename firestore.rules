@@ -15,15 +15,16 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'master']) ||
-          (request.auth.token.email == "heliomardejesus87@gmail.com"));
+        ((request.auth.token.email == "heliomardejesus87@gmail.com") ||
+         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'master']));
     }
 
     function isManager() {
       return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['manager', 'admin', 'master']) || isAdmin());
+        (isAdmin() || 
+         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['manager', 'admin', 'master']));
     }
 
     // ===============================================================
@@ -32,10 +33,10 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      allow read: if isOwner(userId) || isManager();
+      // Allow all authenticated users to read/list profiles (needed for swap selection)
+      allow read: if isAuthenticated();
       
       // New users can create their own profile.
-      // Admins can create anything.
       allow create: if isOwner(userId) || isAdmin();
       
       // Users can update their own non-sensitive info.

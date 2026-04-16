@@ -404,7 +404,16 @@ export default function AdminNewScalePage() {
 
               {/* Referência */}
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
+                  <button 
+                    type="button"
+                    onClick={() => setExpediente(prev => ({ ...prev, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))}
+                    className="text-[10px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    Usar padrão do Maestro
+                  </button>
+                </div>
                 <input
                   type="text"
                   value={expediente.referencia}

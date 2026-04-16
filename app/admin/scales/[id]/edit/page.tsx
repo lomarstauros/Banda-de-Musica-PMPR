@@ -424,7 +424,16 @@ export default function AdminEditScalePage() {
 
               {/* Referência */}
               <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
+                  <button 
+                    type="button"
+                    onClick={() => setExpediente(prev => ({ ...prev, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))}
+                    className="text-[10px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
+                  >
+                    Usar padrão do Maestro
+                  </button>
+                </div>
                 <input type="text" value={expediente.referencia}
                   onChange={e => setExpediente(prev => ({ ...prev, referencia: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"

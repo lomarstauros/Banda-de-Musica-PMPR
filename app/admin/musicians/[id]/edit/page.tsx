@@ -8,6 +8,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
+import { updateUserAuthEmail } from '@/app/actions/auth-actions';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -34,6 +35,7 @@ export default function AdminEditMusicianPage() {
   const [saving, setSaving] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [originalEmail, setOriginalEmail] = useState('');
 
   // Espelha exatamente os mesmos campos do perfil do usuário
   const [formData, setFormData] = useState({
@@ -79,6 +81,7 @@ export default function AdminEditMusicianPage() {
                 statusEndDate: data.statusEndDate || '',
                 photo_url: data.photo_url || '',
               });
+              setOriginalEmail(data.email || '');
             } else {
               alert('Integrante não encontrado');
               router.push('/admin/musicians');
@@ -127,6 +130,20 @@ export default function AdminEditMusicianPage() {
     }
     setSaving(true);
     try {
+      // 1. Sincronizar e-mail com Firebase Auth se houver alteração
+      const newEmail = formData.email.trim().toLowerCase();
+      if (originalEmail && newEmail !== originalEmail.toLowerCase()) {
+        console.log(`[AdminEdit] Alteração de e-mail detectada: ${originalEmail} -> ${newEmail}`);
+        const authRes = await updateUserAuthEmail(params.id as string, newEmail);
+        
+        if (!authRes.success) {
+          alert(authRes.error);
+          setSaving(false);
+          return;
+        }
+      }
+
+      // 2. Atualizar Firestore
       const docRef = doc(db, 'profiles', params.id as string);
       // Salva com as mesmas chaves do Firestore usadas pelo perfil do usuário
       await updateDoc(docRef, {
@@ -136,7 +153,7 @@ export default function AdminEditMusicianPage() {
         rank: formData.rank,
         instrument: formData.instrument,
         role: formData.role,
-        email: formData.email,
+        email: newEmail,
         phone: formData.phone,
         cpf: formData.cpf,
         active: formData.active,

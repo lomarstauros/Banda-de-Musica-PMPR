@@ -8,8 +8,8 @@ import { motion } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { updateUserAuthEmail } from '@/app/actions/auth-actions';
 
 const formatCPF = (value: string) => {
   const clean = value.replace(/\D/g, '');
@@ -155,11 +155,23 @@ export default function ProfilePage() {
     if (!user) return;
     setSaving(true);
     try {
+      // 1. Sincronizar e-mail com Firebase Auth se houver alteração
+      const newEmail = formData.email.trim().toLowerCase();
+      if (user.email && newEmail !== user.email.toLowerCase()) {
+        const authRes = await updateUserAuthEmail(user.uid, newEmail);
+        if (!authRes.success) {
+          alert(authRes.error);
+          setSaving(false);
+          return;
+        }
+      }
+
+      // 2. Atualizar Firestore
       const docRef = doc(db, 'profiles', user.uid);
       await setDoc(docRef, {
         name: formData.name,
         war_name: formData.warName,
-        email: formData.email,
+        email: newEmail,
         rank: formData.rank,
         // instrumento é gerenciado exclusivamente pelo gestor — nunca salvo aqui
         photo_url: formData.photoUrl,
@@ -167,7 +179,6 @@ export default function ProfilePage() {
         cpf: formData.cpf,
         re: formData.re
       }, { merge: true });
-
 
       alert('Perfil atualizado com sucesso!');
     } catch (error: any) {

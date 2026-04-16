@@ -102,8 +102,8 @@ export default function AdminEditScalePage() {
             location: data.location || '',
             uniform: data.uniform?.includes('Especial') ? data.uniform : 'Outros',
             customUniform: data.uniform?.includes('Especial') ? '' : data.uniform,
-            format: ['Ensaio', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? data.format : 'Outros',
-            customFormat: ['Ensaio', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : data.format,
+            format: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? data.format : 'Outros',
+            customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : data.format,
           });
           
           if (data.musicians) {
@@ -172,9 +172,9 @@ export default function AdminEditScalePage() {
   };
 
   const handleUpdateScale = async () => {
-    const isEnsaio = formData.format === 'Ensaio';
-    if (!formData.title || !formData.date || (!isEnsaio && !formData.departureTime) || (isEnsaio && !formData.startTime)) {
-      setError(isEnsaio ? "Preencha ao menos o Nome, Data e Início Previsto." : "Preencha ao menos o Nome, Data e Horário de Saída.");
+    const isReducedFormat = formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo';
+    if (!formData.title || !formData.date || (!isReducedFormat && !formData.departureTime) || (isReducedFormat && !formData.startTime)) {
+      setError(isReducedFormat ? "Preencha ao menos o Nome, Data e Início Previsto." : "Preencha ao menos o Nome, Data e Horário de Saída.");
       return;
     }
     
@@ -358,6 +358,7 @@ export default function AdminEditScalePage() {
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
                   >
                     <option>Ensaio</option>
+                    <option>Expediente Administrativo</option>
                     <option>Apresentação local fechado</option>
                     <option>Apresentação local aberto</option>
                     <option>Formatura Militar</option>
@@ -380,7 +381,7 @@ export default function AdminEditScalePage() {
               )}
               
               <div className="grid grid-cols-2 gap-4">
-                {formData.format !== 'Ensaio' && (
+                {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
                   <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
                     <input 
@@ -389,7 +390,7 @@ export default function AdminEditScalePage() {
                     />
                   </motion.label>
                 )}
-                <label className={`flex flex-col gap-2 ${formData.format === 'Ensaio' ? 'col-span-2' : ''}`}>
+                <label className={`flex flex-col gap-2 ${(formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Início Previsto</span>
                   <input 
                     name="startTime" type="time" value={formData.startTime} onChange={handleChange}
@@ -406,7 +407,7 @@ export default function AdminEditScalePage() {
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
                   />
                 </label>
-                {formData.format !== 'Ensaio' && (
+                {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
                   <motion.label initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Retorno Previsto</span>
                     <input 
@@ -420,10 +421,6 @@ export default function AdminEditScalePage() {
 
             {/* Bloco 0: Expediente Administrativo */}
             <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-4 shadow-sm">
-              <div className="flex items-center gap-2 pb-1 border-b border-gray-100 dark:border-gray-800">
-                <span className="material-symbols-outlined text-[18px] text-blue-500">description</span>
-                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wide">Expediente Administrativo</span>
-              </div>
 
               {/* Referência */}
               <label className="flex flex-col gap-2">

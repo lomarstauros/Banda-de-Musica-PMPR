@@ -251,7 +251,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex flex-1 flex-col gap-1 justify-center">
                   <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${evt.format === 'Ensaio' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${evt.format === 'Ensaio' || evt.format === 'Expediente Administrativo' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
                       {evt.format}
                     </span>
                   </div>

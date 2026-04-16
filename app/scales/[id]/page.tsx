@@ -120,7 +120,7 @@ export default function ScaleDetailsPage() {
     );
   }
 
-  const isEnsaio = scale.format === 'Ensaio';
+  const isEnsaio = scale.format === 'Ensaio' || scale.format === 'Expediente Administrativo';
   // Verifica se o usuário atual é o Chefe do Serviço desta escala
   const isChief = user && scale.serviceChief && scale.serviceChief.id === user.uid;
   const isAdmin = userRole === 'admin' || userRole === 'manager';

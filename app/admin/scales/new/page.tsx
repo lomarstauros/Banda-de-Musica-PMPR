@@ -318,7 +318,87 @@ export default function AdminNewScalePage() {
           )}
 
           <div className="flex flex-col gap-5">
-          {/* Bloco 0: Expediente Administrativo */}
+            {/* Bloco 2: Estrutura de Horários */}
+            <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Cronograma</h3>
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Data</span>
+                <input 
+                  name="date" type="date" value={formData.date} onChange={handleChange}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Formato</span>
+                <div className="relative">
+                  <select 
+                    name="format" value={formData.format} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                  >
+                    <option>Ensaio</option>
+                    <option>Apresentação local fechado</option>
+                    <option>Apresentação local aberto</option>
+                    <option>Formatura Militar</option>
+                    <option>Outros</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                  </div>
+                </div>
+              </label>
+
+              {formData.format === 'Outros' && (
+                <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Formato</span>
+                  <input 
+                    name="customFormat" value={formData.customFormat} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    placeholder="Ex: Formatura Extraordinária"
+                  />
+                </motion.label>
+              )}
+              
+              <div className="grid grid-cols-2 gap-4">
+                {formData.format !== 'Ensaio' && (
+                  <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
+                    <input 
+                      name="departureTime" type="time" value={formData.departureTime} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    />
+                  </motion.label>
+                )}
+                <label className={`flex flex-col gap-2 ${formData.format === 'Ensaio' ? 'col-span-2' : ''}`}>
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Início Previsto</span>
+                  <input 
+                    name="startTime" type="time" value={formData.startTime} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Término Previsto</span>
+                  <input 
+                    name="endTime" type="time" value={formData.endTime} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                  />
+                </label>
+                {formData.format !== 'Ensaio' && (
+                  <motion.label initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Retorno Previsto</span>
+                    <input 
+                      name="returnTime" type="time" value={formData.returnTime} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    />
+                  </motion.label>
+                )}
+              </div>
+            </div>
+
+            {/* Bloco 0: Expediente Administrativo */}
             <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-4 shadow-sm">
               <div className="flex items-center gap-2 pb-1 border-b border-gray-100 dark:border-gray-800">
                 <span className="material-symbols-outlined text-[18px] text-blue-500">description</span>

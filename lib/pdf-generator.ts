@@ -230,9 +230,20 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       adminRows.push(['ADMINISTRATIVO', '', '']);
     }
 
+    const obraRows: any[] = [];
+    (exp.obra || []).forEach((item: any, i: number) => {
+      const id = typeof item === 'object' ? item.id : item;
+      const p = findProfile(id);
+      const data = getPersonData(p, typeof item === 'object' ? item.label : item);
+      if (data && data.content) {
+        obraRows.push([i === 0 ? 'OBRA' : '', data, data.cpf]);
+      }
+    });
+
     const expBody = [
       ['SARGENTEAÇÃO', rSarg, rSarg.cpf],
       ...adminRows,
+      ...obraRows,
       [{ content: 'P4/FINANÇAS E TRANSPORTE', styles: { fontSize: 6.5 } }, rP4, rP4.cpf],
     ];
 

@@ -45,10 +45,11 @@ export default function AdminNewScalePage() {
     sargenteacao: '',
     p4FinancasTransporte: '',
     administrativo: [] as string[],
+    obra: [] as string[],
     permanencia: [] as string[],
   });
 
-  const toggleMulti = (field: 'administrativo' | 'permanencia', id: string) => {
+  const toggleMulti = (field: 'administrativo' | 'permanencia' | 'obra', id: string) => {
     setExpediente(prev => ({
       ...prev,
       [field]: prev[field].includes(id)
@@ -189,6 +190,10 @@ export default function AdminNewScalePage() {
             : '',
           p4FinancasTransporteId: expediente.p4FinancasTransporte || null,
           administrativo: expediente.administrativo.map(id => ({
+            id,
+            label: getMusicianLabel(id)
+          })),
+          obra: expediente.obra.map(id => ({
             id,
             label: getMusicianLabel(id)
           })),
@@ -503,6 +508,50 @@ export default function AdminNewScalePage() {
                         checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
                       }`}>
                         <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('administrativo', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
+                        <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
+                        {!available && (
+                          <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                            {m.militaryStatus}
+                          </span>
+                        )}
+                        <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Obra — Todos, múltipla seleção */}
+              <div className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                  Obra
+                  {expediente.obra.length > 0 && (
+                    <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.obra.length} sel.</span>
+                  )}
+                </span>
+                {expediente.obra.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-1">
+                    {expediente.obra.map(id => (
+                      <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
+                        {getMusicianLabel(id)}
+                        <button type="button" onClick={() => toggleMulti('obra', id)} className="ml-0.5 hover:text-red-500 transition-colors">
+                          <span className="material-symbols-outlined text-[12px]">close</span>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
+                  {musicians.map(m => {
+                    const available = isMusicianAvailable(m, formData.date);
+                    const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                    const checked = expediente.obra.includes(m.id);
+                    return (
+                      <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                        !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                        checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                      }`}>
+                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('obra', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                         <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
                         {!available && (
                           <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">

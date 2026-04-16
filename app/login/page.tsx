@@ -52,48 +52,25 @@ export default function LoginPage() {
     setError(null);
     try {
       if (auth.currentUser) {
-        // 1. Update the password first (this doesn't require email verification)
-        await updatePassword(auth.currentUser, newPassword);
+        // 1. Update the password
+        await updatePassword(auth.currentUser, newPassword.trim());
         
         const userRef = doc(db, "profiles", auth.currentUser.uid);
-        const isChangingEmail = newEmail && newEmail.toLowerCase() !== auth.currentUser.email?.toLowerCase();
-
-        if (isChangingEmail) {
-          const actionCodeSettings = {
-            url: window.location.origin + '/login',
-            handleCodeInApp: true,
-          };
-          // 2. Use verifyBeforeUpdateEmail - sends a verification link to the new email
-          await verifyBeforeUpdateEmail(auth.currentUser, newEmail, actionCodeSettings);
-          
-          // 3. Save pending email and mark password reset as done in Firestore
-          await updateDoc(userRef, {
-            forcePasswordReset: false,
-            pendingEmail: newEmail,
-            email: auth.currentUser.email // Keep current email until verified
-          });
-
-          // Show success message about email verification
-          setNeedsPasswordReset(false);
-          setEmailChangePending(true);
-        } else {
-          // No email change, just update the profile
-          await updateDoc(userRef, {
-            forcePasswordReset: false,
-            email: auth.currentUser.email
-          });
-          
-          setNeedsPasswordReset(false);
-          router.push('/dashboard');
-        }
+        
+        // 2. Just update the profile to remove the reset flag
+        await updateDoc(userRef, {
+          forcePasswordReset: false,
+          email: auth.currentUser.email
+        });
+        
+        setNeedsPasswordReset(false);
+        router.push('/dashboard');
       }
     } catch (err: any) {
-      if (err.code === 'auth/requires-recent-login') {
-        setError('Por questões de segurança, refaça o login antes de alterar suas credenciais.');
-      } else if (err.code === 'auth/operation-not-allowed') {
-        setError('Operação não permitida. Verifique as configurações do Firebase.');
+      if (err.code === 'auth/network-request-failed') {
+        setError('Falha de conexão com o servidor. Verifique sua internet e tente clicar em "Atualizar e Entrar" novamente.');
       } else {
-        setError('Erro ao atualizar credenciais: ' + err.message);
+        setError('Erro ao atualizar credenciais: ' + (err.message || err.code));
       }
     } finally {
       setLoading(false);
@@ -382,17 +359,10 @@ export default function LoginPage() {
           </div>
         ) : needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
-            <label className="flex flex-col w-full">
-              <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Confirme seu E-mail</p>
-              <input 
-                className="flex w-full rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary focus:border-primary h-14 px-[15px]" 
-                placeholder="seu.email@pessoal.com" 
-                type="email"
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                required
-              />
-            </label>
+            {/* Remover campo de e-mail para simplificar e evitar erros de rede */}
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm mb-2 text-center text-slate-600 dark:text-slate-400">
+               Logado como: <strong className="text-slate-900 dark:text-slate-200">{newEmail}</strong>
+            </div>
 
             <label className="flex flex-col w-full">
               <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Nova Senha Pessoal</p>

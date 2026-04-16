@@ -158,23 +158,23 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
   const referencia = exp.referencia || 'Determinação do Sr. Maestro Chefe da Banda de Música.';
 
   // ── DADOS DETALHES ------------------------------------------------------
-  const rRegente = getPersonData(regentePerson, exp.regenteMaestro || '') || { content: '', cpf: '' };
-  const rChief = getPersonData(chiefPerson, '') || { content: '', cpf: '' };
-  const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '') || { content: '', cpf: '' };
+  const rRegente = getPersonData(regentePerson, exp.regenteMaestro || '');
+  const rChief = getPersonData(chiefPerson, '');
+  const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '');
 
   autoTable(doc, {
     startY: 45,
     body: [
-      ['HORÁRIO', { content: horario, colSpan: 2 }],
-      ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }],
-      ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }],
-      ['REFERÊNCIA', { content: referencia, colSpan: 2 }],
-      ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }],
-      ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }],
-      ['REGENTE', rRegente, rRegente.cpf],
-      ['CHEFE', rChief, rChief.cpf],
-      ['ARQUIVO', rArquivo, rArquivo.cpf],
-    ],
+      horario !== 'NÃO DEFINIDO' ? ['HORÁRIO', { content: horario, colSpan: 2 }] : null,
+      scale.format ? ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }] : null,
+      scale.title ? ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }] : null,
+      referencia ? ['REFERÊNCIA', { content: referencia, colSpan: 2 }] : null,
+      scale.location ? ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }] : null,
+      scale.uniform ? ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }] : null,
+      rRegente ? ['REGENTE', rRegente, rRegente.cpf] : null,
+      rChief ? ['CHEFE', rChief, rChief.cpf] : null,
+      rArquivo ? ['ARQUIVO', rArquivo, rArquivo.cpf] : null,
+    ].filter(Boolean) as any[],
     theme: 'plain',
     styles: {
       fontSize: 8, cellPadding: 1.5,
@@ -197,8 +197,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
   // ── TABELA EXPEDIENTE (Sargenteação / Adm / P4) --------------------------
   let curY: number = (doc as any).lastAutoTable?.finalY ?? 100;
 
-  const rSarg = getPersonData(sargPerson, exp.sargenteacao || '') || { content: '', cpf: '' };
-  const rP4 = getPersonData(p4Person, exp.p4FinancasTransporte || '') || { content: '', cpf: '' };
+  const rSarg = getPersonData(sargPerson, exp.sargenteacao || '');
+  const rP4 = getPersonData(p4Person, exp.p4FinancasTransporte || '');
 
   const adminRows: any[] = [];
   (exp.administrativo || []).forEach((item: any, i: number) => {
@@ -206,12 +206,9 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
     const p = findProfile(id);
     const data = getPersonData(p, typeof item === 'object' ? item.label : item);
     if (data && data.content) {
-      adminRows.push([i === 0 ? 'ADMINISTRATIVO' : '', data, data.cpf]);
+      adminRows.push([adminRows.length === 0 ? 'ADMINISTRATIVO' : '', data, data.cpf]);
     }
   });
-  if (adminRows.length === 0) {
-    adminRows.push(['ADMINISTRATIVO', '', '']);
-  }
 
   const obraRows: any[] = [];
   (exp.obra || []).forEach((item: any, i: number) => {
@@ -219,38 +216,40 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
     const p = findProfile(id);
     const data = getPersonData(p, typeof item === 'object' ? item.label : item);
     if (data && data.content) {
-      obraRows.push([i === 0 ? 'OBRA' : '', data, data.cpf]);
+      obraRows.push([obraRows.length === 0 ? 'OBRA' : '', data, data.cpf]);
     }
   });
 
   const expBody = [
-    ['SARGENTEAÇÃO', rSarg, rSarg.cpf],
+    rSarg ? ['SARGENTEAÇÃO', rSarg, rSarg.cpf] : null,
     ...adminRows,
     ...obraRows,
-    [{ content: 'P4/FINANÇAS E TRANSPORTE', styles: { fontSize: 6.5 } }, rP4, rP4.cpf],
-  ];
+    rP4 ? [{ content: 'P4/FINANÇAS E TRANSPORTE', styles: { fontSize: 6.5 } }, rP4, rP4.cpf] : null,
+  ].filter(Boolean);
 
-  autoTable(doc, {
-    startY: curY + 2,
-    body: expBody,
-    theme: 'plain',
-    styles: {
-      fontSize: 8, cellPadding: 1.5,
-      font: 'helvetica', textColor: [0, 0, 0] as any,
-      lineWidth: 0.1, lineColor: [0, 0, 0] as any,
-      fillColor: [255, 255, 255] as any,
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245] as any,
-    },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 35 },
-      1: { cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 35 },
-    },
-    margin: { left: margin, right: margin },
-    didDrawCell: drawBoldWarNameCell,
-  });
+  if (expBody.length > 0) {
+    autoTable(doc, {
+      startY: curY + 2,
+      body: expBody,
+      theme: 'plain',
+      styles: {
+        fontSize: 8, cellPadding: 1.5,
+        font: 'helvetica', textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
+        fillColor: [255, 255, 255] as any,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245] as any,
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 35 },
+        1: { cellWidth: 'auto' },
+        2: { halign: 'center', cellWidth: 35 },
+      },
+      margin: { left: margin, right: margin },
+      didDrawCell: drawBoldWarNameCell,
+    });
+  }
 
   // ── TABELA MÚSICOS --------------------------------------------------------
   const musiciansY: number = ((doc as any).lastAutoTable?.finalY ?? 130) + 5;

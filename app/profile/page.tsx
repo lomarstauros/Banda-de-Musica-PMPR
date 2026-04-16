@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { motion } from 'motion/react';
@@ -46,6 +47,17 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const { user, logout, loading: authLoading } = useFirebase();
+
+  // Password change state
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     warName: '',
@@ -163,6 +175,54 @@ export default function ProfilePage() {
       alert('Erro ao atualizar perfil: ' + error.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(false);
+
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter no mínimo 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setPasswordError('As senhas não coincidem.');
+      return;
+    }
+    if (!user || !user.email) return;
+
+    setPasswordLoading(true);
+    try {
+      // Re-authenticate user first
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      // Auto-hide form after success
+      setTimeout(() => {
+        setShowPasswordForm(false);
+        setPasswordSuccess(false);
+      }, 3000);
+    } catch (err: any) {
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setPasswordError('Senha atual incorreta.');
+      } else if (err.code === 'auth/weak-password') {
+        setPasswordError('A senha é muito fraca. Use pelo menos 6 caracteres.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setPasswordError('Muitas tentativas. Aguarde um momento e tente novamente.');
+      } else {
+        setPasswordError('Erro ao alterar senha: ' + err.message);
+      }
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -368,10 +428,148 @@ export default function ProfilePage() {
           <div className="h-4"></div>
 
           <div className="bg-white dark:bg-slate-900/50 px-4 py-2 border-y border-slate-200 dark:border-slate-800">
-            <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-2 pt-4">Segurança</h3>
-            <div className="flex flex-col gap-4 py-2">
-              <p className="text-xs text-slate-500 italic">Para alterar sua senha, utilize o fluxo de recuperação de senha no login.</p>
+            <div className="flex items-center justify-between pb-2 pt-4">
+              <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Segurança</h3>
+              {!showPasswordForm && (
+                <button
+                  onClick={() => { setShowPasswordForm(true); setPasswordError(null); setPasswordSuccess(false); }}
+                  className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-blue-600 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+                  Alterar Senha
+                </button>
+              )}
             </div>
+
+            {!showPasswordForm ? (
+              <div className="flex items-center gap-3 py-3 mb-2">
+                <div className="flex items-center justify-center size-10 rounded-full bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50">
+                  <span className="material-symbols-outlined text-[20px] text-green-500">verified_user</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Senha configurada</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500">Clique em "Alterar Senha" para definir uma nova.</p>
+                </div>
+              </div>
+            ) : (
+              <motion.form
+                onSubmit={handleChangePassword}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col gap-4 py-3 mb-2"
+              >
+                {passwordSuccess && (
+                  <div className="flex items-center gap-2 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3">
+                    <span className="material-symbols-outlined text-green-500 text-[20px]">check_circle</span>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">Senha alterada com sucesso!</p>
+                  </div>
+                )}
+
+                {passwordError && (
+                  <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-3">
+                    <span className="material-symbols-outlined text-red-500 text-[20px]">error</span>
+                    <p className="text-sm font-medium text-red-600 dark:text-red-300">{passwordError}</p>
+                  </div>
+                )}
+
+                <label className="flex flex-col">
+                  <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Senha Atual</p>
+                  <div className="relative">
+                    <input
+                      className="flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 px-[15px] pr-12 text-base font-normal leading-normal transition-all"
+                      type={showCurrentPw ? 'text' : 'password'}
+                      placeholder="Digite sua senha atual"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPw(!showCurrentPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{showCurrentPw ? 'visibility_off' : 'visibility'}</span>
+                    </button>
+                  </div>
+                </label>
+
+                <label className="flex flex-col">
+                  <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Nova Senha</p>
+                  <div className="relative">
+                    <input
+                      className="flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 px-[15px] pr-12 text-base font-normal leading-normal transition-all"
+                      type={showNewPw ? 'text' : 'password'}
+                      placeholder="No mínimo 6 caracteres"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPw(!showNewPw)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{showNewPw ? 'visibility_off' : 'visibility'}</span>
+                    </button>
+                  </div>
+                  {newPassword.length > 0 && newPassword.length < 6 && (
+                    <p className="text-xs text-amber-500 mt-1">A senha deve ter no mínimo 6 caracteres</p>
+                  )}
+                </label>
+
+                <label className="flex flex-col">
+                  <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">Confirmar Nova Senha</p>
+                  <input
+                    className="flex w-full rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 px-[15px] text-base font-normal leading-normal transition-all"
+                    type="password"
+                    placeholder="Repita a nova senha"
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    required
+                  />
+                  {confirmNewPassword.length > 0 && newPassword !== confirmNewPassword && (
+                    <p className="text-xs text-red-500 mt-1">As senhas não coincidem</p>
+                  )}
+                </label>
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordForm(false);
+                      setCurrentPassword('');
+                      setNewPassword('');
+                      setConfirmNewPassword('');
+                      setPasswordError(null);
+                      setPasswordSuccess(false);
+                    }}
+                    className="flex-1 h-11 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={passwordLoading || !currentPassword || !newPassword || !confirmNewPassword}
+                    className="flex-1 h-11 rounded-lg bg-primary hover:bg-blue-600 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md shadow-primary/20"
+                  >
+                    {passwordLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                        Alterando...
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">lock</span>
+                        Confirmar
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.form>
+            )}
           </div>
 
           <div className="p-6 mt-4">

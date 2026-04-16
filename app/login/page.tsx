@@ -137,6 +137,7 @@ export default function LoginPage() {
         const profileData = profileSnap.data();
         if (profileData.forcePasswordReset) {
           setNeedsPasswordReset(true);
+          setNewEmail(userCred.user.email || ''); // Pre-fill with the email the manager entered
           setLoading(false);
           return; // Hold here safely to force reset flow
         }
@@ -237,7 +238,7 @@ export default function LoginPage() {
           {showForgotPassword ? 'Recuperar Senha' : (emailChangePending ? 'Confirme seu Novo E-mail' : (needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')))}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {showForgotPassword ? 'Informe seu e-mail cadastrado para receber o link de redefinição de senha.' : (emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço')))}
+          {showForgotPassword ? 'Informe seu e-mail cadastrado para receber o link de redefinição de senha.' : (emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Este é seu primeiro acesso. Por segurança, você deve definir uma nova Senha Pessoal agora.' : 'Acesse suas escalas de serviço')))}
         </p>
       </div>
 
@@ -376,7 +377,7 @@ export default function LoginPage() {
         ) : needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
             <label className="flex flex-col w-full">
-              <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Novo E-mail (Definitivo)</p>
+              <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">Confirme seu E-mail</p>
               <input 
                 className="flex w-full rounded-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary focus:border-primary h-14 px-[15px]" 
                 placeholder="seu.email@pessoal.com" 
@@ -555,7 +556,7 @@ export default function LoginPage() {
 
               <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/50 rounded-xl p-4 mt-2">
                  <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                   <strong>Primeiro acesso?</strong> Utilize o e-mail provisório (@bm.pmpr.com) e a senha padrão (123456) fornecidos pelo Comando para configurar sua conta definitiva.
+                   <strong>Primeiro acesso?</strong> Utilize seu e-mail pessoal cadastrado pelo Comando e a senha padrão <strong>123456</strong> para configurar sua senha definitiva.
                  </p>
               </div>
 

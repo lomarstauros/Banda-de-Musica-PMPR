@@ -63,35 +63,27 @@ export default function AdminNewMusicianPage() {
     return () => unsubscribe();
   }, []);
 
-  const generateEmail = (warName: string, fullName: string) => {
-    const baseName = (warName || fullName.split(' ')[0] || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-    return baseName ? `${baseName}@bm.pmpr.com` : '';
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, email: e.target.value.toLowerCase().trim() });
   };
-
-  useEffect(() => {
-    const autoEmail = generateEmail(formData.war_name, formData.name);
-    setFormData(prev => ({ ...prev, email: autoEmail }));
-  }, [formData.war_name, formData.name]);
 
   const handleSave = async () => {
     if (!formData.name) {
       alert('Por favor, preencha o nome.');
       return;
     }
-    const provisionalEmail = generateEmail(formData.war_name, formData.name);
-    if (!provisionalEmail) {
-      alert('Preencha um nome ou nome de guerra para gerar o e-mail provisório.');
+    if (!formData.email) {
+      alert('Por favor, preencha o e-mail pessoal.');
       return;
     }
 
     setLoading(true);
     try {
-      const userCred = await createUserWithEmailAndPassword(secondaryAuth, provisionalEmail, '123456');
+      const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.email, '123456');
       const newUid = userCred.user.uid;
 
       await setDoc(doc(db, 'profiles', newUid), {
         ...formData,
-        email: provisionalEmail,
         uid: newUid,
         createdAt: serverTimestamp(),
         forcePasswordReset: true,
@@ -102,7 +94,7 @@ export default function AdminNewMusicianPage() {
       router.push('/admin/musicians');
     } catch (error: any) {
       if (error.code === 'auth/email-already-in-use') {
-        alert('Falha: O e-mail automático (' + provisionalEmail + ') já está em uso por outro militar. Altere o nome de guerra para gerar um e-mail único.');
+        alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
         handleFirestoreError(error, OperationType.CREATE, 'profiles');
       }
@@ -198,17 +190,17 @@ export default function AdminNewMusicianPage() {
             </div>
 
             <label className={labelCls}>
-              <span className={labelTextCls}>E-mail Provisório (Automático)</span>
+              <span className={labelTextCls}>E-mail Pessoal <span className="text-red-400">*</span></span>
               <input
-                disabled
-                className={`w-full rounded-xl border bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed`}
+                className={inputCls}
                 value={formData.email}
+                onChange={handleEmailChange}
                 type="email"
-                placeholder="Será gerado automaticamente"
+                placeholder="exemplo@gmail.com"
               />
               <p className="text-xs text-primary mt-1 flex items-center gap-1 font-medium">
                 <span className="material-symbols-outlined text-[14px]">info</span>
-                A senha padrão será 123456. O usuário redefinirá no primeiro acesso.
+                Este será o e-mail de login. A senha padrão inicial será 123456.
               </p>
             </label>
 

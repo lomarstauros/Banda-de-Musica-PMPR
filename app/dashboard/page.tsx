@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || (!user.emailVerified && !user.email?.toLowerCase().includes('bm.pmpr.com'))) {
+    if (!user) {
       router.push('/login');
       return;
     }

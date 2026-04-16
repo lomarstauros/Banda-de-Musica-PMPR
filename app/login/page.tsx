@@ -19,13 +19,6 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Email Verification State
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [verificationSent, setVerificationSent] = useState(false);
-
-  // Email change pending verification
-  const [emailChangePending, setEmailChangePending] = useState(false);
-
   // Forgot password state
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -126,15 +119,6 @@ export default function LoginPage() {
         }
       }
 
-      // If not provisional, enforce email verification (except for @bm.pmpr.com domains)
-      if (!userCred.user.emailVerified && !userCred.user.email?.toLowerCase().includes('bm.pmpr.com')) {
-        setNeedsVerification(true);
-        // We don't sign target out immediately to allow them to click "Resend Verification"
-        // await signOut(auth); 
-        setLoading(false);
-        return;
-      }
-
       router.push('/dashboard');
     } catch (err: any) {
       if (err.code === 'auth/invalid-credential') {
@@ -148,66 +132,8 @@ export default function LoginPage() {
     }
   };
 
-  const handleResendVerification = async () => {
-    if (resendLoading) return;
-    
-    setResendLoading(true);
-    setResendSuccess(false);
-    setError(null);
-
-    try {
-      if (auth.currentUser) {
-        const actionCodeSettings = {
-          url: window.location.origin + '/login',
-          handleCodeInApp: true,
-        };
-
-        if (emailChangePending && newEmail) {
-          // Case where user is changing email (provisionary flow)
-          await verifyBeforeUpdateEmail(auth.currentUser, newEmail, actionCodeSettings);
-        } else {
-          // Regular verification case
-          await sendEmailVerification(auth.currentUser, actionCodeSettings);
-        }
-        
-        setResendSuccess(true);
-        // Reset success state after 10 seconds
-        setTimeout(() => setResendSuccess(false), 10000);
-      } else {
-        setError('Sessão expirada. Por favor, tente fazer o login novamente.');
-      }
-    } catch (err: any) {
-      console.error("Resend error:", err);
-      if (err.code === 'auth/too-many-requests') {
-        setError('Muitas tentativas de reenvio. Aguarde alguns minutos antes de tentar novamente.');
-      } else if (err.code === 'auth/requires-recent-login') {
-        setError('Para reenviar o e-mail, por favor realize o login novamente.');
-        await signOut(auth);
-        setTimeout(() => window.location.reload(), 2000);
-      } else {
-        setError('Erro ao reenviar e-mail de verificação: ' + (err.message || 'Erro desconhecido.'));
-      }
-    } finally {
-      setResendLoading(false);
-    }
-  };
-
-  const handleVerificationCheck = async () => {
-    // If they were in needsVerification state, they are technically logged in but showing the prompt.
-    // We sign out and refresh to let them try login again (which will check verification status)
-    setLoading(true);
-    try {
-      await signOut(auth);
-      setNeedsVerification(false);
-      setEmailChangePending(false);
-      setVerificationSent(false);
-      setError(null);
-      setPassword('');
-    } catch (err) {
-      console.error("Sign out error:", err);
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = () => {
+    window.location.reload();
   };
 
   return (
@@ -218,15 +144,15 @@ export default function LoginPage() {
           <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {showForgotPassword ? 'Recuperar Senha' : (emailChangePending ? 'Confirme seu Novo E-mail' : (needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')))}
+          {showForgotPassword ? 'Recuperar Senha' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {showForgotPassword ? 'Informe seu e-mail cadastrado para receber o link de redefinição de senha.' : (emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Este é seu primeiro acesso. Por segurança, você deve definir uma nova Senha Pessoal agora.' : 'Acesse suas escalas de serviço')))}
+          {showForgotPassword ? 'Informe seu e-mail cadastrado para receber o link de redefinição de senha.' : (needsPasswordReset ? 'Este é seu primeiro acesso. Por segurança, você deve definir uma nova Senha Pessoal agora.' : 'Acesse suas escalas de serviço')}
         </p>
       </div>
 
       <motion.div 
-        key={showForgotPassword ? "forgot" : (emailChangePending ? "emailPending" : (needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login")))}
+        key={showForgotPassword ? "forgot" : (needsPasswordReset ? "reset" : "login")}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -313,50 +239,6 @@ export default function LoginPage() {
               </form>
             )}
           </div>
-        ) : emailChangePending ? (
-          <div className="flex flex-col gap-6 items-center text-center">
-            <div className="size-20 rounded-full border-4 border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 flex items-center justify-center text-green-500 dark:text-green-400 mb-2">
-              <span className="material-symbols-outlined text-[40px]">mark_email_read</span>
-            </div>
-            
-            <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-4 text-green-700 dark:text-green-300 text-sm">
-              <p className="font-semibold mb-1">✅ Senha atualizada com sucesso!</p>
-            </div>
-
-            <p className="text-slate-600 dark:text-slate-300">
-              Enviamos um link de verificação para:
-              <strong className="text-slate-900 dark:text-white block mt-1">{newEmail}</strong>
-            </p>
-            
-            <div className="bg-slate-50 dark:bg-[#151e2c] p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
-              Acesse a caixa de entrada do novo e-mail e clique no link de confirmação. Após confirmar, seu e-mail de login será atualizado automaticamente.
-              Verifique também a pasta de <strong>Spam/Lixo Eletrônico</strong>.
-            </div>
-
-            <div className="w-full flex flex-col gap-3">
-              {resendSuccess && (
-                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3 text-green-700 dark:text-green-300 text-xs flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  E-mail de verificação reenviado com sucesso!
-                </div>
-              )}
-
-              <button 
-                onClick={handleResendVerification}
-                disabled={resendLoading}
-                className="text-primary text-sm font-medium hover:underline disabled:opacity-50"
-              >
-                {resendLoading ? 'REENVIANDO...' : 'Não recebi o e-mail? Reenviar agora'}
-              </button>
-
-              <button 
-                onClick={() => router.push('/dashboard')}
-                className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
-              >
-                CONTINUAR PARA O SISTEMA
-              </button>
-            </div>
-          </div>
         ) : needsPasswordReset ? (
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
             {/* Remover campo de e-mail para simplificar e evitar erros de rede */}
@@ -402,54 +284,6 @@ export default function LoginPage() {
               {loading ? 'SALVANDO...' : 'ATUALIZAR E ENTRAR'}
             </button>
           </form>
-        ) : needsVerification ? (
-          <div className="flex flex-col gap-6 items-center text-center">
-            <div className="size-20 rounded-full border-4 border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10 flex items-center justify-center text-amber-500 dark:text-amber-400 mb-2">
-              <span className="material-symbols-outlined text-[40px]">mark_email_unread</span>
-            </div>
-            
-            <p className="text-slate-600 dark:text-slate-300">
-              {verificationSent 
-                ? "Criamos sua conta! Um link de verificação foi enviado para " 
-                : "Seu login foi bloqueado. Você precisa confirmar o e-mail "}
-              <strong className="text-slate-900 dark:text-white block mt-1">{email}</strong>
-            </p>
-            
-            <div className="bg-slate-50 dark:bg-[#151e2c] p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
-              Procure na sua caixa de entrada principal ou na pasta de <strong>Spam/Lixo Eletrônico</strong>. Clique no link do e-mail e depois volte aqui para fazer login.
-            </div>
-
-            <div className="w-full flex flex-col gap-3">
-              {resendSuccess && (
-                <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/50 rounded-lg p-3 text-green-700 dark:text-green-300 text-xs flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">check_circle</span>
-                  E-mail de verificação reenviado com sucesso!
-                </div>
-              )}
-
-              {error && needsVerification && (
-                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/50 rounded-lg p-3 text-red-700 dark:text-red-300 text-xs text-center">
-                  {error}
-                </div>
-              )}
-
-              <button 
-                onClick={handleResendVerification}
-                disabled={resendLoading}
-                className="text-primary text-sm font-medium hover:underline disabled:opacity-50"
-              >
-                {resendLoading ? 'REENVIANDO...' : 'Não recebi o e-mail? Reenviar agora'}
-              </button>
-
-              <button 
-                onClick={handleVerificationCheck}
-                disabled={loading}
-                className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
-              >
-                {loading ? 'PROCESSANDO...' : 'JÁ VERIFIQUEI, FAZER LOGIN'}
-              </button>
-            </div>
-          </div>
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-6">
             <label className="flex flex-col w-full">

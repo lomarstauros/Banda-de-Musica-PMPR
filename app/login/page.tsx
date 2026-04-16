@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, verifyBeforeUpdateEmail, sendEmailVerification, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, verifyBeforeUpdateEmail, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
@@ -25,6 +25,11 @@ export default function LoginPage() {
 
   // Email change pending verification
   const [emailChangePending, setEmailChangePending] = useState(false);
+
+  // Forgot password state
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotEmailSent, setForgotEmailSent] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +95,28 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await sendPasswordResetEmail(auth, forgotEmail);
+      setForgotEmailSent(true);
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found') {
+        setError('Nenhuma conta encontrada com este e-mail.');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('E-mail inválido. Verifique e tente novamente.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setError('Muitas tentativas. Aguarde um momento e tente novamente.');
+      } else {
+        setError('Erro ao enviar e-mail de recuperação: ' + err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -139,22 +166,102 @@ export default function LoginPage() {
           <img src="/brasao_banda.png" alt="Banda PMPR Logo" className="h-full w-full object-contain p-3 z-10 drop-shadow-md group-hover:scale-110 transition-transform" />
         </div>
         <h1 className="text-slate-900 dark:text-white text-[28px] font-bold leading-tight tracking-[-0.015em] text-center">
-          {emailChangePending ? 'Confirme seu Novo E-mail' : (needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico'))}
+          {showForgotPassword ? 'Recuperar Senha' : (emailChangePending ? 'Confirme seu Novo E-mail' : (needsVerification ? 'Verifique seu e-mail' : (needsPasswordReset ? 'Configuração de Segurança' : 'Bem-vindo, Músico')))}
         </h1>
         <p className="text-slate-500 dark:text-[#9da6b9] text-base font-normal leading-normal pt-2 text-center max-w-xs mx-auto">
-          {emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço'))}
+          {showForgotPassword ? 'Informe seu e-mail cadastrado para receber o link de redefinição de senha.' : (emailChangePending ? 'Sua senha foi atualizada com sucesso! Agora confirme seu novo e-mail.' : (needsVerification ? 'Para sua segurança, valide seu e-mail antes de acessar a plataforma da PM.' : (needsPasswordReset ? 'Sua conta foi criada provisoriamente. Defina agora seu E-mail Pessoal Definitivo e uma nova Senha Segura.' : 'Acesse suas escalas de serviço')))}
         </p>
       </div>
 
       <motion.div 
-        key={emailChangePending ? "emailPending" : (needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login"))}
+        key={showForgotPassword ? "forgot" : (emailChangePending ? "emailPending" : (needsVerification ? "verify" : (needsPasswordReset ? "reset" : "login")))}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.3 }}
         className="flex flex-col w-full max-w-[420px] mx-auto px-6 gap-6"
       >
-        {emailChangePending ? (
+        {showForgotPassword ? (
+          <div className="flex flex-col gap-6">
+            {forgotEmailSent ? (
+              <div className="flex flex-col gap-6 items-center text-center">
+                <div className="size-20 rounded-full border-4 border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 flex items-center justify-center text-green-500 dark:text-green-400 mb-2">
+                  <span className="material-symbols-outlined text-[40px]">mark_email_read</span>
+                </div>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Enviamos um link de redefinição de senha para:
+                  <strong className="text-slate-900 dark:text-white block mt-1">{forgotEmail}</strong>
+                </p>
+                <div className="bg-slate-50 dark:bg-[#151e2c] p-4 rounded-xl border border-slate-200 dark:border-slate-800 text-sm text-slate-500 dark:text-slate-400">
+                  Acesse sua caixa de entrada e clique no link para definir uma nova senha. Verifique também a pasta de <strong>Spam/Lixo Eletrônico</strong>.
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setForgotEmailSent(false);
+                    setForgotEmail('');
+                    setError(null);
+                  }}
+                  className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98]"
+                >
+                  VOLTAR AO LOGIN
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-6">
+                <label className="flex flex-col w-full">
+                  <p className="text-slate-900 dark:text-white text-base font-medium leading-normal pb-2">E-mail cadastrado</p>
+                  <div className="flex w-full items-stretch rounded-lg shadow-sm">
+                    <input 
+                      className="flex w-full min-w-0 flex-1 rounded-l-lg border border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary focus:border-primary h-14 px-[15px] text-base font-normal leading-normal placeholder:text-slate-400 dark:placeholder:text-[#9da6b9] border-r-0" 
+                      placeholder="seu.email@exemplo.com" 
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                    />
+                    <div className="text-slate-400 dark:text-[#9da6b9] flex border border-l-0 border-slate-300 dark:border-[#3b4354] bg-white dark:bg-[#1c1f27] items-center justify-center pr-[15px] pl-2 rounded-r-lg">
+                      <span className="material-symbols-outlined text-[24px]">mail</span>
+                    </div>
+                  </div>
+                </label>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg p-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
+                      <span className="material-symbols-outlined text-[20px]">error</span>
+                      <p className="text-sm font-bold uppercase tracking-wide">Erro</p>
+                    </div>
+                    <p className="text-red-600 dark:text-red-300 text-sm leading-relaxed">
+                      {error}
+                    </p>
+                  </div>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className="flex items-center justify-center w-full h-14 bg-primary hover:bg-blue-600 text-white font-bold text-lg rounded-lg shadow-lg shadow-primary/25 transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  {loading ? 'ENVIANDO...' : 'ENVIAR LINK DE RECUPERAÇÃO'}
+                </button>
+
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(false);
+                    setError(null);
+                    setForgotEmail('');
+                  }}
+                  className="flex items-center justify-center gap-2 w-full py-3 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white transition-colors text-sm font-medium"
+                >
+                  <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                  Voltar ao login
+                </button>
+              </form>
+            )}
+          </div>
+        ) : emailChangePending ? (
           <div className="flex flex-col gap-6 items-center text-center">
             <div className="size-20 rounded-full border-4 border-green-100 dark:border-green-900/30 bg-green-50 dark:bg-green-900/10 flex items-center justify-center text-green-500 dark:text-green-400 mb-2">
               <span className="material-symbols-outlined text-[40px]">mark_email_read</span>
@@ -282,6 +389,17 @@ export default function LoginPage() {
             <label className="flex flex-col w-full">
               <div className="flex justify-between items-center pb-2">
                 <p className="text-slate-900 dark:text-white text-base font-medium leading-normal">Senha</p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setError(null);
+                    setForgotEmail(email);
+                  }}
+                  className="text-primary text-sm font-medium hover:text-blue-600 transition-colors hover:underline"
+                >
+                  Esqueceu a senha?
+                </button>
               </div>
               <div className="flex w-full items-stretch rounded-lg shadow-sm">
                 <input 

@@ -2,26 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: users
-    // Document ID: {userId} (Firebase Auth UID)
-    // Fields:
-    //   - uid: string (required) - The Firebase Auth UID
-    //   - name: string (required) - Full name
-    //   - email: string (required, email format) - Institutional email
-    //   - re: string (required) - Military identification number
-    //   - rank: string (optional) - Military rank
-    //   - instrument: string (optional) - Main musical instrument
-    //   - role: string (required, enum: musician, manager, admin) - Access level
-    //   - active: bool (required) - Whether the account is active
-    //   - photoUrl: string (optional, uri format) - Profile picture URL
-    //   - createdAt: timestamp (optional) - Creation timestamp
-    //
-    // ===============================================================
-
-    // ===============================================================
     // Helper Functions
     // ===============================================================
     
@@ -35,60 +15,65 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+        ((exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'master']) ||
           (request.auth.token.email == "heliomardejesus87@gmail.com"));
     }
 
     function isManager() {
       return isAuthenticated() &&
-        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'manager') || isAdmin());
-    }
-
-    function isValidUser(data) {
-      return data.keys().hasAll(['uid', 'name', 'email', 're', 'role', 'active']) &&
-             data.uid is string && data.uid.size() > 0 &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
-             data.re is string && data.re.size() > 0 &&
-             data.role in ['musician', 'manager', 'admin'] &&
-             data.active is bool &&
-             (!('photoUrl' in data) || (data.photoUrl is string && (data.photoUrl.matches("^https://.*") || data.photoUrl.matches("^http://.*")))) &&
-             (!('rank' in data) || (data.rank is string)) &&
-             (!('instrument' in data) || (data.instrument is string));
-    }
-
-    function uidUnchanged() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
-    }
-
-    function uidNotModified() {
-      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+        ((exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['manager', 'admin', 'master']) || isAdmin());
     }
 
     // ===============================================================
-    // Rules
+    // Collection Rules
     // ===============================================================
 
-    match /users/{userId} {
-      // Users can read their own profile. Admins and Managers can read all profiles.
+    // Profiles (User data)
+    match /profiles/{userId} {
       allow read: if isOwner(userId) || isManager();
-
-      // Only admins can create or update roles.
-      // Users can create their own profile initially if it's a basic 'musician' role.
-      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    (isOwner(userId) && request.resource.data.role == 'musician' || isAdmin());
-
-      // Only admins can update roles. Owners can update their own non-sensitive info.
-      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    ((isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.active == resource.data.active) || isAdmin());
-
-      // Only admins can delete users.
+      
+      // Admins can create/update anything. 
+      // Users can update their own non-sensitive info.
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isOwner(userId) && 
+                      (!request.resource.data.diff(resource.data).affectedKeys()
+                        .hasAny(['role', 'active', 'uid'])));
       allow delete: if isAdmin();
     }
 
-    // Default deny
+    // Scales (Escalas de serviço)
+    match /scales/{scaleId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Notices (Mural de avisos)
+    match /notices/{noticeId} {
+      allow read: if isAuthenticated();
+      allow write: if isManager();
+    }
+
+    // Swaps (Permutas)
+    match /swaps/{swapId} {
+      allow read: if isAuthenticated();
+      // Allow creation if they are authenticated
+      allow create: if isAuthenticated();
+      // Only owner or manager can update/delete
+      allow update, delete: if isOwner(resource.data.requesterId) || 
+                               isOwner(resource.data.respondentId) || 
+                               isManager();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      // allow read/write if the notification belongs to the user
+      allow read, write: if isAuthenticated() && 
+        (request.auth.uid == resource.data.userId || request.auth.uid == request.resource.data.userId);
+    }
+
+    // Default deny for anything else
     match /{document=**} {
       allow read, write: if false;
     }

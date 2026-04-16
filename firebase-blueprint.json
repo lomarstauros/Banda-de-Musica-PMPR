@@ -1,7 +1,7 @@
 {
   "entities": {
-    "users": {
-      "title": "User",
+    "profiles": {
+      "title": "Profile",
       "description": "A member of the Banda PMPR (musician, manager, or admin)",
       "type": "object",
       "properties": {
@@ -20,8 +20,8 @@
     }
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": "users",
+    "/profiles/{userId}": {
+      "schema": "profiles",
       "description": "User profile documents"
     }
   }

@@ -183,10 +183,11 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     autoTable(doc, {
       startY: 45,
       body: [
+        ['HORÁRIO', { content: horario, colSpan: 2 }],
+        ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }],
         ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }],
         ['REFERÊNCIA', { content: referencia, colSpan: 2 }],
         ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }],
-        ['HORÁRIO', { content: horario, colSpan: 2 }],
         ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }],
         ['REGENTE', rRegente, rRegente.cpf],
         ['CHEFE', rChief, rChief.cpf],

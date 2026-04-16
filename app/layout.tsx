@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import FirebaseProvider from '@/components/providers/firebase-provider';
+import NotificationInitializer from '@/components/notifications/notification-initializer';
 
 export const metadata: Metadata = {
   title: 'Banda de Música PMPR',
@@ -18,6 +19,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       </head>
       <body suppressHydrationWarning className="bg-background-light dark:bg-background-dark font-sans antialiased text-slate-900 dark:text-white flex flex-col min-h-screen">
         <FirebaseProvider>
+          <NotificationInitializer />
           <div className="flex-1 flex flex-col relative w-full">
             {children}
           </div>

@@ -254,6 +254,27 @@ export default function AdminEditScalePage() {
         await batch.commit();
       }
 
+      // Disparar Notificações Push (Mobile) para todos os músicos na escala
+      try {
+        const userIds = selectedMusicians;
+        const notificationTitle = 'Escala Atualizada';
+        const notificationBody = `A escala "${formData.title}" foi atualizada. Confira os detalhes.`;
+        
+        fetch('/api/notifications/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userIds,
+            title: notificationTitle,
+            body: notificationBody,
+            scaleId: params.id
+          })
+        }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
+      } catch (pushErr) {
+        console.error("Erro ao preparar envio de notificações push:", pushErr);
+      }
+
+
       setSuccess(true);
       setTimeout(() => {
         router.push('/admin/scales');

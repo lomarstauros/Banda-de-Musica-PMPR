@@ -217,6 +217,27 @@ export default function AdminNewScalePage() {
           });
         });
         await batch.commit();
+
+        // Disparar Notificações Push Reais (Mobile)
+        try {
+          const userIds = musiciansData.map(m => m.id);
+          const notificationTitle = 'Banda de Música PMPR';
+          const notificationBody = `Você tem uma nova escala: ${formData.title}`;
+          
+          fetch('/api/notifications/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userIds,
+              title: notificationTitle,
+              body: notificationBody,
+              scaleId: scaleRef.id
+            })
+          }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
+
+        } catch (pushErr) {
+          console.error("Erro ao preparar envio de notificações push:", pushErr);
+        }
       }
 
       // Registro de Auditoria

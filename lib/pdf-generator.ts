@@ -54,11 +54,14 @@ const splitByWarName = (fullName: string, warName: string) => {
 
 
 /**
- * Desenha uma página de escala no documento jsPDF fornecido.
+ * Desenha uma página ou bloco de escala no documento jsPDF fornecido.
+ * @returns O Y final após o desenho.
  */
-const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>) => {
+const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number } = {}) => {
+  const { showHeader = true, showSignatures = true, startY } = options;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
+  let curY = startY || 15;
 
   const findProfile = (id: string | null | undefined): any =>
     id ? (profilesMap[id] || null) : null;
@@ -124,25 +127,32 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
     doc.setFont('helvetica', 'normal');
   };
 
-  // ── LOGOS ----------------------------------------------------------------
-  try {
-    if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, 10, 20, 20);
-    if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 20, 10, 20, 20);
-  } catch (e) { console.warn('Logo error:', e); }
+  // ── LOGOS & CABEÇALHO (Somente se solicitado) ----------------------------
+  if (showHeader) {
+    try {
+      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 5, 20, 20);
+      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 20, curY - 5, 20, 20);
+    } catch (e) { console.warn('Logo error:', e); }
 
-  // ── CABEÇALHO ------------------------------------------------------------
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  const hY = 15;
-  doc.text('ESTADO DO PARANÁ', pageWidth / 2, hY, { align: 'center' });
-  doc.text('POLÍCIA MILITAR', pageWidth / 2, hY + 5, { align: 'center' });
-  doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, hY + 10, { align: 'center' });
-  doc.text('BANDA DE MÚSICA', pageWidth / 2, hY + 15, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('ESTADO DO PARANÁ', pageWidth / 2, curY, { align: 'center' });
+    doc.text('POLÍCIA MILITAR', pageWidth / 2, curY + 5, { align: 'center' });
+    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, curY + 10, { align: 'center' });
+    doc.text('BANDA DE MÚSICA', pageWidth / 2, curY + 15, { align: 'center' });
+    curY += 25;
 
-  // ── TÍTULO ---------------------------------------------------------------
-  const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
-  doc.setFontSize(10);
-  doc.text(`ESCALA PARA O DIA ${dateLabel}`, pageWidth / 2, 40, { align: 'center' });
+    // ── TÍTULO DA DATA -------------------------------------------------------
+    const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
+    doc.setFontSize(10);
+    doc.text(`ESCALA PARA O DIA ${dateLabel}`, pageWidth / 2, curY, { align: 'center' });
+    curY += 10;
+  } else {
+    // Se não for o primeiro cabeçalho, apenas um espaçamento ou linha divisória
+    doc.setDrawColor(200);
+    doc.line(margin, curY - 5, pageWidth - margin, curY - 5);
+    doc.setDrawColor(0);
+  }
 
   // ── HORÁRIO label --------------------------------------------------------
   const formatTimeStr = (label: string, time: string | undefined | null) => time ? `${label}: ${time}` : null;
@@ -163,7 +173,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
   const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '');
 
   autoTable(doc, {
-    startY: 45,
+    startY: curY,
     body: [
       horario !== 'NÃO DEFINIDO' ? ['HORÁRIO', { content: horario, colSpan: 2 }] : null,
       scale.format ? ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }] : null,
@@ -194,9 +204,9 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
     didDrawCell: drawBoldWarNameCell,
   });
 
-  // ── TABELA EXPEDIENTE (Sargenteação / Adm / P4) --------------------------
-  let curY: number = (doc as any).lastAutoTable?.finalY ?? 100;
+  curY = (doc as any).lastAutoTable?.finalY ?? curY;
 
+  // ── TABELA EXPEDIENTE (Sargenteação / Adm / P4) --------------------------
   const rSarg = getPersonData(sargPerson, exp.sargenteacao || '');
   const rP4 = getPersonData(p4Person, exp.p4FinancasTransporte || '');
 
@@ -249,11 +259,10 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
       margin: { left: margin, right: margin },
       didDrawCell: drawBoldWarNameCell,
     });
+    curY = (doc as any).lastAutoTable?.finalY ?? curY;
   }
 
   // ── TABELA MÚSICOS --------------------------------------------------------
-  const musiciansY: number = ((doc as any).lastAutoTable?.finalY ?? 130) + 5;
-
   const musiciansRows = (scale.musicians || []).map((m: any, i: number) => {
     const profile = findProfile(m.id) || m;
     const rank = (profile.rank || m.rank || '').toUpperCase();
@@ -269,7 +278,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
   });
 
   autoTable(doc, {
-    startY: musiciansY,
+    startY: curY + 5,
     head: [['Nº', 'GRADUAÇÃO – NOMES', 'CPF']],
     body: musiciansRows.map((r: any) => [r.num, r.nameObj, r.cpf]),
     theme: 'plain',
@@ -296,49 +305,55 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>)
     didDrawCell: drawBoldWarNameCell,
   });
 
-  // ── ASSINATURAS ----------------------------------------------------------
-  let footerY: number = ((doc as any).lastAutoTable?.finalY ?? 240) + 15;
-  if (footerY > 255) { doc.addPage(); footerY = 30; }
+  curY = (doc as any).lastAutoTable?.finalY ?? curY;
 
-  const rightX = pageWidth - margin;
+  // ── ASSINATURAS (Somente se solicitado) -----------------------------------
+  if (showSignatures) {
+    let footerY = curY + 15;
+    if (footerY > 255) { doc.addPage(); footerY = 30; }
 
-  const signDate = formatSignatureDate(scale.date || '');
-  if (signDate) {
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(signDate, rightX, footerY, { align: 'right' });
-    footerY += 12;
+    const rightX = pageWidth - margin;
+    const signDate = formatSignatureDate(scale.date || '');
+    if (signDate) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(signDate, rightX, footerY, { align: 'right' });
+      footerY += 12;
+    }
+
+    const drawSignRight = (y: number, fullName: string, funcao: string) => {
+      doc.setFontSize(8);
+      const centerX = rightX - 40;
+      doc.setFont('helvetica', 'bolditalic');
+      doc.setTextColor(160, 70, 0);
+      doc.text('(Assinado eletronicamente)', centerX, y, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+      const nameY = y + 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text(fullName, centerX, nameY, { align: 'center' });
+      doc.text(funcao, centerX, nameY + 5, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+    };
+
+    if (regentePerson) {
+      const fname = `${(regentePerson.rank || '').toUpperCase()} ${(regentePerson.name || '').toUpperCase()}`;
+      drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
+      footerY += 20;
+    } else if (exp.regenteMaestro) {
+      drawSignRight(footerY, exp.regenteMaestro.toUpperCase(), 'Maestro Chefe da Banda de Música.');
+      footerY += 20;
+    }
+
+    if (sargPerson) {
+      const fname = `${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`;
+      drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
+    } else if (exp.sargenteacao) {
+      drawSignRight(footerY, exp.sargenteacao.toUpperCase(), 'Sargenteante da Banda de Música');
+    }
+    curY = footerY;
   }
 
-  const drawSignRight = (y: number, fullName: string, funcao: string) => {
-    doc.setFontSize(8);
-    const centerX = rightX - 40;
-    doc.setFont('helvetica', 'bolditalic');
-    doc.setTextColor(160, 70, 0);
-    doc.text('(Assinado eletronicamente)', centerX, y, { align: 'center' });
-    doc.setTextColor(0, 0, 0);
-    const nameY = y + 5;
-    doc.setFont('helvetica', 'bold');
-    doc.text(fullName, centerX, nameY, { align: 'center' });
-    doc.text(funcao, centerX, nameY + 5, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-  };
-
-  if (regentePerson) {
-    const fname = `${(regentePerson.rank || '').toUpperCase()} ${(regentePerson.name || '').toUpperCase()}`;
-    drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
-    footerY += 20;
-  } else if (exp.regenteMaestro) {
-    drawSignRight(footerY, exp.regenteMaestro.toUpperCase(), 'Maestro Chefe da Banda de Música.');
-    footerY += 20;
-  }
-
-  if (sargPerson) {
-    const fname = `${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`;
-    drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
-  } else if (exp.sargenteacao) {
-    drawSignRight(footerY, exp.sargenteacao.toUpperCase(), 'Sargenteante da Banda de Música');
-  }
+  return curY;
 };
 
 export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
@@ -395,15 +410,30 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
     const profilesMap: Record<string, any> = {};
     profiles.forEach((p: any) => { profilesMap[p.id] = p; });
 
+    let currentY = 15;
     scales.forEach((scale, index) => {
-      if (index > 0) doc.addPage();
-      
+      // Se não for a primeira escala, adicionar um espaçamento
+      if (index > 0) {
+        currentY += 15;
+        // Check if there's enough space for at least the details table
+        if (currentY > 230) {
+          doc.addPage();
+          currentY = 15;
+        }
+      }
+
       // Enriquecer profilesMap com músicos desta escala específica se não estiverem lá
       (scale.musicians || []).forEach((m: any) => {
         if (m.id && !profilesMap[m.id]) profilesMap[m.id] = m;
       });
 
-      drawScalePage(doc, scale, profilesMap);
+      // Se for a primeira escala, desenha o cabeçalho completo
+      // Se for a última escala, desenha as assinaturas
+      currentY = drawScalePage(doc, scale, profilesMap, {
+        showHeader: index === 0,
+        showSignatures: index === scales.length - 1,
+        startY: currentY
+      });
     });
 
     const dateStr = scales[0].date || 'sem_data';

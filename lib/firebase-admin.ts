@@ -1,7 +1,6 @@
 import * as admin from 'firebase-admin';
-
-// Substitua pelo caminho absoluto que encontramos no seu sistema
-const SERVICE_ACCOUNT_PATH = '/Users/heliomardejesus/Downloads/banda-de-musica-pmpr-firebase-adminsdk-fbsvc-66a93792e8.json';
+import fs from 'fs';
+import path from 'path';
 
 export function getAdminApp() {
   if (admin.apps.length > 0) {
@@ -9,8 +8,14 @@ export function getAdminApp() {
   }
 
   try {
-    // Usando require para carregar o JSON localmente como feito no reset-master.js
-    const serviceAccount = require(SERVICE_ACCOUNT_PATH);
+    // Busca a chave no diretório raiz do projeto bandas-de-musica-pmpr
+    const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
+    
+    if (!fs.existsSync(serviceAccountPath)) {
+      throw new Error(`Arquivo de credenciais não encontrado em: ${serviceAccountPath}`);
+    }
+
+    const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
     
     return admin.initializeApp({
       credential: admin.credential.cert(serviceAccount)
@@ -21,5 +26,12 @@ export function getAdminApp() {
   }
 }
 
-export const adminAuth = () => getAdminApp?.() ? admin.auth() : null;
-export const adminDb = () => getAdminApp?.() ? admin.firestore() : null;
+export const adminAuth = () => {
+  const app = getAdminApp();
+  return app ? admin.auth(app) : null;
+};
+
+export const adminDb = () => {
+  const app = getAdminApp();
+  return app ? admin.firestore(app) : null;
+};

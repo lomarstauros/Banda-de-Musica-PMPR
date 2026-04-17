@@ -1,5 +1,5 @@
 const admin = require('firebase-admin');
-const serviceAccount = require('/Users/heliomardejesus/Downloads/banda-de-musica-pmpr-firebase-adminsdk-fbsvc-66a93792e8.json');
+const serviceAccount = require('./service-account.json');
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)

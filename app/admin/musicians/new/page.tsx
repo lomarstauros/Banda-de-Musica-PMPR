@@ -8,12 +8,7 @@ import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import firebaseConfig from '@/firebase-applet-config.json';
-
-const secondaryApp = getApps().find(app => app.name === 'SecondaryApp') || initializeApp(firebaseConfig, 'SecondaryApp');
-const secondaryAuth = getAuth(secondaryApp);
+import { resetUserAccess } from '@/app/actions/auth-actions';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -79,21 +74,30 @@ export default function AdminNewMusicianPage() {
 
     setLoading(true);
     try {
-      const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.email, '123456');
-      const newUid = userCred.user.uid;
+      // 1. Gerar um novo ID de documento (será o UID do usuário no Auth também)
+      const newProfileRef = doc(collection(db, 'profiles'));
+      const newUid = newProfileRef.id;
 
-      await setDoc(doc(db, 'profiles', newUid), {
+      // 2. Criar o usuário no Firebase Authentication via Servidor (Admin SDK)
+      // O resetUserAccess garante a criação se não existir, com senha 123456
+      const authResult = await resetUserAccess(newUid, formData.email);
+
+      if (!authResult.success) {
+        throw new Error(authResult.error || 'Falha ao criar credenciais de login.');
+      }
+
+      // 3. Salvar o perfil no Firestore usando o mesmo ID
+      await setDoc(newProfileRef, {
         ...formData,
         uid: newUid,
         createdAt: serverTimestamp(),
         forcePasswordReset: true,
-        status: formData.active ? 'active' : 'pending' // active because admin created
+        status: formData.active ? 'active' : 'pending'
       });
 
-      await secondaryAuth.signOut();
       router.push('/admin/musicians');
     } catch (error: any) {
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message?.includes('already-in-use')) {
         alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
         handleFirestoreError(error, OperationType.CREATE, 'profiles');

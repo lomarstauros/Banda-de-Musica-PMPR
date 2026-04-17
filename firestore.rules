@@ -15,7 +15,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() &&
-        ((request.auth.token.email == "heliomardejesus87@gmail.com") ||
+        (request.auth.token.email == "heliomardejesus87@gmail.com" ||
          (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
           get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'master']));
     }
@@ -33,16 +33,18 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      // Allow all authenticated users to read/list profiles (needed for swap selection)
+      // Allow ALL authenticated users to get/list profiles 
+      // This is crucial for swaps, dashboard and scale views
       allow read: if isAuthenticated();
       
-      // New users can create their own profile.
-      allow create: if isOwner(userId) || isAdmin();
+      // New users can create their own profile, or admin can
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
-      // Users can update their own non-sensitive info.
+      // Admin can update anything. User can update their own data except sensitive fields.
       allow update: if isAdmin() || (isOwner(userId) && 
                       (!request.resource.data.diff(resource.data).affectedKeys()
                         .hasAny(['role', 'active', 'uid'])));
+      
       allow delete: if isAdmin();
     }
 

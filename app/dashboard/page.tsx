@@ -84,29 +84,35 @@ export default function DashboardPage() {
     fetchDashboardData();
 
     // 3. Escutar notificações (convocações) em tempo real → conta não lidas + mapeia estado por escala
-    const qNotif = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid)
-    );
-    const unsubNotif = onSnapshot(qNotif, (snap) => {
-      let unread = 0;
-      const map: Record<string, { confirmed: boolean; notifId: string | null }> = {};
-      snap.docs.forEach(d => {
-        const data = d.data();
-        if (!data.read) unread++;
-        if (data.scaleId) {
-          // Se ainda não mapeado ou não confirmado, registra
-          if (!map[data.scaleId] || !map[data.scaleId].confirmed) {
-            map[data.scaleId] = { confirmed: !!data.read, notifId: d.id };
+    // Só inicia se já terminou o carregamento inicial e não está pendente
+    let unsubNotif: (() => void) | undefined;
+    
+    if (!authLoading && user && !isPending && profile) {
+      const qNotif = query(
+        collection(db, 'notifications'),
+        where('userId', '==', user.uid)
+      );
+      unsubNotif = onSnapshot(qNotif, (snap) => {
+        let unread = 0;
+        const map: Record<string, { confirmed: boolean; notifId: string | null }> = {};
+        snap.docs.forEach(d => {
+          const data = d.data();
+          if (!data.read) unread++;
+          if (data.scaleId) {
+            if (!map[data.scaleId] || !map[data.scaleId].confirmed) {
+              map[data.scaleId] = { confirmed: !!data.read, notifId: d.id };
+            }
           }
-        }
+        });
+        setUnreadCount(unread);
+        setViewedScales(map);
       });
-      setUnreadCount(unread);
-      setViewedScales(map);
-    });
+    }
 
-    return () => unsubNotif();
-  }, [user, authLoading, router]);
+    return () => {
+      if (unsubNotif) unsubNotif();
+    };
+  }, [user, authLoading, router, isPending, profile]);
 
   const displayName = profile ? `${profile.rank || ''} ${profile.war_name || ''}`.trim() || 'Sem nome' : 'Carregando...';
   const displayInstrument = profile?.instrument ? `Banda PMPR - ${profile.instrument}` : 'Banda PMPR';

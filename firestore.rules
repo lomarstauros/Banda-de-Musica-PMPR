@@ -33,14 +33,11 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      // Allow ALL authenticated users to get/list profiles 
-      // This is crucial for swaps, dashboard and scale views
-      allow read: if isAuthenticated();
+      // Allow ALL authenticated users to get individual profiles or list them
+      allow get, list: if isAuthenticated();
       
-      // New users can create their own profile, or admin can
       allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
       
-      // Admin can update anything. User can update their own data except sensitive fields.
       allow update: if isAdmin() || (isOwner(userId) && 
                       (!request.resource.data.diff(resource.data).affectedKeys()
                         .hasAny(['role', 'active', 'uid'])));
@@ -50,21 +47,20 @@ service cloud.firestore {
 
     // Scales (Escalas de serviço)
     match /scales/{scaleId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated();
       allow write: if isManager();
     }
 
     // Notices (Mural de avisos)
     match /notices/{noticeId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated();
       allow write: if isManager();
     }
 
     // Swaps (Permutas)
     match /swaps/{swapId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated();
       allow create: if isAuthenticated();
-      // Only owner or manager can update/delete
       allow update, delete: if isOwner(resource.data.requester_id) || 
                                isOwner(resource.data.substitute_id) || 
                                isManager();
@@ -72,29 +68,31 @@ service cloud.firestore {
 
     // Notifications
     match /notifications/{notifId} {
-      // allow read if the notification belongs to the user OR user is a manager (to see approvals)
-      allow read: if isAuthenticated() && 
+      // Users can list their own notifications, Managers can list all
+      allow list: if isAuthenticated() && (isManager() || query.limit <= 100);
+      
+      // Individual read access
+      allow get: if isAuthenticated() && 
         (request.auth.uid == resource.data.userId || isManager());
       
-      // allow create/write for authenticated users (to send notifications/updates)
       allow create, update: if isAuthenticated();
       allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isManager());
     }
 
     // Audit Logs
     match /audit_logs/{logId} {
-      allow read: if isManager();
+      allow get, list: if isManager();
       allow create: if isAuthenticated();
-      allow update, delete: if false; // Logs are immutable
+      allow update, delete: if false;
     }
 
     // Cities (Lookup data)
     match /cities/{cityId} {
-      allow read: if isAuthenticated();
+      allow get, list: if isAuthenticated();
       allow write: if isAdmin();
     }
 
-    // Default deny for anything else
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

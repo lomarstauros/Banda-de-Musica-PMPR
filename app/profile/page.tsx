@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateUserAuthEmail } from '@/app/actions/auth-actions';
 

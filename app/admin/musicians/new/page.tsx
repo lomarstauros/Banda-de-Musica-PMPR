@@ -58,10 +58,16 @@ export default function AdminNewMusicianPage() {
     return () => unsubscribe();
   }, []);
 
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Remove todos os espaços e converte para minúsculo
     const cleanValue = e.target.value.toLowerCase().replace(/\s/g, '');
     setFormData({ ...formData, email: cleanValue });
+    if (emailError) setEmailError(null);
   };
 
   const handleSave = async () => {
@@ -70,7 +76,11 @@ export default function AdminNewMusicianPage() {
       return;
     }
     if (!formData.email) {
-      alert('Por favor, preencha o e-mail pessoal.');
+      setEmailError('O e-mail é obrigatório.');
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      setEmailError('Formato de e-mail inválido (exemplo@dominio.com)');
       return;
     }
 
@@ -198,16 +208,23 @@ export default function AdminNewMusicianPage() {
             <label className={labelCls}>
               <span className={labelTextCls}>E-mail Pessoal <span className="text-red-400">*</span></span>
               <input
-                className={inputCls}
+                className={`${inputCls} ${emailError ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                 value={formData.email}
                 onChange={handleEmailChange}
                 type="email"
                 placeholder="exemplo@gmail.com"
               />
-              <p className="text-xs text-primary mt-1 flex items-center gap-1 font-medium">
-                <span className="material-symbols-outlined text-[14px]">info</span>
-                Este será o e-mail de login. A senha padrão inicial será 123456.
-              </p>
+              {emailError ? (
+                <p className="text-xs text-red-500 mt-1 flex items-center gap-1 font-bold">
+                  <span className="material-symbols-outlined text-[14px]">error</span>
+                  {emailError}
+                </p>
+              ) : (
+                <p className="text-xs text-primary mt-1 flex items-center gap-1 font-medium">
+                  <span className="material-symbols-outlined text-[14px]">info</span>
+                  Este será o e-mail de login. A senha padrão inicial será 123456.
+                </p>
+              )}
             </label>
 
             <label className={labelCls}>

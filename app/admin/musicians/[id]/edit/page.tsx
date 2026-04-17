@@ -97,7 +97,10 @@ export default function AdminEditMusicianPage() {
         setLoading(false);
       }
     });
-    return () => unsubscribeAuth();
+  const validateEmail = (email: string) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
   }, [params.id, router]);
 
   const checkEmailExists = async (email: string) => {
@@ -120,12 +123,20 @@ export default function AdminEditMusicianPage() {
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.email) {
-      alert('Por favor, preencha o nome e o e-mail.');
+    if (!formData.name) {
+      alert('O nome completo é obrigatório.');
+      return;
+    }
+    if (!formData.email) {
+      setEmailError('O e-mail é obrigatório.');
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      setEmailError('Formato de e-mail inválido (exemplo@dominio.com)');
       return;
     }
     if (emailError) {
-      alert('Corrija o e-mail antes de salvar.');
+      alert('Corrija o erro no e-mail antes de salvar.');
       return;
     }
     setSaving(true);

@@ -308,7 +308,8 @@ export default function AdminEditMusicianPage() {
                 }`}
                 value={formData.email}
                 onChange={(e) => {
-                  setFormData({ ...formData, email: e.target.value });
+                  const cleanValue = e.target.value.toLowerCase().replace(/\s/g, '');
+                  setFormData({ ...formData, email: cleanValue });
                   setEmailError(null);
                 }}
                 onBlur={(e) => checkEmailExists(e.target.value)}

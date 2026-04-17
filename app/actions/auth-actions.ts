@@ -11,16 +11,18 @@ export async function updateUserAuthEmail(uid: string, newEmail: string) {
   try {
     // Inicializa o admin app
     const app = getAdminApp();
-    const auth = admin.auth(app);
+    const authAdmin = admin.auth(app);
     
-    // 1. Verificar se o e-mail já está em uso (opcional, o updateUser já lança erro se estiver)
-    // Mas vamos fazer um log para facilitar debug
-    console.log(`[AuthAction] Tentando atualizar e-mail do UID ${uid} para ${newEmail}`);
+    // Limpeza profunda do e-mail
+    const cleanEmail = newEmail.trim().toLowerCase().replace(/\s/g, '');
+    
+    // 1. Verificar se o e-mail já está em uso
+    console.log(`[AuthAction] Tentando atualizar e-mail do UID ${uid} para [${cleanEmail}]`);
 
     // 2. Atualizar o usuário
-    await auth.updateUser(uid, {
-      email: newEmail,
-      emailVerified: true // Marcamos como verificado para evitar travas no app
+    await authAdmin.updateUser(uid, {
+      email: cleanEmail,
+      emailVerified: true
     });
 
     return { success: true };
@@ -54,15 +56,22 @@ export async function updateUserAuthEmail(uid: string, newEmail: string) {
 export async function resetUserAccess(uid: string, email: string) {
   try {
     const app = getAdminApp();
-    const auth = admin.auth(app);
+    const authAdmin = admin.auth(app);
     const defaultPassword = '123456';
 
-    console.log(`[AuthAction] Resetando acesso para UID: ${uid}, Email: ${email}`);
+    // Limpeza profunda do e-mail
+    const cleanEmail = email.trim().toLowerCase().replace(/\s/g, '');
+
+    console.log(`[AuthAction] Resetando acesso para UID: ${uid}, Email Original: "${email}", Email Limpo: "${cleanEmail}"`);
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, error: 'E-mail inválido ou vazio após limpeza.' };
+    }
 
     try {
       // 1. Tentar atualizar usuário existente
-      await auth.updateUser(uid, {
-        email: email,
+      await authAdmin.updateUser(uid, {
+        email: cleanEmail,
         password: defaultPassword,
         emailVerified: true
       });
@@ -70,10 +79,10 @@ export async function resetUserAccess(uid: string, email: string) {
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
         // 2. Se não existir, criar novo com o mesmo UID
-        console.log(`[AuthAction] Usuário não encontrado no Auth. Criando nova entrada com UID ${uid}...`);
-        await auth.createUser({
+        console.log(`[AuthAction] Usuário não encontrado no Auth. Criando com UID ${uid} e email ${cleanEmail}...`);
+        await authAdmin.createUser({
           uid: uid,
-          email: email,
+          email: cleanEmail,
           password: defaultPassword,
           emailVerified: true
         });

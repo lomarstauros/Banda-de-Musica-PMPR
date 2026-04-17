@@ -59,7 +59,9 @@ export default function AdminNewMusicianPage() {
   }, []);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, email: e.target.value.toLowerCase().trim() });
+    // Remove todos os espaços e converte para minúsculo
+    const cleanValue = e.target.value.toLowerCase().replace(/\s/g, '');
+    setFormData({ ...formData, email: cleanValue });
   };
 
   const handleSave = async () => {

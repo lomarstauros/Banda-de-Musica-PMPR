@@ -37,7 +37,7 @@ service cloud.firestore {
     match /profiles/{userId} {
       // Allow ALL authenticated users to get individual profiles or list them
       allow get: if isAuthenticated();
-      allow list: if isManager();
+      allow list: if isAuthenticated();
       
       allow create: if isAdmin();
       

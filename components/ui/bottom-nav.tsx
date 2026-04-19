@@ -41,7 +41,11 @@ export function BottomNav() {
       where('substitute_id', '==', user.uid),
       where('status', '==', 'Aguardando Parceiro')
     );
-    const unsub = onSnapshot(q, snap => setPendingSwaps(snap.size));
+    const unsub = onSnapshot(q, snap => {
+      setPendingSwaps(snap.size);
+    }, (err) => {
+      console.error("Erro no listener da BottomNav (permutas pendentes):", err);
+    });
     return () => unsub();
   }, [user]);
 

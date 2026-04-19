@@ -32,6 +32,9 @@ export default function ScaleConfirmationsPage() {
     const unsub = onSnapshot(q, (snap) => {
       setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
+    }, (err) => {
+      console.error("Erro no listener de confirmações:", err);
+      setLoading(false);
     });
     return () => unsub();
   }, [params.id]);

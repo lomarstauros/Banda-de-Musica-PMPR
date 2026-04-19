@@ -41,6 +41,9 @@ export default function MasterPanelPage() {
             .sort(sortByRankThenName);
           setUsers(docs);
           setLoading(false);
+        }, (err) => {
+          console.error("Erro no listener de usuários (Master):", err);
+          setLoading(false);
         });
 
         const qLogs = query(collection(db, 'audit_logs'), orderBy('timestamp', 'desc'), limit(100));
@@ -51,6 +54,8 @@ export default function MasterPanelPage() {
             dateObj: d.data().timestamp?.toDate() || new Date()
           }));
           setLogs(docs);
+        }, (err) => {
+          console.error("Erro no listener de auditoria (Master):", err);
         });
 
         return () => {

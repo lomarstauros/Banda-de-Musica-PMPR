@@ -206,13 +206,27 @@ export default function AdminNewScalePage() {
         createdAt: serverTimestamp()
       });
 
-      // Disparar notificações para cada músico escalado
-      if (musiciansData.length > 0) {
+      // Disparar notificações para todos os envolvidos na escala
+      const allNotifiedIds = new Set([
+        ...musiciansData.map(m => m.id),
+        ...(serviceChief ? [serviceChief] : []),
+        ...(expediente.regenteMaestro ? [expediente.regenteMaestro] : []),
+        ...(expediente.arquivo ? [expediente.arquivo] : []),
+        ...(expediente.sargenteacao ? [expediente.sargenteacao] : []),
+        ...(expediente.p4FinancasTransporte ? [expediente.p4FinancasTransporte] : []),
+        ...expediente.administrativo,
+        ...expediente.obra,
+        ...expediente.permanencia
+      ]);
+      
+      const uniqueNotifiedIds = Array.from(allNotifiedIds).filter(id => !!id);
+
+      if (uniqueNotifiedIds.length > 0) {
         const batch = writeBatch(db);
-        musiciansData.forEach((musician: any) => {
+        uniqueNotifiedIds.forEach((uid: any) => {
           const notifRef = doc(collection(db, 'notifications'));
           batch.set(notifRef, {
-            userId: musician.id,
+            userId: uid,
             scaleId: scaleRef.id,
             scaleTitle: (finalFormat === 'Ensaio' || finalFormat === 'Expediente Administrativo') ? `${finalFormat} — ${formData.title}` : formData.title,
             scaleDate: formData.date,
@@ -225,21 +239,16 @@ export default function AdminNewScalePage() {
 
         // Disparar Notificações Push Reais (Mobile)
         try {
-          const userIds = musiciansData.map(m => m.id);
-          const notificationTitle = 'Banda de Música PMPR';
-          const notificationBody = `Você tem uma nova escala: ${formData.title}`;
-          
           fetch('/api/notifications/push', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              userIds,
-              title: notificationTitle,
-              body: notificationBody,
+              userIds: uniqueNotifiedIds,
+              title: 'Banda de Música PMPR',
               scaleId: scaleRef.id
+              // A mensagem "você tem uma nova escala de serviço" agora é padrão na API
             })
           }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
-
         } catch (pushErr) {
           console.error("Erro ao preparar envio de notificações push:", pushErr);
         }

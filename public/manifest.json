@@ -1,0 +1,23 @@
+{
+  "name": "Banda de Música PMPR",
+  "short_name": "Banda PMPR",
+  "description": "Gerenciamento de escalas de serviço da Banda de Música da PMPR",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e293b",
+  "icons": [
+    {
+      "src": "/brasao_banda.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/brasao_banda.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

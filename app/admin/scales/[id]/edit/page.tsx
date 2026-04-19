@@ -238,14 +238,27 @@ export default function AdminEditScalePage() {
         console.error("Erro ao registrar log de auditoria:", auditErr);
       }
 
-      // Disparar notificações apenas para músicos recém-adicionados
-      const newlyAdded = musiciansData.filter((m: any) => !previousMusicianIds.includes(m.id));
-      if (newlyAdded.length > 0) {
-        const batch = writeBatch(db);
-        newlyAdded.forEach((musician: any) => {
+      // Disparar notificações para todos os envolvidos na escala (atualizados)
+      const allNotifiedIds = new Set([
+        ...selectedMusicians,
+        ...(serviceChief ? [serviceChief] : []),
+        ...(expediente.regenteMaestro ? [expediente.regenteMaestro] : []),
+        ...(expediente.arquivo ? [expediente.arquivo] : []),
+        ...(expediente.sargenteacao ? [expediente.sargenteacao] : []),
+        ...(expediente.p4FinancasTransporte ? [expediente.p4FinancasTransporte] : []),
+        ...expediente.administrativo,
+        ...expediente.obra,
+        ...expediente.permanencia
+      ]);
+      
+      const uniqueNotifiedIds = Array.from(allNotifiedIds).filter(id => !!id);
+
+      if (uniqueNotifiedIds.length > 0) {
+        const batchNotification = writeBatch(db);
+        uniqueNotifiedIds.forEach((uid: any) => {
           const notifRef = doc(collection(db, 'notifications'));
-          batch.set(notifRef, {
-            userId: musician.id,
+          batchNotification.set(notifRef, {
+            userId: uid,
             scaleId: params.id,
             scaleTitle: formData.title,
             scaleDate: formData.date,
@@ -254,27 +267,23 @@ export default function AdminEditScalePage() {
             createdAt: serverTimestamp()
           });
         });
-        await batch.commit();
-      }
+        await batchNotification.commit();
 
-      // Disparar Notificações Push (Mobile) para todos os músicos na escala
-      try {
-        const userIds = selectedMusicians;
-        const notificationTitle = 'Escala Atualizada';
-        const notificationBody = `A escala "${formData.title}" foi atualizada. Confira os detalhes.`;
-        
-        fetch('/api/notifications/push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userIds,
-            title: notificationTitle,
-            body: notificationBody,
-            scaleId: params.id
-          })
-        }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
-      } catch (pushErr) {
-        console.error("Erro ao preparar envio de notificações push:", pushErr);
+        // Disparar Notificações Push (Mobile)
+        try {
+          fetch('/api/notifications/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userIds: uniqueNotifiedIds,
+              title: 'Banda de Música PMPR',
+              scaleId: params.id
+              // A mensagem "você tem uma nova escala de serviço" agora é padrão na API
+            })
+          }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
+        } catch (pushErr) {
+          console.error("Erro ao preparar envio de notificações push:", pushErr);
+        }
       }
 
 

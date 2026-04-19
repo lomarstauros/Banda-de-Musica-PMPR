@@ -1,18 +1,27 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
   try {
-    // We try to find the service account file based on what we saw earlier
-    const serviceAccountPath = '/Users/heliomardejesus/Downloads/banda-de-musica-pmpr-firebase-adminsdk-fbsvc-66a93792e8.json';
-    const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+    const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (serviceAccountVar) {
+      // Direct JSON string from environment variable (preferred for production)
+      const serviceAccount = JSON.parse(serviceAccountVar);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    } else {
+      // Local file fallback (useful for local development)
+      const serviceAccountPath = '/Users/heliomardejesus/Downloads/banda-de-musica-pmpr-firebase-adminsdk-fbsvc-66a93792e8.json';
+      const { readFileSync } = require('fs');
+      const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
 
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
-    });
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+    }
   } catch (error) {
     console.error('Erro ao inicializar Firebase Admin:', error);
   }
@@ -20,55 +29,72 @@ if (!admin.apps.length) {
 
 export async function POST(request: Request) {
   try {
-    const { userIds, title, body, scaleId } = await request.json();
+    const { userIds, title, scaleId } = await request.json();
 
     if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return NextResponse.json({ error: 'Lista de IDs de usuário inválida' }, { status: 400 });
     }
 
-    const db = admin.firestore();
     const messaging = admin.messaging();
+    const db = admin.firestore();
 
     // Fetch tokens for all users
     const tokens: string[] = [];
     
-    // We fetch profiles for the specific users
-    const profilesSnap = await db.collection('profiles')
-      .where(admin.firestore.FieldPath.documentId(), 'in', userIds)
-      .get();
+    // We fetch profiles for the specific users in chunks of 30 (Firestore limit for 'in')
+    const chunks = [];
+    for (let i = 0; i < userIds.length; i += 30) {
+      chunks.push(userIds.slice(i, i + 30));
+    }
 
-    profilesSnap.forEach(doc => {
-      const data = doc.data();
-      if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
-        tokens.push(...data.fcmTokens);
-      }
-    });
+    for (const chunk of chunks) {
+      const profilesSnap = await db.collection('profiles')
+        .where(admin.firestore.FieldPath.documentId(), 'in', chunk)
+        .get();
+
+      profilesSnap.forEach(doc => {
+        const data = doc.data();
+        if (data.fcmTokens && Array.isArray(data.fcmTokens)) {
+          tokens.push(...data.fcmTokens);
+        }
+      });
+    }
 
     if (tokens.length === 0) {
       return NextResponse.json({ success: true, message: 'Nenhum token encontrado para os usuários' });
     }
 
-    // Filter unique tokens
-    const uniqueTokens = [...new Set(tokens)];
+    // Filter unique and valid tokens
+    const uniqueTokens = [...new Set(tokens)].filter(t => typeof t === 'string' && t.length > 0);
 
-    // Send multicast message
+    if (uniqueTokens.length === 0) {
+      return NextResponse.json({ success: true, message: 'Nenhum token válido encontrado' });
+    }
+
+    // Message configuration
+    const messageTitle = title || 'Banda de Música PMPR';
+    const messageBody = 'você tem uma nova escala de serviço'; // Standardized as requested
+    const baseUrl = 'https://banda-de-musica-pmpr.vercel.app';
+    const clickLink = scaleId ? `${baseUrl}/scales/${scaleId}` : `${baseUrl}/dashboard`;
+
     const message = {
       notification: {
-        title: title || 'Banda de Música PMPR',
-        body: body || 'Você tem uma nova escala',
+        title: messageTitle,
+        body: messageBody,
       },
       data: {
         scaleId: scaleId || '',
-        click_action: scaleId ? `/scales/${scaleId}` : '/notifications',
+        url: clickLink,
       },
       tokens: uniqueTokens,
       webpush: {
         fcm_options: {
-          link: scaleId ? `https://banda-de-musica-pmpr.vercel.app/scales/${scaleId}` : 'https://banda-de-musica-pmpr.vercel.app/notifications'
+          link: clickLink
         },
         notification: {
           requireInteraction: true,
-          icon: 'https://banda-de-musica-pmpr.vercel.app/brasao_banda.png'
+          icon: `${baseUrl}/brasao_banda.png`,
+          badge: `${baseUrl}/brasao_banda.png`
         }
       }
     };
@@ -77,7 +103,6 @@ export async function POST(request: Request) {
 
     console.log(`${response.successCount} mensagens enviadas com sucesso.`);
     
-    // Cleanup invalid tokens if any (optional but good practice)
     if (response.failureCount > 0) {
       console.log(`${response.failureCount} falhas no envio.`);
     }

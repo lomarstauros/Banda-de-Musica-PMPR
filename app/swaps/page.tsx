@@ -40,6 +40,9 @@ export default function SwapsPage() {
       docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setReceivedSwaps(docs);
       setLoading(false);
+    }, (err) => {
+      console.error("Erro no listener de permutas recebidas:", err);
+      setLoading(false);
     });
 
     // Permutas onde sou o SOLICITANTE
@@ -51,6 +54,8 @@ export default function SwapsPage() {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
       docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setSentSwaps(docs);
+    }, (err) => {
+      console.error("Erro no listener de permutas enviadas:", err);
     });
 
     return () => { unsubReceived(); unsubSent(); };

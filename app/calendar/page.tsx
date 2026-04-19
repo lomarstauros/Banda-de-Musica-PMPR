@@ -72,6 +72,9 @@ export default function CalendarPage() {
 
       setEvents(allScales);
       setLoadingEvents(false);
+    }, (err) => {
+      console.error("Erro no listener de escalas (Calendar):", err);
+      setLoadingEvents(false);
     });
 
     return () => unsubscribe();

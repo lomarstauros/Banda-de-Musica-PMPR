@@ -30,6 +30,9 @@ export default function NotificationsPage() {
     const unsub = onSnapshot(q, (snap) => {
       setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
+    }, (err) => {
+      console.error("Erro no listener de notificações (Page):", err);
+      setLoading(false);
     });
     return () => unsub();
   }, [user, authLoading, router]);

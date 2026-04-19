@@ -106,6 +106,8 @@ export default function DashboardPage() {
         });
         setUnreadCount(unread);
         setViewedScales(map);
+      }, (err) => {
+        console.error("Erro no listener de notificações (Dashboard):", err);
       });
     }
 

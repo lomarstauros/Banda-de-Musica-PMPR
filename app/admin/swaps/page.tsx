@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { useFirebase } from '@/components/providers/firebase-provider';
-import { doc, getDoc, collection, query, onSnapshot, updateDoc, orderBy, writeBatch, arrayRemove, arrayUnion, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { doc, getDoc, collection, query, onSnapshot, updateDoc, orderBy, writeBatch, arrayRemove, arrayUnion, serverTimestamp, addDoc } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { fmtDate } from '@/lib/format-date';
+import { isMusicianAvailable } from '@/lib/military-status';
 
 export default function AdminSwapsPage() {
   const { user } = useFirebase();
@@ -70,40 +71,102 @@ export default function AdminSwapsPage() {
       const scaleData = scaleSnap.data();
       const musicians: any[] = scaleData.musicians || [];
 
-      // 2. Encontrar e remover o solicitante, adicionar o substituto
-      const requester = musicians.find((m: any) => m.id === swap.requester_id);
+      // 2. Buscar dados do substituto e validar disponibilidade
       const substituteProfileSnap = await getDoc(doc(db, 'profiles', swap.substitute_id));
-      const substituteData = substituteProfileSnap.exists() ? substituteProfileSnap.data() : {};
+      if (!substituteProfileSnap.exists()) {
+        alert('Perfil do substituto não encontrado.');
+        return;
+      }
+      const substituteData = substituteProfileSnap.data();
 
+      // Validação de disponibilidade
+      if (!isMusicianAvailable(substituteData, swap.date)) {
+        const confirmMsg = `AVISO: O substituto (${substituteData.rank} ${substituteData.war_name}) consta como AFASTADO (${substituteData.militaryStatus}) nesta data. Deseja forçar a aprovação assim mesmo?`;
+        if (!confirm(confirmMsg)) {
+          setActionLoadingId(null);
+          return;
+        }
+      }
+
+      // 3. Preparar entrada do substituto
+      const requesterInList = musicians.find((m: any) => m.id === swap.requester_id);
       const substituteEntry = {
         id: swap.substitute_id,
         name: substituteData.name || swap.substitute_name,
         war_name: substituteData.war_name || '',
         rank: substituteData.rank || '',
-        instrument: substituteData.instrument || requester?.instrument || '',
+        instrument: substituteData.instrument || requesterInList?.instrument || '',
         role: substituteData.role || 'musician',
         email: substituteData.email || '',
       };
 
-      // Remove solicitante, insere substituto no mesmo lugar
+      const substituteLabel = `${substituteData.rank || ''} ${substituteData.war_name || ''}`.trim();
+
+      // 4. Substituição Profunda (Deep Substitution)
+
+      // 4.1. Lista de Músicos
       const updatedMusicians = musicians.map((m: any) =>
         m.id === swap.requester_id ? substituteEntry : m
       );
 
-      // 3. Atualiza a escala com o novo efetivo
+      // 4.2. Chefe do Serviço
+      let updatedServiceChief = scaleData.serviceChief || null;
+      if (updatedServiceChief && updatedServiceChief.id === swap.requester_id) {
+        updatedServiceChief = {
+          ...substituteEntry,
+          name: substituteData.name || swap.substitute_name,
+        };
+      }
+
+      // 4.3. Expediente Administrativo
+      const updatedExpediente = { ...(scaleData.expediente || {}) };
+      
+      // IDs e Labels simples
+      const expedFields = [
+        { id: 'regenteMaestroId', label: 'regenteMaestro' },
+        { id: 'arquivoId', label: 'arquivo' },
+        { id: 'sargenteacaoId', label: 'sargenteacao' },
+        { id: 'p4FinancasTransporteId', label: 'p4FinancasTransporte' }
+      ];
+
+      expedFields.forEach(field => {
+        if (updatedExpediente[field.id] === swap.requester_id) {
+          updatedExpediente[field.id] = swap.substitute_id;
+          updatedExpediente[field.label] = substituteLabel;
+        }
+      });
+
+      // Arrays de multi-seleção
+      const multiFields = ['administrativo', 'obra', 'permanencia'];
+      multiFields.forEach(field => {
+        if (Array.isArray(updatedExpediente[field])) {
+          updatedExpediente[field] = updatedExpediente[field].map((item: any) => {
+            if (item && (item.id === swap.requester_id || item === swap.requester_id)) {
+              return typeof item === 'object' 
+                ? { id: swap.substitute_id, label: substituteLabel } 
+                : swap.substitute_id;
+            }
+            return item;
+          });
+        }
+      });
+
+      // 5. Aplicar atualizações na escala
       batch.update(scaleRef, {
         musicians: updatedMusicians,
+        serviceChief: updatedServiceChief,
+        expediente: updatedExpediente,
         updatedAt: serverTimestamp(),
       });
 
-      // 4. Atualiza status da permuta
+      // 6. Atualizar status da permuta
       batch.update(doc(db, 'swaps', swap.id), {
         status: 'approved',
         approvedAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      // 5. Notificação para o SOLICITANTE
+      // 7. Notificações
       const notifRequester = doc(collection(db, 'notifications'));
       batch.set(notifRequester, {
         userId: swap.requester_id,
@@ -112,13 +175,12 @@ export default function AdminSwapsPage() {
         scaleId: swap.scale_id,
         scaleTitle: swap.scale_title,
         scaleDate: swap.date,
-        message: `Sua permuta para "${swap.scale_title}" foi APROVADA pelo Gestor. ${swap.substitute_name} irá te substituir.`,
+        message: `Sua permuta para "${swap.scale_title}" foi APROVADA pelo Gestor. ${substituteLabel} irá te substituir.`,
         read: false,
         confirmedAt: null,
         createdAt: serverTimestamp(),
       });
 
-      // 6. Notificação para o SUBSTITUTO
       const notifSubstitute = doc(collection(db, 'notifications'));
       batch.set(notifSubstitute, {
         userId: swap.substitute_id,
@@ -132,6 +194,29 @@ export default function AdminSwapsPage() {
         confirmedAt: null,
         createdAt: serverTimestamp(),
       });
+
+      // 8. Log de Auditoria
+      try {
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+          const adminData = adminSnap.data();
+          const adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+
+          const auditRef = doc(collection(db, 'audit_logs'));
+          batch.set(auditRef, {
+            userId: currentUser.uid,
+            userName: adminName,
+            action: 'swap_approved',
+            entityId: swap.id,
+            entityTitle: swap.scale_title,
+            details: `Permuta aprovada: ${swap.requester_name} substituído por ${substituteLabel} na escala "${swap.scale_title}".`,
+            timestamp: serverTimestamp()
+          });
+        }
+      } catch (auditErr) {
+        console.error("Erro ao registrar log de auditoria da permuta:", auditErr);
+      }
 
       await batch.commit();
     } catch (e) {

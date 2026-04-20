@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { updateUserAuthEmail } from '@/app/actions/auth-actions';
+import { useNotifications } from '@/hooks/use-notifications';
+import { setDoc } from 'firebase/firestore';
 
 const formatCPF = (value: string) => {
   const clean = value.replace(/\D/g, '');
@@ -238,6 +240,8 @@ export default function ProfilePage() {
     }
   };
 
+  const { setupNotifications } = useNotifications();
+
   if (loading || authLoading) {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
@@ -434,6 +438,23 @@ export default function ProfilePage() {
                   <span className="text-sm font-medium">{formData.instrument || 'Não definido pelo gestor'}</span>
                 </div>
               </label>
+            </div>
+          </div>
+
+          <div className="h-4"></div>
+
+          {/* Notificações Push */}
+          <div className="bg-white dark:bg-slate-900/50 px-4 py-2 border-y border-slate-200 dark:border-slate-800">
+            <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] pb-2 pt-4">Notificações Push</h3>
+            <div className="flex flex-col gap-3 py-3">
+              <p className="text-sm text-slate-500 dark:text-slate-400">Ative as notificações para receber avisos sobre novas escalas diretamente no seu aparelho.</p>
+              <button
+                onClick={() => setupNotifications(true)}
+                className="flex w-full items-center justify-center gap-2 h-12 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-primary dark:text-blue-400 font-bold border border-primary/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all"
+              >
+                <span className="material-symbols-outlined">notifications_active</span>
+                Ativar Notificações neste Aparelho
+              </button>
             </div>
           </div>
 

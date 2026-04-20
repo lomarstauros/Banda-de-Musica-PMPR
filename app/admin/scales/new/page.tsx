@@ -239,6 +239,7 @@ export default function AdminNewScalePage() {
 
         // Disparar Notificações Push Reais (Mobile)
         try {
+          console.log('Solicitando envio de notificações push via API...');
           fetch('/api/notifications/push', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -248,7 +249,12 @@ export default function AdminNewScalePage() {
               scaleId: scaleRef.id
               // A mensagem "você tem uma nova escala de serviço" agora é padrão na API
             })
-          }).catch(err => console.error('Erro assíncrono ao enviar push:', err));
+          })
+          .then(async (res) => {
+            const data = await res.json();
+            console.log('Resposta da API de Push:', data);
+          })
+          .catch(err => console.error('Erro de rede ao enviar push:', err));
         } catch (pushErr) {
           console.error("Erro ao preparar envio de notificações push:", pushErr);
         }

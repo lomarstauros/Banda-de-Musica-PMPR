@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { isMusicianAvailable } from '@/lib/military-status';
 import { sortByRankThenName } from '@/lib/sort-military';
@@ -18,6 +19,9 @@ export default function AdminNewScalePage() {
   const [error, setError] = useState<string | null>(null);
   const [recentScales, setRecentScales] = useState<any[]>([]);
   const [musicians, setMusicians] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   // 1. Shared Date
   const [sharedDate, setSharedDate] = useState('');
@@ -100,6 +104,29 @@ export default function AdminNewScalePage() {
     ADMIN_INSTRUMENTS.includes((m.instrument || '').toLowerCase());
 
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+        // Verificar role do administrador
+        try {
+          const profileSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+          if (profileSnap.exists()) {
+            setUserRole(profileSnap.data().role || 'musician');
+          }
+        } catch (err) {
+          console.error("Erro ao verificar permissões:", err);
+        }
+      } else {
+        router.push('/login');
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+
     const fetchRecentScales = async () => {
       try {
         const q = query(collection(db, "scales"), orderBy("createdAt", "desc"), limit(5));
@@ -129,7 +156,7 @@ export default function AdminNewScalePage() {
       }
     };
     fetchMusicians();
-  }, []);
+  }, [user]);
 
   const applySuggestion = (serviceId: string, suggestedMusicians: any[]) => {
     if (!suggestedMusicians) return;
@@ -175,12 +202,24 @@ export default function AdminNewScalePage() {
     setError(null);
 
     try {
-      const currentUser = auth.currentUser;
+      const currentUser = user || auth.currentUser;
       let adminName = 'Admin';
       if (currentUser) {
+        // Se o profile já estiver carregado no state, usamos ele pra poupar uma requisição
         const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
         const adminData = adminSnap.data();
         adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+        
+        // Verificação extra de segurança no cliente antes de tentar o write
+        const role = adminData?.role || 'musician';
+        const allowedRoles = ['admin', 'manager', 'master'];
+        const isHeliomar = currentUser.email === 'heliomardejesus87@gmail.com';
+        
+        if (!isHeliomar && !allowedRoles.includes(role.toLowerCase())) {
+          throw new Error("Você não tem permissão para publicar escalas. Contate o administrador master.");
+        }
+      } else {
+        throw new Error("Usuário não autenticado. Faça login novamente.");
       }
 
       // 1. Montar lista de documentos a serem criados
@@ -312,11 +351,19 @@ export default function AdminNewScalePage() {
           <div className="size-24 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50 dark:ring-green-900/10">
             <span className="material-symbols-outlined text-[48px]">check_circle</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Escala Publicada!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Escalas Publicadas!</h2>
           <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-10">
-            A escala <strong className="text-gray-700 dark:text-gray-300">{formData.title}</strong> foi salva no sistema com sucesso. Os músicos serão notificados em breve.
+            A rotina e os serviços para o dia <strong className="text-gray-700 dark:text-gray-300">{sharedDate}</strong> foram salvos com sucesso e os músicos notificados.
           </p>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -564,7 +611,7 @@ export default function AdminNewScalePage() {
         <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-30 flex items-center justify-center">
           <div className="w-full max-w-md">
             <button 
-              disabled={loading || !sharedDate}
+              disabled={loading || !sharedDate || (userRole !== 'admin' && userRole !== 'master' && userRole !== 'manager' && user?.email !== 'heliomardejesus87@gmail.com')}
               onClick={() => handleCreateScale(false)}
               className="w-full h-14 rounded-xl bg-primary text-white font-black shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:active:scale-100 uppercase tracking-widest"
             >

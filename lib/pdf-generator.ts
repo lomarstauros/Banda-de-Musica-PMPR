@@ -166,16 +166,6 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     curY += 2; // Pequeno ajuste de respiro após a barra
   }
 
-  // ── HORÁRIO label --------------------------------------------------------
-  const formatTimeStr = (label: string, time: string | undefined | null) => time ? `${label}: ${time}` : null;
-  const timeParts = [
-    formatTimeStr('Saída', scale.departureTime),
-    formatTimeStr('Início', scale.startTime),
-    formatTimeStr('Término', scale.endTime),
-    formatTimeStr('Retorno', scale.returnTime),
-  ].filter(Boolean);
-  const horario = timeParts.join('  |  ') || 'NÃO DEFINIDO';
-
   // ── REFERÊNCIA -----------------------------------------------------------
   const referencia = exp.referencia || 'Determinação do Sr. Maestro Chefe da Banda de Música.';
 
@@ -188,15 +178,18 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   autoTable(doc, {
     startY: curY,
     body: [
-      horario !== 'NÃO DEFINIDO' ? ['HORÁRIO', { content: horario, colSpan: 2 }] : null,
+      scale.departureTime ? ['SAÍDA', { content: scale.departureTime, colSpan: 2 }] : null,
+      scale.startTime ? ['INÍCIO', { content: scale.startTime, colSpan: 2 }] : null,
+      scale.endTime ? ['TÉRMINO', { content: scale.endTime, colSpan: 2 }] : null,
+      scale.returnTime ? ['RETORNO', { content: scale.returnTime, colSpan: 2 }] : null,
       scale.format ? ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }] : null,
       scale.title ? ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }] : null,
       referencia ? ['REFERÊNCIA', { content: referencia, colSpan: 2 }] : null,
       scale.location ? ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }] : null,
-      scale.uniform ? ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }] : null,
+      scale.uniform ? ['UNIFORME', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }] : null,
       rMaestroChefe ? ['MAESTRO CHEFE', rMaestroChefe, rMaestroChefe.cpf] : null,
       rRegente ? ['REGENTE', rRegente, rRegente.cpf] : null,
-      rChief ? ['CHEFE', rChief, rChief.cpf] : null,
+      rChief ? ['CHEFE DO SERVIÇO', rChief, rChief.cpf] : null,
       rArquivo ? ['ARQUIVO', rArquivo, rArquivo.cpf] : null,
     ].filter(Boolean) as any[],
     theme: 'plain',
@@ -248,7 +241,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     rSarg ? ['SARGENTEAÇÃO', rSarg, rSarg.cpf] : null,
     ...adminRows,
     ...obraRows,
-    rP4 ? [{ content: 'P4/FINANÇAS E TRANSPORTE', styles: { fontSize: 6.5 } }, rP4, rP4.cpf] : null,
+    rP4 ? ['P4 / FINANÇAS', rP4, rP4.cpf] : null,
   ].filter(Boolean);
 
   if (expBody.length > 0) {

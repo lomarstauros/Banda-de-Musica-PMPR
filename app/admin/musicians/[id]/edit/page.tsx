@@ -96,7 +96,6 @@ export default function AdminEditMusicianPage() {
       } else {
         setLoading(false);
       }
-      }
     });
 
     return () => unsubscribeAuth();

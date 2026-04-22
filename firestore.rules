@@ -21,7 +21,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.email == "heliomardejesus87@gmail.com" ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         getUserData().get('role', '') in ['admin', 'master'])
+         getUserData().get('role', '').lower() in ['admin', 'master'])
       );
     }
 
@@ -29,7 +29,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         isAdmin() || 
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         getUserData().get('role', '') in ['manager', 'admin', 'master'])
+         getUserData().get('role', '').lower() in ['manager', 'admin', 'master'])
       );
     }
 
@@ -39,34 +39,29 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      // Allow ALL authenticated users to get individual profiles or list them
-      allow get: if isAuthenticated();
-      allow list: if isAuthenticated();
-      
+      allow read: if isAuthenticated();
       allow create: if isAdmin();
-      
-      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId && 
+      allow update: if isAdmin() || (isOwner(userId) && 
                       request.resource.data.diff(resource.data).affectedKeys()
-                        .hasOnly(['fcmTokens', 'updatedAt', 'lastLogin']));
-      
+                        .hasOnly(['fcmTokens', 'updatedAt', 'lastLogin', 'photo_url']));
       allow delete: if isAdmin();
     }
 
     // Scales (Escalas de serviço)
     match /scales/{scaleId} {
-      allow get, list: if isAuthenticated();
+      allow read: if isAuthenticated();
       allow write: if isManager();
     }
 
     // Notices (Mural de avisos)
     match /notices/{noticeId} {
-      allow get, list: if isAuthenticated();
+      allow read: if isAuthenticated();
       allow write: if isManager();
     }
 
     // Swaps (Permutas)
     match /swaps/{swapId} {
-      allow get, list: if isAuthenticated();
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if isOwner(resource.data.requester_id) || 
                                isOwner(resource.data.substitute_id) || 
@@ -75,25 +70,21 @@ service cloud.firestore {
 
     // Notifications
     match /notifications/{notifId} {
-      // Simplificado: qualquer usuário logado pode ler/listar notificações
-      // O filtro de segurança agora é feito via código no app (where userId == uid)
-      allow get, list: if isAuthenticated();
-      
+      allow read: if isAuthenticated();
       allow create, update: if isAuthenticated();
-      allow delete: if isAuthenticated() && (request.auth.uid == resource.data.userId || isManager());
+      allow delete: if isOwner(resource.data.userId) || isManager();
     }
 
     // Audit Logs
     match /audit_logs/{logId} {
-      // Simplificado: qualquer usuário logado pode ler/listar logs
-      allow get, list: if isAuthenticated();
+      allow read: if isAuthenticated();
       allow create: if isAuthenticated();
       allow update, delete: if false;
     }
 
     // Cities (Lookup data)
     match /cities/{cityId} {
-      allow get, list: if isAuthenticated();
+      allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
 

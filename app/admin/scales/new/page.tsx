@@ -438,12 +438,12 @@ export default function AdminNewScalePage() {
                 />
               </label>
 
-              {/* Regente / Maestro — Comando ou Regente */}
+              {/* Maestro Chefe — Somente Comandante */}
               {(() => {
-                const opts = musicians.filter(isAdminFunction);
+                const opts = musicians.filter(m => (m.instrument || '').toLowerCase() === 'comandante da banda de música');
                 return (
                   <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente / Maestro</span>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Maestro Chefe</span>
                     <div className="relative">
                       <select
                         value={expediente.regenteMaestro}

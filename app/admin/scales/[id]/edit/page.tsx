@@ -455,12 +455,12 @@ export default function AdminEditScalePage() {
                   placeholder="Ex: Of. nº 123/2026 - CBPMPR" />
               </label>
 
-              {/* Regente / Maestro */}
+              {/* Maestro Chefe */}
               {(() => {
-                const opts = musicians.filter(isAdminFunction);
+                const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'comandante da banda de música');
                 return (
                   <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente / Maestro</span>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Maestro Chefe</span>
                     <div className="relative">
                       <select value={expediente.regenteMaestro}
                         onChange={e => {

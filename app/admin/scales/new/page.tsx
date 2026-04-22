@@ -125,7 +125,8 @@ export default function AdminNewScalePage() {
   }, [router]);
 
   useEffect(() => {
-    if (!user) return;
+    // Apenas busca dados se o usuário estiver autenticado e o papel verificado
+    if (!user || !userRole) return;
 
     const fetchRecentScales = async () => {
       try {
@@ -136,11 +137,11 @@ export default function AdminNewScalePage() {
           ...doc.data()
         }));
         setRecentScales(scales);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erro ao buscar escalas recentes:", err);
+        // Não lançamos erro aqui para não quebrar a UI, apenas logamos
       }
     };
-    fetchRecentScales();
 
     const fetchMusicians = async () => {
       try {
@@ -151,12 +152,15 @@ export default function AdminNewScalePage() {
           ...doc.data()
         })).sort(sortByRankThenName);
         setMusicians(docs);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Erro ao buscar músicos:", err);
+        setError("Erro ao carregar lista de músicos. Verifique suas permissões.");
       }
     };
+
+    fetchRecentScales();
     fetchMusicians();
-  }, [user]);
+  }, [user, userRole]);
 
   const applySuggestion = (serviceId: string, suggestedMusicians: any[]) => {
     if (!suggestedMusicians) return;

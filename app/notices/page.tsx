@@ -44,25 +44,33 @@ export default function NoticesPage() {
   };
 
   useEffect(() => {
-    const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          ...data,
-          filterCategory: data.type === 'urgente' ? 'Urgente' : 'Geral',
-          time: data.createdAt?.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) || 'Recent'
-        };
+    // Only start listener if authenticated to avoid permission errors
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (!user) return;
+
+      const q = query(collection(db, 'notices'), orderBy('createdAt', 'desc'));
+      const unsubscribeNotices = onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            filterCategory: data.type === 'urgente' ? 'Urgente' : 'Geral',
+            time: data.createdAt?.toDate().toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) || 'Recent'
+          };
+        });
+        setNotices(docs);
+        setLoading(false);
+      }, (error) => {
+        console.error("Erro no listener do mural:", error);
+        handleFirestoreError(error, OperationType.LIST, 'notices');
+        setLoading(false);
       });
-      setNotices(docs);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'notices');
-      setLoading(false);
+
+      return () => unsubscribeNotices();
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
 
   // Filter the list dynamically

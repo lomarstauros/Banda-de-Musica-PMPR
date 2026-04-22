@@ -96,12 +96,16 @@ export default function AdminEditMusicianPage() {
       } else {
         setLoading(false);
       }
+      }
     });
+
+    return () => unsubscribeAuth();
+  }, [params.id, router]);
+
   const validateEmail = (email: string) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   };
-  }, [params.id, router]);
 
   const checkEmailExists = async (email: string) => {
     if (!email || !email.includes('@')) return;

@@ -41,6 +41,7 @@ export default function AdminNewScalePage() {
   const [expediente, setExpediente] = useState({
     referencia: '',
     regenteMaestro: '',
+    regente: '',
     arquivo: '',
     sargenteacao: '',
     p4FinancasTransporte: '',
@@ -177,6 +178,10 @@ export default function AdminNewScalePage() {
             ? getMusicianLabel(expediente.regenteMaestro)
             : '',
           regenteMaestroId: expediente.regenteMaestro || null,
+          regente: expediente.regente
+            ? getMusicianLabel(expediente.regente)
+            : '',
+          regenteId: expediente.regente || null,
           arquivo: expediente.arquivo
             ? getMusicianLabel(expediente.arquivo)
             : '',
@@ -455,6 +460,41 @@ export default function AdminNewScalePage() {
                         className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
                       >
                         <option value="">— Selecione —</option>
+                        {opts.map(m => {
+                          const available = isMusicianAvailable(m, formData.date);
+                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                          return (
+                            <option key={m.id} value={m.id} disabled={!available}>
+                              {available ? label : `🔒 ${label} [${m.militaryStatus}]`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                        <span className="material-symbols-outlined">expand_more</span>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* Regente — Somente Subcomandante */}
+              {(() => {
+                const opts = musicians.filter(m => (m.instrument || '').toLowerCase() === 'subcomandante da banda de música');
+                return (
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente</span>
+                    <div className="relative">
+                      <select
+                        value={expediente.regente}
+                        onChange={e => {
+                          const m = musicians.find(x => x.id === e.target.value);
+                          if (m && !isMusicianAvailable(m, formData.date)) return;
+                          setExpediente(prev => ({ ...prev, regente: e.target.value }));
+                        }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                      >
+                        <option value="">— Selecione (Opcional) —</option>
                         {opts.map(m => {
                           const available = isMusicianAvailable(m, formData.date);
                           const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;

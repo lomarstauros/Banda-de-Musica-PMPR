@@ -43,6 +43,7 @@ export default function AdminEditScalePage() {
   const [expediente, setExpediente] = useState({
     referencia: '',
     regenteMaestro: '',
+    regente: '',
     arquivo: '',
     sargenteacao: '',
     p4FinancasTransporte: '',
@@ -117,6 +118,7 @@ export default function AdminEditScalePage() {
             setExpediente({
               referencia: data.expediente.referencia || '',
               regenteMaestro: data.expediente.regenteMaestroId || '',
+              regente: data.expediente.regenteId || '',
               arquivo: data.expediente.arquivoId || '',
               sargenteacao: data.expediente.sargenteacaoId || '',
               p4FinancasTransporte: data.expediente.p4FinancasTransporteId || '',
@@ -203,6 +205,8 @@ export default function AdminEditScalePage() {
           referencia: expediente.referencia,
           regenteMaestro: expediente.regenteMaestro ? getMusicianLabel(expediente.regenteMaestro) : '',
           regenteMaestroId: expediente.regenteMaestro || null,
+          regente: expediente.regente ? getMusicianLabel(expediente.regente) : '',
+          regenteId: expediente.regente || null,
           arquivo: expediente.arquivo ? getMusicianLabel(expediente.arquivo) : '',
           arquivoId: expediente.arquivo || null,
           sargenteacao: expediente.sargenteacao ? getMusicianLabel(expediente.sargenteacao) : '',
@@ -243,6 +247,7 @@ export default function AdminEditScalePage() {
         ...selectedMusicians,
         ...(serviceChief ? [serviceChief] : []),
         ...(expediente.regenteMaestro ? [expediente.regenteMaestro] : []),
+        ...(expediente.regente ? [expediente.regente] : []),
         ...(expediente.arquivo ? [expediente.arquivo] : []),
         ...(expediente.sargenteacao ? [expediente.sargenteacao] : []),
         ...(expediente.p4FinancasTransporte ? [expediente.p4FinancasTransporte] : []),
@@ -279,7 +284,6 @@ export default function AdminEditScalePage() {
               userIds: uniqueNotifiedIds,
               title: 'Banda de Música PMPR',
               scaleId: params.id
-              // A mensagem "você tem uma nova escala de serviço" agora é padrão na API
             })
           })
           .then(async (res) => {
@@ -470,6 +474,33 @@ export default function AdminEditScalePage() {
                         }}
                         className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
                         <option value="">— Selecione —</option>
+                        {opts.map((m: any) => {
+                          const available = isMusicianAvailable(m, formData.date);
+                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                        })}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                    </div>
+                  </label>
+                );
+              })()}
+
+              {/* Regente */}
+              {(() => {
+                const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'subcomandante da banda de música');
+                return (
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente</span>
+                    <div className="relative">
+                      <select value={expediente.regente}
+                        onChange={e => {
+                          const m = musicians.find((x: any) => x.id === e.target.value);
+                          if (m && !isMusicianAvailable(m, formData.date)) return;
+                          setExpediente(prev => ({ ...prev, regente: e.target.value }));
+                        }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                        <option value="">— Selecione (Opcional) —</option>
                         {opts.map((m: any) => {
                           const available = isMusicianAvailable(m, formData.date);
                           const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;

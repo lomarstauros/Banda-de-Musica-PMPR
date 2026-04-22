@@ -81,7 +81,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     };
   };
 
-  const regentePerson = findProfile(exp.regenteMaestroId) || null;
+  const maestroChefePerson = findProfile(exp.regenteMaestroId) || null;
+  const regentePerson = findProfile(exp.regenteId) || null;
   const arquivoPerson = findProfile(exp.arquivoId) || null;
   const sargPerson = findProfile(exp.sargenteacaoId) || null;
   const p4Person = findProfile(exp.p4FinancasTransporteId) || null;
@@ -179,7 +180,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   const referencia = exp.referencia || 'Determinação do Sr. Maestro Chefe da Banda de Música.';
 
   // ── DADOS DETALHES ------------------------------------------------------
-  const rRegente = getPersonData(regentePerson, exp.regenteMaestro || '');
+  const rMaestroChefe = getPersonData(maestroChefePerson, exp.regenteMaestro || '');
+  const rRegente = getPersonData(regentePerson, exp.regente || '');
   const rChief = getPersonData(chiefPerson, '');
   const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '');
 
@@ -192,6 +194,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       referencia ? ['REFERÊNCIA', { content: referencia, colSpan: 2 }] : null,
       scale.location ? ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }] : null,
       scale.uniform ? ['FARDAMENTO', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }] : null,
+      rMaestroChefe ? ['MAESTRO CHEFE', rMaestroChefe, rMaestroChefe.cpf] : null,
       rRegente ? ['REGENTE', rRegente, rRegente.cpf] : null,
       rChief ? ['CHEFE', rChief, rChief.cpf] : null,
       rArquivo ? ['ARQUIVO', rArquivo, rArquivo.cpf] : null,
@@ -346,8 +349,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       doc.setFont('helvetica', 'normal');
     };
 
-    if (regentePerson) {
-      const fname = `${(regentePerson.rank || '').toUpperCase()} ${(regentePerson.name || '').toUpperCase()}`;
+    if (maestroChefePerson) {
+      const fname = `${(maestroChefePerson.rank || '').toUpperCase()} ${(maestroChefePerson.name || '').toUpperCase()}`;
       drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     } else if (exp.regenteMaestro) {

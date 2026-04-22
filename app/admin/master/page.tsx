@@ -7,6 +7,8 @@ import { collection, onSnapshot, query, orderBy, deleteDoc, doc, updateDoc, getD
 import { db, auth } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { useRouter } from 'next/navigation';
+import { normalizeSpaces } from '@/lib/utils';
+import { writeBatch } from 'firebase/firestore';
 
 export default function MasterPanelPage() {
   const router = useRouter();
@@ -16,6 +18,7 @@ export default function MasterPanelPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isMaster, setIsMaster] = useState(false);
+  const [isSanitizing, setIsSanitizing] = useState(false);
   
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
@@ -94,6 +97,45 @@ export default function MasterPanelPage() {
     }
   };
 
+  const handleSanitizeNames = async () => {
+    if (!window.confirm('Deseja padronizar o espaçamento de todos os nomes e postos/graduações no banco de dados? Isso corrigirá erros de negrito no PDF.')) {
+      return;
+    }
+    
+    setIsSanitizing(true);
+    try {
+      const batch = writeBatch(db);
+      let count = 0;
+      
+      users.forEach(user => {
+        const cleanName = normalizeSpaces(user.name || '');
+        const cleanWarName = normalizeSpaces(user.war_name || '');
+        const cleanRank = normalizeSpaces(user.rank || '');
+        
+        if (cleanName !== user.name || cleanWarName !== user.war_name || cleanRank !== user.rank) {
+          batch.update(doc(db, 'profiles', user.id), {
+            name: cleanName,
+            war_name: cleanWarName,
+            rank: cleanRank
+          });
+          count++;
+        }
+      });
+      
+      if (count > 0) {
+        await batch.commit();
+        alert(`${count} perfis foram saneados com sucesso!`);
+      } else {
+        alert('Todos os perfis já estão com espaçamento padronizado.');
+      }
+    } catch (error: any) {
+      console.error(error);
+      alert('Erro ao sanear nomes: ' + error.message);
+    } finally {
+      setIsSanitizing(false);
+    }
+  };
+
   if (loading || !isMaster) {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
@@ -127,6 +169,15 @@ export default function MasterPanelPage() {
 
         <main className="flex-1 p-4 flex flex-col gap-5 pb-24">
           
+          <button 
+            onClick={handleSanitizeNames}
+            disabled={isSanitizing}
+            className="w-full bg-blue-600 dark:bg-blue-800 text-white py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined ${isSanitizing ? 'animate-spin' : ''}`}>sync_alt</span>
+            {isSanitizing ? 'SANEANDO BANCO DE DADOS...' : 'SINCRONIZAR E CORRIGIR NOMES'}
+          </button>
+
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
             <button 
               onClick={() => setActiveTab('pending')}

@@ -3,7 +3,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import { PMPR_LOGO, BANDA_LOGO } from './pdf-logos';
+import { PMP_LOGO, BANDA_LOGO } from './pdf-logos';
+import { normalizeSpaces } from './utils';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,10 @@ const formatSignatureDate = (dateStr: string): string => {
  * Recebe um nome completo (UPPERCASE) e um nome de guerra (UPPERCASE).
  * Retorna partes: [antes, nomeGuerra, depois] para renderização com bold parcial.
  */
-const splitByWarName = (fullName: string, warName: string) => {
+const splitByWarName = (fullNameRaw: string, warNameRaw: string) => {
+  const fullName = normalizeSpaces(fullNameRaw);
+  const warName = normalizeSpaces(warNameRaw);
+
   if (!warName || !fullName.includes(warName)) return null;
   const idx = fullName.indexOf(warName);
   return {
@@ -69,10 +73,10 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   const exp = scale.expediente || {};
 
   const getPersonData = (p: any | null, fallback = '') => {
-    if (!p) return fallback ? { content: fallback.toUpperCase(), warName: '', cpf: '' } : null;
-    const rank = (p.rank || '').toUpperCase();
-    const n = (p.name || '').toUpperCase();
-    const war = (p.war_name || '').toUpperCase();
+    if (!p) return fallback ? { content: normalizeSpaces(fallback.toUpperCase()), warName: '', cpf: '' } : null;
+    const rank = normalizeSpaces((p.rank || '').toUpperCase());
+    const n = normalizeSpaces((p.name || '').toUpperCase());
+    const war = normalizeSpaces((p.war_name || '').toUpperCase());
     const cpf = maskCPF(p.cpf || '');
     return {
       content: `${rank} ${n}`.trim(),
@@ -272,9 +276,9 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   // ── TABELA MÚSICOS --------------------------------------------------------
   const musiciansRows = (scale.musicians || []).map((m: any, i: number) => {
     const profile = findProfile(m.id) || m;
-    const rank = (profile.rank || m.rank || '').toUpperCase();
-    const fullName = (profile.name || m.name || '').toUpperCase();
-    const warName = (profile.war_name || m.war_name || '').toUpperCase();
+    const rank = normalizeSpaces((profile.rank || m.rank || '').toUpperCase());
+    const fullName = normalizeSpaces((profile.name || m.name || '').toUpperCase());
+    const warName = normalizeSpaces((profile.war_name || m.war_name || '').toUpperCase());
     const cpf = maskCPF(profile.cpf || m.cpf || '');
 
     return {
@@ -343,19 +347,19 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     };
 
     if (maestroChefePerson) {
-      const fname = `${(maestroChefePerson.rank || '').toUpperCase()} ${(maestroChefePerson.name || '').toUpperCase()}`;
+      const fname = normalizeSpaces(`${(maestroChefePerson.rank || '').toUpperCase()} ${(maestroChefePerson.name || '').toUpperCase()}`);
       drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     } else if (exp.regenteMaestro) {
-      drawSignRight(footerY, exp.regenteMaestro.toUpperCase(), 'Maestro Chefe da Banda de Música.');
+      drawSignRight(footerY, normalizeSpaces(exp.regenteMaestro.toUpperCase()), 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     }
 
     if (sargPerson) {
-      const fname = `${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`;
+      const fname = normalizeSpaces(`${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`);
       drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
     } else if (exp.sargenteacao) {
-      drawSignRight(footerY, exp.sargenteacao.toUpperCase(), 'Sargenteante da Banda de Música');
+      drawSignRight(footerY, normalizeSpaces(exp.sargenteacao.toUpperCase()), 'Sargenteante da Banda de Música');
     }
     curY = footerY;
   }

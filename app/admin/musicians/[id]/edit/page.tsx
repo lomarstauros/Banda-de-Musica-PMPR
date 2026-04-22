@@ -9,6 +9,7 @@ import { doc, getDoc, updateDoc, deleteDoc, collection, query, where, getDocs } 
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { updateUserAuthEmail, resetUserAccess } from '@/app/actions/auth-actions';
+import { normalizeSpaces } from '@/lib/utils';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -159,12 +160,17 @@ export default function AdminEditMusicianPage() {
 
       // 2. Atualizar Firestore
       const docRef = doc(db, 'profiles', params.id as string);
+      
+      const cleanName = normalizeSpaces(formData.name);
+      const cleanWarName = normalizeSpaces(formData.war_name);
+      const cleanRank = normalizeSpaces(formData.rank);
+
       // Salva com as mesmas chaves do Firestore usadas pelo perfil do usuário
       await updateDoc(docRef, {
-        name: formData.name,
-        war_name: formData.war_name,
+        name: cleanName,
+        war_name: cleanWarName,
         re: formData.re,
-        rank: formData.rank,
+        rank: cleanRank,
         instrument: formData.instrument,
         role: formData.role,
         email: newEmail,

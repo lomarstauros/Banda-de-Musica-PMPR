@@ -9,6 +9,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { resetUserAccess } from '@/app/actions/auth-actions';
+import { normalizeSpaces } from '@/lib/utils';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -101,6 +102,9 @@ export default function AdminNewMusicianPage() {
       // 3. Salvar o perfil no Firestore usando o mesmo ID
       await setDoc(newProfileRef, {
         ...formData,
+        name: normalizeSpaces(formData.name),
+        war_name: normalizeSpaces(formData.war_name),
+        rank: normalizeSpaces(formData.rank),
         uid: newUid,
         createdAt: serverTimestamp(),
         forcePasswordReset: true,

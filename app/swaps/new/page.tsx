@@ -49,8 +49,9 @@ function NewSwapForm() {
           return;
         }
 
-        // 2. Fetch Musicians (Profiles)
-        const profilesSnap = await getDocs(collection(db, 'profiles'));
+        // 2. Fetch Musicians (Profiles) - Limitados para segurança conforme firestore.rules
+        const musiciansRef = collection(db, 'profiles');
+        const profilesSnap = await getDocs(query(musiciansRef, limit(40)));
         const profilesData = profilesSnap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(p => p.id !== user.uid); // Não pode trocar consigo mesmo

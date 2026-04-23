@@ -15,7 +15,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email.lower() == "heliomardejesus87@gmail.com" ||
+        request.auth.token.get('email', '').lower() == "heliomardejesus87@gmail.com" ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', '').lower() in ['admin', 'master'])
       );
@@ -35,7 +35,12 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      allow read: if isAuthenticated();
+      // Allow individual get for any logged in user
+      allow get: if isAuthenticated();
+      // Allow listing for logged in users (needed for swap selection and musician lists)
+      // If higher security is needed, restrict this to isManager()
+      allow list: if isAuthenticated();
+      
       allow create: if isAdmin();
       allow update: if isAdmin() || (isOwner(userId) && 
                       request.resource.data.diff(resource.data).affectedKeys()
@@ -67,13 +72,15 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notifId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated();
+      // Permite que qualquer um crie notificações (ex: registros de visualização de escala)
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
       allow delete: if isOwner(resource.data.userId) || isManager();
     }
 
     // Audit Logs
     match /audit_logs/{logId} {
-      allow read: if isAuthenticated();
+      allow read: if isManager();
       allow create: if isAuthenticated();
       allow update, delete: if false;
     }

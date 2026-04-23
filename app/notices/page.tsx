@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 
 

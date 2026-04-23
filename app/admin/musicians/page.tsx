@@ -9,17 +9,38 @@ import { db, auth } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
+import { useFirebase } from '@/components/providers/firebase-provider';
+import { useRouter } from 'next/navigation';
 
 export default function AdminMusiciansListPage() {
   const [search, setSearch] = useState('');
   const [musicians, setMusicians] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const { user, loading: authLoading } = useFirebase();
+  const router = useRouter();
+  
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        const q = query(collection(db, 'profiles'), orderBy('name', 'asc'));
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    const checkRoleAndFetch = async () => {
+      try {
+        // 1. Verificar se é admin/manager
+        const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
+        const profileData = profileSnap.data();
+        const role = (profileData?.role || '').toLowerCase();
         
+        if (role !== 'admin' && role !== 'master' && role !== 'manager') {
+          router.push('/dashboard');
+          return;
+        }
+
+        // 2. Buscar Efetivo
+        const q = query(collection(db, 'profiles'), orderBy('name', 'asc'));
         const unsubscribeSnapshot = onSnapshot(q, (snapshot) => {
           const docs = snapshot.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -31,16 +52,18 @@ export default function AdminMusiciansListPage() {
           setLoading(false);
         });
 
-        return () => unsubscribeSnapshot();
-      } else {
-        // If not logged in, redirect to login or just stop loading
+        return unsubscribeSnapshot;
+      } catch (err) {
+        console.error('Erro ao verificar permissões:', err);
         setLoading(false);
-        // router.push('/admin/login'); // Optional: redirect
       }
-    });
+    };
 
-    return () => unsubscribeAuth();
-  }, []);
+    const unsubPromise = checkRoleAndFetch();
+    return () => {
+      unsubPromise.then(unsub => unsub?.());
+    };
+  }, [user, authLoading, router]);
 
   const handleDelete = async (id: string, name: string) => {
     if (window.confirm(`Tem certeza que deseja excluir ${name}?`)) {

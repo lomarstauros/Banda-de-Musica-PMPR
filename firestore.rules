@@ -35,10 +35,10 @@ service cloud.firestore {
 
     // Profiles (User data)
     match /profiles/{userId} {
-      // Allow individual get for any logged in user
+      // Permite leitura individual para qualquer usuário logado
       allow get: if isAuthenticated();
-      // Allow listing for logged in users (needed for swap selection and musician lists)
-      // If higher security is needed, restrict this to isManager()
+      // Permite listagem para usuários logados (necessário para a tela de permutas escolher parceiros)
+      // A restrição de visualização da 'lista administrativa' é tratada na interface (UI)
       allow list: if isAuthenticated();
       
       allow create: if isAdmin();

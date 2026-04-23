@@ -117,14 +117,33 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     const textY = y + height / 2 + 1.2;
     let cx = x + 1.5;
 
+    // Helper para medir largura incluindo espaços no final (jsPDF às vezes ignora)
+    const getRobustWidth = (txt: string) => {
+      if (!txt) return 0;
+      doc.setFont('helvetica', 'normal');
+      const w = doc.getTextWidth(txt + 'A');
+      const a = doc.getTextWidth('A');
+      return w - a;
+    };
+
     if (parts.before) {
       doc.setFont('helvetica', 'normal');
       doc.text(parts.before, cx, textY);
-      cx += doc.getTextWidth(parts.before);
+      cx += getRobustWidth(parts.before);
     }
     doc.setFont('helvetica', 'bold');
     doc.text(parts.bold, cx, textY);
-    cx += doc.getTextWidth(parts.bold);
+    
+    // Para a parte 'after', precisamos medir a largura do bold
+    const getBoldWidth = (txt: string) => {
+      doc.setFont('helvetica', 'bold');
+      const w = doc.getTextWidth(txt + 'A');
+      const a = doc.getTextWidth('A');
+      return w - a;
+    };
+    
+    cx += getBoldWidth(parts.bold);
+    
     if (parts.after) {
       doc.setFont('helvetica', 'normal');
       doc.text(parts.after, cx, textY);

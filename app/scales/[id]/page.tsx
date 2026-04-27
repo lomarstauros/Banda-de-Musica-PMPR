@@ -281,15 +281,72 @@ export default function ScaleDetailsPage() {
             </div>
           </section>
 
-          {/* Chefe do Serviço info */}
-          {scale.serviceChief && (
-            <section className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/40 rounded-xl p-4 flex items-center gap-3">
-              <span className="material-symbols-outlined text-amber-500 text-[22px]">military_tech</span>
-              <div>
-                <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-widest">Chefe do Serviço</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-white">
-                  {scale.serviceChief.rank ? `${scale.serviceChief.rank} ` : ''}{scale.serviceChief.war_name || scale.serviceChief.name}
-                </p>
+          {/* EXPEDIENTE E APOIO */}
+          {(scale.expediente || scale.serviceChief) && (
+            <section className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 rounded-2xl overflow-hidden shadow-sm">
+              <div className="bg-slate-100 dark:bg-slate-800/60 px-4 py-2 border-b border-slate-200 dark:border-slate-800/50 flex items-center gap-2">
+                <span className="material-symbols-outlined text-[18px] text-slate-500">shield_person</span>
+                <h3 className="text-[10px] font-black text-slate-600 dark:text-slate-400 uppercase tracking-[0.15em]">Expediente e Comando</h3>
+              </div>
+              
+              <div className="p-4 flex flex-col gap-4">
+                {scale.expediente?.referencia && (
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Referência</span>
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-300">{scale.expediente.referencia}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-3">
+                  {[ 
+                    { label: 'Maestro Chefe', val: scale.expediente?.regenteMaestro, icon: 'military_tech', color: 'text-amber-600' },
+                    { label: 'Regente', val: scale.expediente?.regente, icon: 'edit_note', color: 'text-blue-600' },
+                    { label: 'Chefe do Serviço', val: scale.serviceChief ? `${scale.serviceChief.rank || ''} ${scale.serviceChief.war_name || scale.serviceChief.name}` : null, icon: 'star', color: 'text-amber-500' },
+                    { label: 'Sargenteação', val: scale.expediente?.sargenteacao, icon: 'assignment_ind', color: 'text-slate-500' },
+                    { label: 'Arquivo', val: scale.expediente?.arquivo, icon: 'library_music', color: 'text-slate-500' }
+                  ].filter(x => !!x.val).map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <div className="flex-none size-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-center">
+                        <span className={`material-symbols-outlined text-[18px] ${item.color}`}>{item.icon}</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{item.label}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{item.val}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Administrativo e Obra */}
+                {(scale.expediente?.administrativo?.length > 0 || scale.expediente?.obra?.length > 0) && (
+                   <div className="mt-2 pt-4 border-t border-slate-100 dark:border-slate-800/50 flex flex-col gap-4">
+                      {scale.expediente?.administrativo?.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Equipe Administrativa</span>
+                          <div className="flex flex-wrap gap-1.5">
+                             {scale.expediente.administrativo.map((adm: any, i: number) => (
+                               <span key={i} className="text-[11px] font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-lg border border-slate-300/30 dark:border-slate-700/50">
+                                 {adm.label}
+                               </span>
+                             ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {scale.expediente?.obra?.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Equipe de Obra</span>
+                          <div className="flex flex-wrap gap-1.5">
+                             {scale.expediente.obra.map((ob: any, i: number) => (
+                               <span key={i} className="text-[11px] font-bold bg-blue-50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-400 px-2.5 py-1 rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                                 {ob.label}
+                               </span>
+                             ))}
+                          </div>
+                        </div>
+                      )}
+                   </div>
+                )}
               </div>
             </section>
           )}

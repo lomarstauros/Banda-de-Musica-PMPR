@@ -27,6 +27,7 @@ export default function AdminNewScalePage() {
   const [sharedDate, setSharedDate] = useState('');
 
   // 2. Expediente Administrativo (Block 1)
+  const [showExpediente, setShowExpediente] = useState(true);
   const [expediente, setExpediente] = useState({
     title: 'Rotina Administrativa', // Hidden but useful for doc
     referencia: '',
@@ -376,12 +377,16 @@ export default function AdminNewScalePage() {
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
       <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl pb-24">
         <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
-          <Link href="/admin/swaps">
+          <Link href="/admin/scales">
             <button className="flex items-center justify-center p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white">
               <span className="material-symbols-outlined">close</span>
             </button>
           </Link>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center pr-10">Nova Escala</h1>
+          <div className="flex flex-col items-center flex-1">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white leading-none">Nova Escala</h1>
+            <span className="text-[9px] font-black text-primary uppercase tracking-widest mt-1 bg-primary/10 px-2 py-0.5 rounded-full">Multi-Escala v2</span>
+          </div>
+          <div className="size-10" /> {/* Spacer */}
         </header>
 
         <main className="flex-1 p-4 flex flex-col gap-6">
@@ -403,103 +408,101 @@ export default function AdminNewScalePage() {
               <input 
                 type="date" value={sharedDate} onChange={e => setSharedDate(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-              />
-            </label>
-          </div>
-
-          {/* 2. Bloco: Expediente Administrativo */}
-          <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-5 shadow-sm">
-            <div className="flex items-center justify-between">
+                    {/* 2. Bloco: Expediente Administrativo */}
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col shadow-sm overflow-hidden transition-all">
+            <button 
+              type="button"
+              onClick={() => setShowExpediente(!showExpediente)}
+              className="px-4 py-4 flex items-center justify-between w-full hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
+            >
               <h3 className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
                 <span className="material-symbols-outlined text-[18px]">rule</span>
                 Expediente Administrativo
               </h3>
-            </div>
+              <span className={`material-symbols-outlined text-blue-400 transition-transform duration-300 ${showExpediente ? 'rotate-180' : ''}`}>expand_more</span>
+            </button>
 
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">Início</span>
-                <input type="time" value={expediente.startTime} onChange={e => setExpediente(p => ({ ...p, startTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
-              </label>
-              <label className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-gray-500 uppercase">Término</span>
-                <input type="time" value={expediente.endTime} onChange={e => setExpediente(p => ({ ...p, endTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
-              </label>
-            </div>
+            {showExpediente && (
+              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-5 flex flex-col gap-5 border-t border-blue-50 dark:border-blue-900/20 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase">Início</span>
+                    <input type="time" value={expediente.startTime} onChange={e => setExpediente(p => ({ ...p, startTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase">Término</span>
+                    <input type="time" value={expediente.endTime} onChange={e => setExpediente(p => ({ ...p, endTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
+                  </label>
+                </div>
 
-            <label className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Referência</span>
-                <button type="button" onClick={() => setExpediente(p => ({ ...p, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))} className="text-[9px] font-black text-primary uppercase">Padrão Maestro</button>
-              </div>
-              <input type="text" value={expediente.referencia} onChange={e => setExpediente(p => ({ ...p, referencia: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" placeholder="Referência..." />
-            </label>
-
-            {/* Roles Selection */}
-            {[
-              { label: 'Maestro Chefe', field: 'regenteMaestro', role: 'comandante da banda de música' },
-              { label: 'Regente', field: 'regente', role: 'subcomandante da banda de música' },
-              { label: 'Arquivo', field: 'arquivo', admin: true },
-              { label: 'Sargenteação', field: 'sargenteacao', admin: true },
-              { label: 'P4 / Finanças', field: 'p4FinancasTransporte', admin: true }
-            ].map(r => (
-              <label key={r.field} className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">{r.label}</span>
-                <div className="relative">
-                  <select 
-                    value={(expediente as any)[r.field]} 
-                    onChange={e => setExpediente(p => ({ ...p, [r.field]: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm appearance-none outline-none"
-                  >
-                    <option value="">— Selecione —</option>
-                    {musicians.filter(m => r.role ? (m.instrument || '').toLowerCase() === r.role : isAdminFunction(m)).map(m => {
-                      const available = isMusicianAvailable(m, sharedDate);
-                      return <option key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
-                    })}
-                  </select>
-                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                <label className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Referência</span>
+                    <button type="button" onClick={() => setExpediente(p => ({ ...p, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))} className="text-[9px] font-black text-primary uppercase">Padrão Maestro</button>
                   </div>
-                </div>
-              </label>
-            ))}
+                  <input type="text" value={expediente.referencia} onChange={e => setExpediente(p => ({ ...p, referencia: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" placeholder="Referência..." />
+                </label>
 
-            {/* List Selection Group */}
-            {(['administrativo', 'obra', 'permanencia'] as const).map(group => (
-              <div key={group} className="flex flex-col gap-2">
-                <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center justify-between">
-                  {group.charAt(0).toUpperCase() + group.slice(1)}
-                  <span className="text-primary">{expediente[group].length} sel.</span>
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {expediente[group].map(id => (
-                    <span key={id} onClick={() => toggleMulti(group, id)} className="cursor-pointer inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5 font-bold">
-                      {getMusicianLabel(id)}
+                {/* Roles Selection */}
+                {[
+                  { label: 'Maestro Chefe', field: 'regenteMaestro', role: 'comandante da banda de música' },
+                  { label: 'Regente', field: 'regente', role: 'subcomandante da banda de música' },
+                  { label: 'Arquivo', field: 'arquivo', admin: true },
+                  { label: 'Sargenteação', field: 'sargenteacao', admin: true },
+                  { label: 'P4 / Finanças', field: 'p4FinancasTransporte', admin: true }
+                ].map(r => (
+                  <label key={r.field} className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">{r.label}</span>
+                    <div className="relative">
+                      <select 
+                        value={(expediente as any)[r.field]} 
+                        onChange={e => setExpediente(p => ({ ...p, [r.field]: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm appearance-none outline-none"
+                      >
+                        <option value="">— Selecione —</option>
+                        {musicians.filter(m => r.role ? (m.instrument || '').toLowerCase() === r.role : isAdminFunction(m)).map(m => {
+                          const available = isMusicianAvailable(m, sharedDate);
+                          return <option key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
+                        })}
+                      </select>
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                      </div>
+                    </div>
+                  </label>
+                ))}
+
+                {/* List Selection Group */}
+                {(['administrativo', 'obra', 'permanencia'] as const).map(group => (
+                  <div key={group} className="flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center justify-between">
+                      {group.charAt(0).toUpperCase() + group.slice(1)}
+                      <span className="text-primary">{expediente[group].length} sel.</span>
                     </span>
-                  ))}
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[120px] overflow-y-auto no-scrollbar py-1">
-                  {musicians.map(m => {
-                    const available = isMusicianAvailable(m, sharedDate);
-                    const checked = expediente[group].includes(m.id);
-                    return (
-                      <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors cursor-pointer ${!available ? 'opacity-40' : checked ? 'bg-primary/5' : ''}`}>
-                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary" />
-                        <span className="text-xs font-medium dark:text-white">{getMusicianLabel(m.id)}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-
-            <button 
-              type="button" 
-              disabled={loading}
-              onClick={() => handleCreateScale(true)}
-              className="mt-2 w-full py-3 rounded-xl border-2 border-blue-100 dark:border-blue-900/30 text-blue-600 dark:text-blue-400 text-xs font-black uppercase tracking-widest hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> : <>Publicar Somente Expediente <span className="material-symbols-outlined text-[16px]">send</span></>}
+                    <div className="flex flex-wrap gap-1">
+                      {expediente[group].map(id => (
+                        <span key={id} onClick={() => toggleMulti(group, id)} className="cursor-pointer inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5 font-bold">
+                          {getMusicianLabel(id)}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[120px] overflow-y-auto no-scrollbar py-1">
+                      {musicians.map(m => {
+                        const available = isMusicianAvailable(m, sharedDate);
+                        const checked = expediente[group].includes(m.id);
+                        return (
+                          <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors cursor-pointer ${!available ? 'opacity-40' : checked ? 'bg-primary/5' : ''}`}>
+                            <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary" />
+                            <span className="text-xs font-medium dark:text-white">{getMusicianLabel(m.id)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </div>ext-[16px]">send</span></>}
             </button>
           </div>
 
@@ -604,10 +607,10 @@ export default function AdminNewScalePage() {
           <button 
             type="button" 
             onClick={addExtraService}
-            className="w-full py-4 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-800 text-gray-500 hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2 font-bold text-sm"
+            className="w-full py-5 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all flex flex-col items-center justify-center gap-2 font-black text-xs uppercase tracking-[0.2em] shadow-sm shadow-primary/5"
           >
-            <span className="material-symbols-outlined">add_circle</span>
-            Acrescentar mais uma escala
+            <span className="material-symbols-outlined text-[32px]">add_circle</span>
+            Acrescentar Mais um Serviço Extra
           </button>
 
         </main>
@@ -623,7 +626,7 @@ export default function AdminNewScalePage() {
                 <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
               ) : (
                 <>
-                  Publicar Tudo
+                  Publicar {1 + extraServices.length} {1 + extraServices.length === 1 ? 'Serviço' : 'Serviços'}
                   <span className="material-symbols-outlined text-[20px]">dynamic_form</span>
                 </>
               )}

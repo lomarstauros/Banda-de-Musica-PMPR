@@ -11,7 +11,7 @@ export async function updateUserAuthEmail(uid: string, newEmail: string) {
   try {
     // Inicializa o admin app
     const app = getAdminApp();
-    const authAdmin = admin.auth(app);
+    const authAdmin = admin.auth(app || undefined);
     
     // Limpeza profunda do e-mail
     const cleanEmail = newEmail.trim().toLowerCase().replace(/\s/g, '');
@@ -56,7 +56,7 @@ export async function updateUserAuthEmail(uid: string, newEmail: string) {
 export async function resetUserAccess(uid: string, email: string) {
   try {
     const app = getAdminApp();
-    const authAdmin = admin.auth(app);
+    const authAdmin = admin.auth(app || undefined);
     const defaultPassword = '123456';
 
     // Limpeza profunda do e-mail

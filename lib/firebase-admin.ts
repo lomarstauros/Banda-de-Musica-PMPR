@@ -2,9 +2,10 @@ import * as admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
-export function getAdminApp() {
-  if (admin.apps.length > 0) {
-    return admin.apps[0];
+export function getAdminApp(): admin.app.App {
+  const existingApp = admin.apps.find(app => app !== null);
+  if (existingApp) {
+    return existingApp;
   }
 
   try {

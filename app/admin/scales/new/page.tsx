@@ -408,7 +408,11 @@ export default function AdminNewScalePage() {
               <input 
                 type="date" value={sharedDate} onChange={e => setSharedDate(e.target.value)}
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                    {/* 2. Bloco: Expediente Administrativo */}
+              />
+            </label>
+          </div>
+
+          {/* 2. Bloco: Expediente Administrativo */}
           <div className="bg-white dark:bg-gray-900 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col shadow-sm overflow-hidden transition-all">
             <button 
               type="button"
@@ -502,8 +506,20 @@ export default function AdminNewScalePage() {
                 ))}
               </motion.div>
             )}
-          </div>ext-[16px]">send</span></>}
-            </button>
+
+            {showExpediente && (
+              <div className="px-4 pb-4">
+                <button 
+                  type="button"
+                  onClick={() => handleCreateScale(true)}
+                  disabled={loading || !sharedDate}
+                  className="w-full py-3 rounded-xl bg-blue-600 text-white text-xs font-black flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors disabled:opacity-50 uppercase tracking-widest"
+                >
+                  Publicar Somente Rotina
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="h-px bg-gray-100 dark:bg-gray-800 my-2" />

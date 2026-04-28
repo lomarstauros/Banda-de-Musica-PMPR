@@ -7,13 +7,26 @@ export function getAdminApp(): admin.app.App {
   if (existingApp) {
     return existingApp;
   }
-
   try {
-    // Busca a chave no diretório raiz do projeto bandas-de-musica-pmpr
+    // Tenta carregar as credenciais das variáveis de ambiente (Vercel)
+    if (process.env.project_id && process.env.client_email && process.env.private_key) {
+      // Vercel costuma escapar o \n na chave privada. O replace formata de volta para o padrão esperado.
+      const parsedKey = process.env.private_key.replace(/\\n/g, '\n');
+      
+      return admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.project_id,
+          clientEmail: process.env.client_email,
+          privateKey: parsedKey,
+        })
+      });
+    }
+
+    // Fallback: Busca a chave no diretório raiz do projeto bandas-de-musica-pmpr (desenvolvimento local)
     const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
     
     if (!fs.existsSync(serviceAccountPath)) {
-      throw new Error(`Arquivo de credenciais não encontrado em: ${serviceAccountPath}`);
+      throw new Error(`Arquivo de credenciais não encontrado nem nas variáveis de ambiente nem em: ${serviceAccountPath}`);
     }
 
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));

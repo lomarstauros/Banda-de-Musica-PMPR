@@ -87,25 +87,31 @@ export default function AdminNewMusicianPage() {
 
     setLoading(true);
     try {
-      // 1. Gerar um novo ID de documento (será o UID do usuário no Auth também)
+      // 1. Gerar um novo ID de documento provisório (caso seja um usuário totalmente novo)
       const newProfileRef = doc(collection(db, 'profiles'));
-      const newUid = newProfileRef.id;
+      let finalUid = newProfileRef.id;
 
-      // 2. Criar o usuário no Firebase Authentication via Servidor (Admin SDK)
+      // 2. Criar ou recuperar o usuário no Firebase Authentication via Servidor (Admin SDK)
       // O resetUserAccess garante a criação se não existir, com senha 123456
-      const authResult = await resetUserAccess(newUid, formData.email);
+      const authResult = await resetUserAccess(finalUid, formData.email);
 
       if (!authResult.success) {
         throw new Error(authResult.error || 'Falha ao criar credenciais de login.');
       }
 
-      // 3. Salvar o perfil no Firestore usando o mesmo ID
-      await setDoc(newProfileRef, {
+      // Se o resetUserAccess encontrou um usuário existente, reusamos o UID dele para o Firestore
+      if (authResult.uid) {
+        finalUid = authResult.uid;
+      }
+
+      // 3. Salvar o perfil no Firestore usando o ID final (novo ou reaproveitado)
+      const finalProfileRef = doc(db, 'profiles', finalUid);
+      await setDoc(finalProfileRef, {
         ...formData,
         name: normalizeSpaces(formData.name),
         war_name: normalizeSpaces(formData.war_name),
         rank: normalizeSpaces(formData.rank),
-        uid: newUid,
+        uid: finalUid,
         createdAt: serverTimestamp(),
         forcePasswordReset: true,
         status: formData.active ? 'active' : 'pending'
@@ -113,7 +119,7 @@ export default function AdminNewMusicianPage() {
 
       router.push('/admin/musicians');
     } catch (error: any) {
-      if (error.message?.includes('already-in-use')) {
+      if (error.message?.includes('already-in-use') || error.message?.includes('already in use') || error.message?.includes('already-exists')) {
         alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
         alert('Erro ao criar usuário: ' + (error.message || 'Erro desconhecido.'));

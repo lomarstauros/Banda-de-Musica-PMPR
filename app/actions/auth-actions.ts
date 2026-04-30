@@ -76,22 +76,43 @@ export async function resetUserAccess(uid: string, email: string) {
         emailVerified: true
       });
       console.log(`[AuthAction] Usuário ${uid} atualizado com sucesso.`);
+      return { success: true, uid: uid };
     } catch (e: any) {
       if (e.code === 'auth/user-not-found') {
-        // 2. Se não existir, criar novo com o mesmo UID
-        console.log(`[AuthAction] Usuário não encontrado no Auth. Criando com UID ${uid} e email ${cleanEmail}...`);
-        await authAdmin.createUser({
-          uid: uid,
-          email: cleanEmail,
+        try {
+          // 2. Se não existir, criar novo com o mesmo UID
+          console.log(`[AuthAction] Usuário não encontrado no Auth. Criando com UID ${uid} e email ${cleanEmail}...`);
+          await authAdmin.createUser({
+            uid: uid,
+            email: cleanEmail,
+            password: defaultPassword,
+            emailVerified: true
+          });
+          return { success: true, uid: uid };
+        } catch (createError: any) {
+          if (createError.code === 'auth/email-already-exists') {
+            console.log(`[AuthAction] Email ${cleanEmail} já existe em outra conta. Reusando UID existente...`);
+            const existingUser = await authAdmin.getUserByEmail(cleanEmail);
+            await authAdmin.updateUser(existingUser.uid, {
+              password: defaultPassword,
+              emailVerified: true
+            });
+            return { success: true, uid: existingUser.uid };
+          }
+          throw createError;
+        }
+      } else if (e.code === 'auth/email-already-exists') {
+        console.log(`[AuthAction] Email ${cleanEmail} já existe em outra conta. Reusando UID existente...`);
+        const existingUser = await authAdmin.getUserByEmail(cleanEmail);
+        await authAdmin.updateUser(existingUser.uid, {
           password: defaultPassword,
           emailVerified: true
         });
+        return { success: true, uid: existingUser.uid };
       } else {
         throw e;
       }
     }
-
-    return { success: true };
   } catch (error: any) {
     console.error(`[AuthAction] Erro crítico no resetUserAccess:`, error.message);
     return { 

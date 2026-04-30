@@ -116,6 +116,7 @@ export default function AdminNewMusicianPage() {
       if (error.message?.includes('already-in-use')) {
         alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
+        alert('Erro ao criar usuário: ' + (error.message || 'Erro desconhecido.'));
         handleFirestoreError(error, OperationType.CREATE, 'profiles');
       }
     } finally {

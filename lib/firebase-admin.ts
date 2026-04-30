@@ -8,15 +8,18 @@ export function getAdminApp(): admin.app.App {
     return existingApp;
   }
   try {
-    // Tenta carregar as credenciais das variáveis de ambiente (Vercel)
-    if (process.env.project_id && process.env.client_email && process.env.private_key) {
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.project_id;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || process.env.client_email;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY || process.env.private_key;
+
+    if (projectId && clientEmail && privateKey) {
       // Vercel costuma escapar o \n na chave privada. O replace formata de volta para o padrão esperado.
-      const parsedKey = process.env.private_key.replace(/\\n/g, '\n');
+      const parsedKey = privateKey.replace(/\\n/g, '\n');
       
       return admin.initializeApp({
         credential: admin.credential.cert({
-          projectId: process.env.project_id,
-          clientEmail: process.env.client_email,
+          projectId: projectId,
+          clientEmail: clientEmail,
           privateKey: parsedKey,
         })
       });

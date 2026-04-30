@@ -43,8 +43,9 @@ service cloud.firestore {
       
       allow create: if isManager();
       allow update: if isManager() || (isOwner(userId) && 
-                      !request.resource.data.diff(resource.data).affectedKeys()
-                        .hasAny(['role', 'instrument', 'status']));
+                      request.resource.data.get('role', '') == resource.data.get('role', '') &&
+                      request.resource.data.get('instrument', '') == resource.data.get('instrument', '') &&
+                      request.resource.data.get('status', '') == resource.data.get('status', ''));
       allow delete: if isAdmin();
     }
 

@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
-import { PMP_LOGO, BANDA_LOGO } from './pdf-logos';
+import { PMPR_LOGO, BANDA_LOGO } from './pdf-logos';
 import { normalizeSpaces } from './utils';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────

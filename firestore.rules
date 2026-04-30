@@ -15,9 +15,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isAuthenticated() && (
-        request.auth.token.get('email', '').lower() == "heliomardejesus87@gmail.com" ||
+        (request.auth.token.email != null && request.auth.token.email == "heliomardejesus87@gmail.com") ||
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', '').lower() in ['admin', 'master'])
+         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['admin', 'master', 'Admin', 'Master'])
       );
     }
 
@@ -25,7 +25,7 @@ service cloud.firestore {
       return isAuthenticated() && (
         isAdmin() || 
         (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('role', '').lower() == 'manager')
+         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role in ['manager', 'Manager', 'admin', 'master', 'Admin', 'Master'])
       );
     }
 

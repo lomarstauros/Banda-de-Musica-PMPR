@@ -6,7 +6,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where, writeBatch, limit } from 'firebase/firestore';
 
 function NewSwapForm() {
   const router = useRouter();

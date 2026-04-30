@@ -87,25 +87,31 @@ export default function AdminNewMusicianPage() {
 
     setLoading(true);
     try {
+      console.log("[handleSave] Iniciando processo de salvamento...");
       // 1. Gerar um novo ID de documento provisório (caso seja um usuário totalmente novo)
       const newProfileRef = doc(collection(db, 'profiles'));
       let finalUid = newProfileRef.id;
+      console.log("[handleSave] ID provisório gerado:", finalUid);
 
       // 2. Criar ou recuperar o usuário no Firebase Authentication via Servidor (Admin SDK)
       // O resetUserAccess garante a criação se não existir, com senha 123456
+      console.log("[handleSave] Chamando resetUserAccess para:", formData.email);
       const authResult = await resetUserAccess(finalUid, formData.email);
+      console.log("[handleSave] authResult:", authResult);
 
-      if (!authResult.success) {
-        throw new Error(authResult.error || 'Falha ao criar credenciais de login.');
+      if (!authResult || !authResult.success) {
+        throw new Error(authResult?.error || 'Falha ao criar credenciais de login.');
       }
 
       // Se o resetUserAccess encontrou um usuário existente, reusamos o UID dele para o Firestore
       if (authResult.uid) {
         finalUid = authResult.uid;
+        console.log("[handleSave] Usando UID retornado do Auth:", finalUid);
       }
 
       // 3. Salvar o perfil no Firestore usando o ID final (novo ou reaproveitado)
       const finalProfileRef = doc(db, 'profiles', finalUid);
+      console.log("[handleSave] Salvando perfil no Firestore...");
       await setDoc(finalProfileRef, {
         ...formData,
         name: normalizeSpaces(formData.name),
@@ -116,9 +122,11 @@ export default function AdminNewMusicianPage() {
         forcePasswordReset: true,
         status: formData.active ? 'active' : 'pending'
       });
+      console.log("[handleSave] Perfil salvo com sucesso! Redirecionando...");
 
       router.push('/admin/musicians');
     } catch (error: any) {
+      console.error("[handleSave] Erro capturado:", error);
       if (error.message?.includes('already-in-use') || error.message?.includes('already in use') || error.message?.includes('already-exists')) {
         alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
@@ -126,6 +134,7 @@ export default function AdminNewMusicianPage() {
         handleFirestoreError(error, OperationType.CREATE, 'profiles');
       }
     } finally {
+      console.log("[handleSave] Processo finalizado.");
       setLoading(false);
     }
   };

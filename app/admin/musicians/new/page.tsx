@@ -10,6 +10,13 @@ import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
+import { initializeApp, getApps } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import firebaseConfig from '@/firebase-applet-config.json';
+
+// Initialize a secondary app just for creating accounts without dropping the main admin's session
+const secondaryApp = getApps().find(app => app.name === 'SecondaryApp') || initializeApp(firebaseConfig, 'SecondaryApp');
+const secondaryAuth = getAuth(secondaryApp);
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -88,26 +95,24 @@ export default function AdminNewMusicianPage() {
     setLoading(true);
     try {
       console.log("[handleSave] Iniciando processo de salvamento...");
-      // 1. Gerar um novo ID de documento provisório (caso seja um usuário totalmente novo)
-      const newProfileRef = doc(collection(db, 'profiles'));
-      let finalUid = newProfileRef.id;
-      console.log("[handleSave] ID provisório gerado:", finalUid);
-
-      // 2. Criar ou recuperar o usuário no Firebase Authentication via Servidor (Admin SDK)
-      // O resetUserAccess garante a criação se não existir, com senha 123456
-      console.log("[handleSave] Chamando resetUserAccess para:", formData.email);
-      const authResult = await resetUserAccess(finalUid, formData.email);
-      console.log("[handleSave] authResult:", authResult);
-
-      if (!authResult || !authResult.success) {
-        throw new Error(authResult?.error || 'Falha ao criar credenciais de login.');
+      // 1. Criar o usuário no Firebase Authentication usando Secondary Auth (Evita deslogar o Admin)
+      console.log("[handleSave] Criando credenciais no Firebase Auth para:", formData.email);
+      let finalUid = "";
+      
+      try {
+        const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.email, '123456');
+        finalUid = userCred.user.uid;
+        
+        // Limpar a sessão secundária
+        await secondaryAuth.signOut();
+      } catch (authErr: any) {
+        if (authErr.code === 'auth/email-already-in-use') {
+           throw new Error('already-in-use');
+        }
+        throw new Error('Falha ao criar credenciais de login: ' + authErr.message);
       }
 
-      // Se o resetUserAccess encontrou um usuário existente, reusamos o UID dele para o Firestore
-      if (authResult.uid) {
-        finalUid = authResult.uid;
-        console.log("[handleSave] Usando UID retornado do Auth:", finalUid);
-      }
+      console.log("[handleSave] Usuário criado com UID:", finalUid);
 
       // 3. Salvar o perfil no Firestore usando o ID final (novo ou reaproveitado)
       const finalProfileRef = doc(db, 'profiles', finalUid);

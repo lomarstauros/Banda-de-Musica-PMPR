@@ -87,34 +87,12 @@ export default function AdminNewMusicianPage() {
 
     setLoading(true);
     try {
-      console.log("[handleSave] Iniciando processo de salvamento...");
+      console.log("[handleSave] Iniciando processo de salvamento APENAS no Firestore...");
       
-      // Gerar um novo UID para o caso de ser uma conta totalmente nova
-      const generatedUid = doc(collection(db, 'profiles')).id;
+      // Gerar um novo UID (pois não estamos criando no Auth)
+      const finalUid = doc(collection(db, 'profiles')).id;
       
-      console.log("[handleSave] Chamando resetUserAccess (Server Action) para o e-mail:", formData.email);
-      
-      // 1. Criar o usuário no Firebase Authentication usando Server Action (seguro)
-      // Usamos Promise.race para evitar que a Server Action fique travada infinitamente (timeout de 15s)
-      const actionTimeout = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('TIMEOUT_ACTION')), 15000)
-      );
-      
-      const result = await Promise.race([
-        resetUserAccess(generatedUid, formData.email),
-        actionTimeout
-      ]) as any;
-
-      if (!result.success) {
-        throw new Error(result.error || 'Falha na Server Action.');
-      }
-
-      const finalUid = result.uid;
-      console.log("[handleSave] Usuário criado/retornado do Auth com UID:", finalUid);
-
-      // 3. Salvar o perfil no Firestore usando o ID final (novo ou reaproveitado)
-      const finalProfileRef = doc(db, 'profiles', finalUid);
-      console.log("[handleSave] Salvando perfil no Firestore com ID:", finalUid);
+      console.log("[handleSave] Salvando perfil no Firestore com ID gerado:", finalUid);
       
       const firestoreTimeout = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE')), 15000)
@@ -138,14 +116,10 @@ export default function AdminNewMusicianPage() {
       router.push('/admin/musicians');
     } catch (error: any) {
       console.error("[handleSave] Erro capturado:", error);
-      if (error.message === 'TIMEOUT_ACTION') {
-        alert('O servidor demorou muito para responder ao criar o usuário. Tente novamente.');
-      } else if (error.message === 'TIMEOUT_FIRESTORE') {
+      if (error.message === 'TIMEOUT_FIRESTORE') {
         alert('O banco de dados demorou muito para salvar os dados. Verifique sua conexão e permissões.');
-      } else if (error.message?.includes('already-in-use') || error.message?.includes('already in use') || error.message?.includes('already-exists')) {
-        alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
-        alert('Erro ao criar usuário: ' + (error.message || 'Erro desconhecido.'));
+        alert('Erro ao salvar os dados: ' + (error.message || 'Erro desconhecido.'));
         handleFirestoreError(error, OperationType.CREATE, 'profiles');
       }
     } finally {

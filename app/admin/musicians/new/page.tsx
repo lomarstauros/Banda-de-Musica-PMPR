@@ -10,13 +10,6 @@ import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import firebaseConfig from '@/firebase-applet-config.json';
-
-// Initialize a secondary app just for creating accounts without dropping the main admin's session
-const secondaryApp = getApps().find(app => app.name === 'SecondaryApp') || initializeApp(firebaseConfig, 'SecondaryApp');
-const secondaryAuth = getAuth(secondaryApp);
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -95,44 +88,61 @@ export default function AdminNewMusicianPage() {
     setLoading(true);
     try {
       console.log("[handleSave] Iniciando processo de salvamento...");
-      // 1. Criar o usuário no Firebase Authentication usando Secondary Auth (Evita deslogar o Admin)
-      console.log("[handleSave] Criando credenciais no Firebase Auth para:", formData.email);
-      let finalUid = "";
       
-      try {
-        const userCred = await createUserWithEmailAndPassword(secondaryAuth, formData.email, '123456');
-        finalUid = userCred.user.uid;
-        
-        // Limpar a sessão secundária
-        await secondaryAuth.signOut();
-      } catch (authErr: any) {
-        if (authErr.code === 'auth/email-already-in-use') {
-           throw new Error('already-in-use');
-        }
-        throw new Error('Falha ao criar credenciais de login: ' + authErr.message);
+      // Gerar um novo UID para o caso de ser uma conta totalmente nova
+      const generatedUid = doc(collection(db, 'profiles')).id;
+      
+      console.log("[handleSave] Chamando resetUserAccess (Server Action) para o e-mail:", formData.email);
+      
+      // 1. Criar o usuário no Firebase Authentication usando Server Action (seguro)
+      // Usamos Promise.race para evitar que a Server Action fique travada infinitamente (timeout de 15s)
+      const actionTimeout = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT_ACTION')), 15000)
+      );
+      
+      const result = await Promise.race([
+        resetUserAccess(generatedUid, formData.email),
+        actionTimeout
+      ]) as any;
+
+      if (!result.success) {
+        throw new Error(result.error || 'Falha na Server Action.');
       }
 
-      console.log("[handleSave] Usuário criado com UID:", finalUid);
+      const finalUid = result.uid;
+      console.log("[handleSave] Usuário criado/retornado do Auth com UID:", finalUid);
 
       // 3. Salvar o perfil no Firestore usando o ID final (novo ou reaproveitado)
       const finalProfileRef = doc(db, 'profiles', finalUid);
-      console.log("[handleSave] Salvando perfil no Firestore...");
-      await setDoc(finalProfileRef, {
-        ...formData,
-        name: normalizeSpaces(formData.name),
-        war_name: normalizeSpaces(formData.war_name),
-        rank: normalizeSpaces(formData.rank),
-        uid: finalUid,
-        createdAt: serverTimestamp(),
-        forcePasswordReset: true,
-        status: formData.active ? 'active' : 'pending'
-      });
-      console.log("[handleSave] Perfil salvo com sucesso! Redirecionando...");
+      console.log("[handleSave] Salvando perfil no Firestore com ID:", finalUid);
+      
+      const firestoreTimeout = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE')), 15000)
+      );
 
+      await Promise.race([
+        setDoc(finalProfileRef, {
+          ...formData,
+          name: normalizeSpaces(formData.name),
+          war_name: normalizeSpaces(formData.war_name),
+          rank: normalizeSpaces(formData.rank),
+          uid: finalUid,
+          createdAt: serverTimestamp(),
+          forcePasswordReset: true,
+          status: formData.active ? 'active' : 'pending'
+        }),
+        firestoreTimeout
+      ]);
+      
+      console.log("[handleSave] Perfil salvo com sucesso! Redirecionando...");
       router.push('/admin/musicians');
     } catch (error: any) {
       console.error("[handleSave] Erro capturado:", error);
-      if (error.message?.includes('already-in-use') || error.message?.includes('already in use') || error.message?.includes('already-exists')) {
+      if (error.message === 'TIMEOUT_ACTION') {
+        alert('O servidor demorou muito para responder ao criar o usuário. Tente novamente.');
+      } else if (error.message === 'TIMEOUT_FIRESTORE') {
+        alert('O banco de dados demorou muito para salvar os dados. Verifique sua conexão e permissões.');
+      } else if (error.message?.includes('already-in-use') || error.message?.includes('already in use') || error.message?.includes('already-exists')) {
         alert('Falha: O e-mail (' + formData.email + ') já está cadastrado no sistema.');
       } else {
         alert('Erro ao criar usuário: ' + (error.message || 'Erro desconhecido.'));

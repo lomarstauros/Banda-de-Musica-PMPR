@@ -87,12 +87,23 @@ export default function AdminNewMusicianPage() {
 
     setLoading(true);
     try {
-      console.log("[handleSave] Iniciando processo de salvamento APENAS no Firestore...");
+      console.log("[handleSave] Iniciando processo de salvamento...");
       
-      // Gerar um novo UID (pois não estamos criando no Auth)
-      const finalUid = doc(collection(db, 'profiles')).id;
+      // 1. Chamar a server action para criar/atualizar o usuário no Firebase Auth
+      const tempUid = doc(collection(db, 'profiles')).id;
       
-      console.log("[handleSave] Salvando perfil no Firestore com ID gerado:", finalUid);
+      const authResult = await resetUserAccess(tempUid, formData.email);
+      if (!authResult.success) {
+        alert('Erro ao criar usuário no sistema de login: ' + authResult.error);
+        setLoading(false);
+        return;
+      }
+
+      // O UID retornado pode ser o gerado ou o de uma conta existente
+      const finalUid = authResult.uid || tempUid;
+      const finalProfileRef = doc(db, 'profiles', finalUid);
+      
+      console.log("[handleSave] Salvando perfil no Firestore com ID:", finalUid);
       
       const firestoreTimeout = new Promise<never>((_, reject) => 
         setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE')), 15000)

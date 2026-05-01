@@ -8,8 +8,10 @@ import { useRouter } from 'next/navigation';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
-import { resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
+import { initializeApp, getApp, getApps } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import firebaseConfig from '@/firebase-applet-config.json';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -89,18 +91,34 @@ export default function AdminNewMusicianPage() {
     try {
       console.log("[handleSave] Iniciando processo de salvamento...");
       
-      // 1. Chamar a server action para criar/atualizar o usuário no Firebase Auth
-      const tempUid = doc(collection(db, 'profiles')).id;
+      // 1. Utilizar App Secundário para criar usuário sem deslogar o admin atual
+      let secondaryApp;
+      try {
+        secondaryApp = getApp('SecondaryApp');
+      } catch (e) {
+        secondaryApp = initializeApp(firebaseConfig, 'SecondaryApp');
+      }
       
-      const authResult = await resetUserAccess(tempUid, formData.email);
-      if (!authResult.success) {
-        alert('Erro ao criar usuário no sistema de login: ' + authResult.error);
+      const secondaryAuth = getAuth(secondaryApp);
+      let finalUid = '';
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, formData.email, '123456');
+        finalUid = userCredential.user.uid;
+        await signOut(secondaryAuth);
+      } catch (authError: any) {
+        console.error("[handleSave] Erro no Auth:", authError);
+        if (authError.code === 'auth/email-already-in-use') {
+          alert('Este e-mail já está em uso por outro usuário no sistema. Utilize outro e-mail.');
+        } else if (authError.code === 'auth/invalid-email') {
+          alert('O formato do e-mail é inválido.');
+        } else {
+          alert('Erro ao criar usuário no sistema de login: ' + authError.message);
+        }
         setLoading(false);
         return;
       }
 
-      // O UID retornado pode ser o gerado ou o de uma conta existente
-      const finalUid = authResult.uid || tempUid;
       const finalProfileRef = doc(db, 'profiles', finalUid);
       
       console.log("[handleSave] Salvando perfil no Firestore com ID:", finalUid);

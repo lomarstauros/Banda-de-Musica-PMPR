@@ -54,6 +54,7 @@ export default function AdminEditMusicianPage() {
     statusStartDate: '',
     statusEndDate: '',
     photo_url: '',
+    institutional_email: '',
   });
 
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function AdminEditMusicianPage() {
                 statusStartDate: data.statusStartDate || '',
                 statusEndDate: data.statusEndDate || '',
                 photo_url: data.photo_url || '',
+                institutional_email: data.institutional_email || '',
               });
               setOriginalEmail(data.email || '');
             } else {
@@ -180,6 +182,7 @@ export default function AdminEditMusicianPage() {
         militaryStatus: formData.militaryStatus,
         statusStartDate: formData.statusStartDate,
         statusEndDate: formData.statusEndDate,
+        institutional_email: formData.institutional_email,
         // photo_url NÃO é atualizada pelo gestor — é exclusiva do músico
       });
       router.push('/admin/musicians');
@@ -348,6 +351,17 @@ export default function AdminEditMusicianPage() {
                   {emailError}
                 </p>
               )}
+            </label>
+
+            <label className={labelCls}>
+              <span className={labelTextCls}>E-mail Institucional</span>
+              <input
+                className={inputCls}
+                value={formData.institutional_email}
+                onChange={(e) => setFormData({ ...formData, institutional_email: e.target.value.toLowerCase().replace(/\s/g, '') })}
+                type="email"
+                placeholder="email@instituicao.gov.br"
+              />
             </label>
 
             <button

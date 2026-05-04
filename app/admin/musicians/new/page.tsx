@@ -52,6 +52,7 @@ export default function AdminNewMusicianPage() {
     militaryStatus: 'Ativo',
     statusStartDate: '',
     statusEndDate: '',
+    institutional_email: '',
   });
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function AdminNewMusicianPage() {
           name: normalizeSpaces(formData.name),
           war_name: normalizeSpaces(formData.war_name),
           rank: normalizeSpaces(formData.rank),
+          institutional_email: formData.institutional_email,
           uid: finalUid,
           createdAt: serverTimestamp(),
           forcePasswordReset: true,
@@ -263,6 +265,17 @@ export default function AdminNewMusicianPage() {
                   Este será o e-mail de login. A senha padrão inicial será 123456.
                 </p>
               )}
+            </label>
+
+            <label className={labelCls}>
+              <span className={labelTextCls}>E-mail Institucional</span>
+              <input
+                className={inputCls}
+                value={formData.institutional_email}
+                onChange={(e) => setFormData({ ...formData, institutional_email: e.target.value.toLowerCase().replace(/\s/g, '') })}
+                type="email"
+                placeholder="email@instituicao.gov.br"
+              />
             </label>
 
             <label className={labelCls}>

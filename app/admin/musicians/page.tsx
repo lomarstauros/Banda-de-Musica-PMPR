@@ -120,7 +120,7 @@ export default function AdminMusiciansListPage() {
               </div>
               <input 
                 className="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none" 
-                placeholder="Buscar por nome ou RE..."
+                placeholder="Buscar por nome ou RG..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />

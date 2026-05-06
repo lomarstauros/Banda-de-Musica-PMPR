@@ -26,6 +26,7 @@ export default function DashboardPage() {
     statusEndDate?: string;
   } | null>(null);
   const [nextScales, setNextScales] = useState<any[]>([]);
+  const [historyScales, setHistoryScales] = useState<any[]>([]);
   const [loadingScales, setLoadingScales] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   // scaleId → { confirmed: boolean, notifId: string | null }
@@ -63,17 +64,25 @@ export default function DashboardPage() {
           const hasFullVisibility = FULL_VISIBILITY_ROLES.includes(userInstrument);
 
           const scalesRef = collection(db, 'scales');
-          const q = query(scalesRef, orderBy('date', 'asc'), limit(20));
+          const q = query(scalesRef, orderBy('date', 'desc'), limit(50));
           const querySnapshot = await getDocs(q);
 
           const allScales = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
           const visibleScales = allScales.filter((scale: any) => {
-            if (hasFullVisibility) return true; // Administrativo/Regente/Comando veem tudo
-            return (scale.musicians || []).some((m: any) => m.id === user.uid); // apenas se escalado
+            if (hasFullVisibility) return true;
+            return (scale.musicians || []).some((m: any) => m.id === user.uid);
           });
 
-          setNextScales(visibleScales);
+          const today = new Date();
+          const tzOffset = today.getTimezoneOffset() * 60000;
+          const todayStr = (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+
+          const futureScales = visibleScales.filter(s => s.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
+          const pastScales = visibleScales.filter(s => s.date < todayStr).sort((a, b) => b.date.localeCompare(a.date));
+
+          setNextScales(futureScales);
+          setHistoryScales(pastScales);
         }
       } catch (e) {
         console.error("Erro ao carregar dados do dashboard:", e);
@@ -353,14 +362,14 @@ export default function DashboardPage() {
 
         <section className="flex flex-col gap-4">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-[#111318] dark:text-white text-lg font-bold">Próximos Eventos</h3>
+            <h3 className="text-[#111318] dark:text-white text-lg font-bold">Últimas Escalas</h3>
             <Link href="/calendar">
               <button className="text-primary text-sm font-semibold hover:underline">Ver calendário</button>
             </Link>
           </div>
           <div className="relative pl-2">
             <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                  {nextScales.slice(1).map((scale: any) => (
+                  {historyScales.map((scale: any) => (
               <Link key={scale.id} href={`/scales/${scale.id}`} className="relative grid grid-cols-[54px_1fr] gap-4 mb-6 group cursor-pointer">
                 <div className="flex flex-col items-center z-10">
                   <div className="size-14 rounded-xl bg-white dark:bg-[#1A202C] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center shrink-0 group-hover:border-primary/30 transition-colors">
@@ -408,9 +417,9 @@ export default function DashboardPage() {
               </Link>
             ))}
 
-            {nextScales.length <= 1 && (
+            {historyScales.length === 0 && (
               <div className="py-8 text-center text-gray-400 text-sm italic">
-                Sem eventos adicionais previstos.
+                Nenhum evento anterior encontrado.
               </div>
             )}
           </div>

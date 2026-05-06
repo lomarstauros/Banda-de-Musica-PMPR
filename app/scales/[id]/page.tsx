@@ -215,13 +215,13 @@ export default function ScaleDetailsPage() {
           </div>
 
           <section className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
-            <div className="relative w-full h-32 bg-gray-200">
+            <div className="relative w-full h-32 bg-slate-900 dark:bg-black flex items-center justify-center">
               <img
-                alt="Brazilian military parade formation"
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDyV3FdRClJDeGOYxX0oSlxj9dPCP4Uc8NMAngoVN2yxlDfYGtHptgz4gExI3oC2EB28UmwdXm9ZGahR63jxHSXYeNJw1VwvLdUfk7yZBdOgQqdsXX6hXofW7tPYF75VC-CgtNRELaw4ub2WYRdXHekrBjY4KDi30ZK7v9Yo531FrtcH__3uxk1SxHsnHmwXk1MvvIjwVE0hEYJ8xer9ZmQ3eByb-fYozgs8sHTd4jCu-F8GkvcQ9Npzn8EKzx4-h5iRAxwRUqkmmrO"
+                alt="Brasão da Banda de Música PMPR"
+                className="w-full h-full object-contain p-2 opacity-80"
+                src="/brasao_banda.png"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
               <div className="absolute bottom-3 left-4 text-white">
                 <p className="text-xs font-medium uppercase tracking-wider opacity-90">{scale.format}</p>
                 <h2 className="text-xl font-bold leading-tight">{scale.title}</h2>

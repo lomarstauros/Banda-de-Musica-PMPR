@@ -307,35 +307,37 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     };
   });
 
-  autoTable(doc, {
-    startY: curY + 5,
-    head: [['Nº', 'GRADUAÇÃO – NOMES', 'CPF']],
-    body: musiciansRows.map((r: any) => [r.num, r.nameObj, r.cpf]),
-    theme: 'plain',
-    headStyles: {
-      fontStyle: 'bold', halign: 'center',
-      fillColor: [255, 255, 255] as any, textColor: [0, 0, 0] as any,
-      lineWidth: 0.1, lineColor: [0, 0, 0] as any,
-    },
-    styles: {
-      fontSize: 8, cellPadding: 1.5,
-      font: 'helvetica', textColor: [0, 0, 0] as any,
-      lineWidth: 0.1, lineColor: [0, 0, 0] as any,
-      fillColor: [255, 255, 255] as any,
-    },
-    alternateRowStyles: {
-      fillColor: [245, 245, 245] as any,
-    },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 10 },
-      1: { halign: 'left', cellWidth: 'auto' },
-      2: { halign: 'center', cellWidth: 35 },
-    },
-    margin: { left: margin, right: margin },
-    didDrawCell: drawBoldWarNameCell,
-  });
+  if (musiciansRows.length > 0) {
+    autoTable(doc, {
+      startY: curY + 5,
+      head: [['Nº', 'GRADUAÇÃO – NOMES', 'CPF']],
+      body: musiciansRows.map((r: any) => [r.num, r.nameObj, r.cpf]),
+      theme: 'plain',
+      headStyles: {
+        fontStyle: 'bold', halign: 'center',
+        fillColor: [255, 255, 255] as any, textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
+      },
+      styles: {
+        fontSize: 8, cellPadding: 1.5,
+        font: 'helvetica', textColor: [0, 0, 0] as any,
+        lineWidth: 0.1, lineColor: [0, 0, 0] as any,
+        fillColor: [255, 255, 255] as any,
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245] as any,
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 10 },
+        1: { halign: 'left', cellWidth: 'auto' },
+        2: { halign: 'center', cellWidth: 35 },
+      },
+      margin: { left: margin, right: margin },
+      didDrawCell: drawBoldWarNameCell,
+    });
 
-  curY = (doc as any).lastAutoTable?.finalY ?? curY;
+    curY = (doc as any).lastAutoTable?.finalY ?? curY;
+  }
 
   // ── ASSINATURAS (Somente se solicitado) -----------------------------------
   if (showSignatures) {

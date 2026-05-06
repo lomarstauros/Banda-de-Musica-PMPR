@@ -14,8 +14,14 @@
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
-    @apply bg-background-light dark:bg-background-dark;
+    @apply bg-background-light dark:bg-background-dark text-slate-900 dark:text-white;
   }
 }
 

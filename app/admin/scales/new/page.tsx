@@ -484,12 +484,12 @@ export default function AdminNewScalePage() {
                       <select 
                         value={(expediente as any)[r.field]} 
                         onChange={e => setExpediente(p => ({ ...p, [r.field]: e.target.value }))}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm appearance-none outline-none"
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-sm appearance-none outline-none"
                       >
-                        <option value="">— Selecione —</option>
+                        <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione —</option>
                         {musicians.filter(m => r.role ? (m.instrument || '').toLowerCase() === r.role : isAdminFunction(m)).map(m => {
                           const available = isMusicianAvailable(m, sharedDate);
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
+                          return <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
                         })}
                       </select>
                       <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
@@ -598,11 +598,11 @@ export default function AdminNewScalePage() {
                 <select 
                   value={service.serviceChief} 
                   onChange={e => updateExtraService(service.id, 'serviceChief', e.target.value)}
-                  className="w-full rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5 px-3 py-2.5 text-sm outline-none"
+                  className="w-full rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5 text-gray-900 dark:text-white px-3 py-2.5 text-sm outline-none"
                 >
-                  <option value="">— Selecione o Chefe —</option>
+                  <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione o Chefe —</option>
                   {musicians.filter(m => isMusicianAvailable(m, sharedDate)).map(m => (
-                    <option key={m.id} value={m.id}>{getMusicianLabel(m.id)}</option>
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id}>{getMusicianLabel(m.id)}</option>
                   ))}
                 </select>
               </label>

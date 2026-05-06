@@ -54,7 +54,7 @@ export function BottomNav() {
       <div className="grid grid-cols-5 h-16 items-center px-1">
         <Link href="/dashboard" className={`flex flex-col items-center justify-center h-full gap-1 group transition-colors ${pathname.startsWith('/dashboard') || pathname.startsWith('/scales') ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-primary'}`}>
           <span className={`material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform ${pathname.startsWith('/dashboard') || pathname.startsWith('/scales') ? 'filled' : ''}`}>format_list_bulleted</span>
-          <span className="text-[10px] font-bold">Escalas</span>
+          <span className="text-[9px] font-bold tracking-tight whitespace-nowrap">Minhas Escalas</span>
         </Link>
 
         <Link href="/calendar" className={`flex flex-col items-center justify-center h-full gap-1 group transition-colors ${pathname.startsWith('/calendar') ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-primary'}`}>

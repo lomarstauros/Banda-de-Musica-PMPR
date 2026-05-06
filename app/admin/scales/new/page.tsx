@@ -27,6 +27,7 @@ export default function AdminNewScalePage() {
   const [sharedDate, setSharedDate] = useState('');
 
   // 2. Expediente Administrativo (Block 1)
+  const [includeExpediente, setIncludeExpediente] = useState(true);
   const [showExpediente, setShowExpediente] = useState(true);
   const [expediente, setExpediente] = useState({
     title: 'Rotina Administrativa', // Hidden but useful for doc
@@ -197,9 +198,19 @@ export default function AdminNewScalePage() {
       return;
     }
     
+    if (!onlyExpediente && !includeExpediente && extraServices.length === 0) {
+      setError("Adicione ao menos um Expediente Administrativo ou um Serviço Extra.");
+      return;
+    }
+
     // Validação básica do Expediente
-    if (!expediente.startTime || !expediente.endTime) {
-      setError("Preencha os horários do Expediente Administrativo.");
+    if (includeExpediente) {
+      if (!expediente.startTime || !expediente.endTime) {
+        setError("Preencha os horários do Expediente Administrativo.");
+        return;
+      }
+    } else if (onlyExpediente) {
+      setError("Você desativou a rotina administrativa.");
       return;
     }
 
@@ -230,33 +241,35 @@ export default function AdminNewScalePage() {
       // 1. Montar lista de documentos a serem criados
       const docsToCreate = [];
 
-      // Sempre adicionamos o Expediente se validado
-      docsToCreate.push({
-        title: expediente.title,
-        date: sharedDate,
-        startTime: expediente.startTime,
-        endTime: expediente.endTime,
-        format: expediente.format,
-        referencia: expediente.referencia,
-        expediente: {
+      // Adicionamos o Expediente apenas se incluído
+      if (includeExpediente) {
+        docsToCreate.push({
+          title: expediente.title,
+          date: sharedDate,
+          startTime: expediente.startTime,
+          endTime: expediente.endTime,
+          format: expediente.format,
           referencia: expediente.referencia,
-          regenteMaestro: expediente.regenteMaestro ? getMusicianLabel(expediente.regenteMaestro) : '',
-          regenteMaestroId: expediente.regenteMaestro || null,
-          regente: expediente.regente ? getMusicianLabel(expediente.regente) : '',
-          regenteId: expediente.regente || null,
-          arquivo: expediente.arquivo ? getMusicianLabel(expediente.arquivo) : '',
-          arquivoId: expediente.arquivo || null,
-          sargenteacao: expediente.sargenteacao ? getMusicianLabel(expediente.sargenteacao) : '',
-          sargenteacaoId: expediente.sargenteacao || null,
-          p4FinancasTransporte: expediente.p4FinancasTransporte ? getMusicianLabel(expediente.p4FinancasTransporte) : '',
-          p4FinancasTransporteId: expediente.p4FinancasTransporte || null,
-          administrativo: expediente.administrativo.map(id => ({ id, label: getMusicianLabel(id) })),
-          obra: expediente.obra.map(id => ({ id, label: getMusicianLabel(id) })),
-          permanencia: expediente.permanencia.map(id => ({ id, label: getMusicianLabel(id) }))
-        },
-        musicians: [], // Geralmente expediente não tem lista de músicos fixa aqui, mas as funções
-        status: 'published'
-      });
+          expediente: {
+            referencia: expediente.referencia,
+            regenteMaestro: expediente.regenteMaestro ? getMusicianLabel(expediente.regenteMaestro) : '',
+            regenteMaestroId: expediente.regenteMaestro || null,
+            regente: expediente.regente ? getMusicianLabel(expediente.regente) : '',
+            regenteId: expediente.regente || null,
+            arquivo: expediente.arquivo ? getMusicianLabel(expediente.arquivo) : '',
+            arquivoId: expediente.arquivo || null,
+            sargenteacao: expediente.sargenteacao ? getMusicianLabel(expediente.sargenteacao) : '',
+            sargenteacaoId: expediente.sargenteacao || null,
+            p4FinancasTransporte: expediente.p4FinancasTransporte ? getMusicianLabel(expediente.p4FinancasTransporte) : '',
+            p4FinancasTransporteId: expediente.p4FinancasTransporte || null,
+            administrativo: expediente.administrativo.map(id => ({ id, label: getMusicianLabel(id) })),
+            obra: expediente.obra.map(id => ({ id, label: getMusicianLabel(id) })),
+            permanencia: expediente.permanencia.map(id => ({ id, label: getMusicianLabel(id) }))
+          },
+          musicians: [], // Geralmente expediente não tem lista de músicos fixa aqui, mas as funções
+          status: 'published'
+        });
+      }
 
       // Se não for "somente expediente", adicionamos os extras
       if (!onlyExpediente) {
@@ -413,20 +426,30 @@ export default function AdminNewScalePage() {
           </div>
 
           {/* 2. Bloco: Expediente Administrativo */}
-          <div className="bg-white dark:bg-gray-900 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col shadow-sm overflow-hidden transition-all">
-            <button 
-              type="button"
-              onClick={() => setShowExpediente(!showExpediente)}
-              className="px-4 py-4 flex items-center justify-between w-full hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors"
-            >
-              <h3 className="text-sm font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px]">rule</span>
-                Expediente Administrativo
-              </h3>
-              <span className={`material-symbols-outlined text-blue-400 transition-transform duration-300 ${showExpediente ? 'rotate-180' : ''}`}>expand_more</span>
-            </button>
+          <div className={`bg-white dark:bg-gray-900 rounded-xl border flex flex-col shadow-sm overflow-hidden transition-all ${includeExpediente ? 'border-blue-100 dark:border-blue-900/30' : 'border-gray-200 dark:border-gray-800 opacity-70'}`}>
+            <div className="px-4 py-4 flex items-center justify-between w-full">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="relative inline-flex items-center">
+                  <input type="checkbox" className="sr-only peer" checked={includeExpediente} onChange={() => setIncludeExpediente(!includeExpediente)} />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                </div>
+                <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${includeExpediente ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                  <span className="material-symbols-outlined text-[18px]">rule</span>
+                  Expediente Administrativo
+                </h3>
+              </label>
+              
+              <button 
+                type="button"
+                onClick={() => setShowExpediente(!showExpediente)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                disabled={!includeExpediente}
+              >
+                <span className={`material-symbols-outlined transition-transform duration-300 ${!includeExpediente ? 'text-gray-300 dark:text-gray-600' : 'text-blue-400'} ${showExpediente && includeExpediente ? 'rotate-180' : ''}`}>expand_more</span>
+              </button>
+            </div>
 
-            {showExpediente && (
+            {showExpediente && includeExpediente && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-5 flex flex-col gap-5 border-t border-blue-50 dark:border-blue-900/20 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <label className="flex flex-col gap-2">
@@ -507,7 +530,7 @@ export default function AdminNewScalePage() {
               </motion.div>
             )}
 
-            {showExpediente && (
+            {showExpediente && includeExpediente && (
               <div className="px-4 pb-4">
                 <button 
                   type="button"

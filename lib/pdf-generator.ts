@@ -75,8 +75,8 @@ const getWarNameSegments = (contentRaw: string, warNameRaw: string) => {
  * Desenha uma página ou bloco de escala no documento jsPDF fornecido.
  * @returns O Y final após o desenho.
  */
-const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number } = {}) => {
-  const { showHeader = true, showSignatures = true, startY } = options;
+const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number; signatureExpediente?: any } = {}) => {
+  const { showHeader = true, showSignatures = true, startY, signatureExpediente } = options;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let curY = startY || 15;
@@ -365,20 +365,24 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       doc.setFont('helvetica', 'normal');
     };
 
-    if (maestroChefePerson) {
-      const fname = normalizeSpaces(`${(maestroChefePerson.rank || '').toUpperCase()} ${(maestroChefePerson.name || '').toUpperCase()}`);
+    const sigExp = signatureExpediente || exp;
+    const sigMaestroChefePerson = findProfile(sigExp.regenteMaestroId) || null;
+    const sigSargPerson = findProfile(sigExp.sargenteacaoId) || null;
+
+    if (sigMaestroChefePerson) {
+      const fname = normalizeSpaces(`${(sigMaestroChefePerson.rank || '').toUpperCase()} ${(sigMaestroChefePerson.name || '').toUpperCase()}`);
       drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
       footerY += 20;
-    } else if (exp.regenteMaestro) {
-      drawSignRight(footerY, normalizeSpaces(exp.regenteMaestro.toUpperCase()), 'Maestro Chefe da Banda de Música.');
+    } else if (sigExp.regenteMaestro) {
+      drawSignRight(footerY, normalizeSpaces(sigExp.regenteMaestro.toUpperCase()), 'Maestro Chefe da Banda de Música.');
       footerY += 20;
     }
 
-    if (sargPerson) {
-      const fname = normalizeSpaces(`${(sargPerson.rank || '').toUpperCase()} ${(sargPerson.name || '').toUpperCase()}`);
+    if (sigSargPerson) {
+      const fname = normalizeSpaces(`${(sigSargPerson.rank || '').toUpperCase()} ${(sigSargPerson.name || '').toUpperCase()}`);
       drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
-    } else if (exp.sargenteacao) {
-      drawSignRight(footerY, normalizeSpaces(exp.sargenteacao.toUpperCase()), 'Sargenteante da Banda de Música');
+    } else if (sigExp.sargenteacao) {
+      drawSignRight(footerY, normalizeSpaces(sigExp.sargenteacao.toUpperCase()), 'Sargenteante da Banda de Música');
     }
     curY = footerY;
   }
@@ -440,6 +444,17 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
     const profilesMap: Record<string, any> = {};
     profiles.forEach((p: any) => { profilesMap[p.id] = p; });
 
+    let sigExp = scales[scales.length - 1].expediente || {};
+    const adminScale = scales.find(s => s.format === 'Expediente Administrativo' || (s.title && s.title.toLowerCase().includes('expediente administrativo')));
+    if (adminScale && adminScale.expediente) {
+      sigExp = adminScale.expediente;
+    } else {
+      const scaleWithSigs = scales.find(s => s.expediente && (s.expediente.regenteMaestro || s.expediente.sargenteacao));
+      if (scaleWithSigs) {
+        sigExp = scaleWithSigs.expediente;
+      }
+    }
+
     let currentY = 15;
     scales.forEach((scale, index) => {
       // Se não for a primeira escala, adicionar um espaçamento maior para o divisor
@@ -462,7 +477,8 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
       currentY = drawScalePage(doc, scale, profilesMap, {
         showHeader: index === 0,
         showSignatures: index === scales.length - 1,
-        startY: currentY
+        startY: currentY,
+        signatureExpediente: sigExp
       });
     });
 

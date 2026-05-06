@@ -255,7 +255,7 @@ export default function CalendarPage() {
               <div className="flex p-3 gap-4">
                 <div className="flex flex-col items-center justify-center p-2 bg-primary/10 rounded-lg min-w-[4rem] self-start">
                   <span className="text-xs font-bold text-primary uppercase">{evt.startTime || evt.departureTime}</span>
-                  <span className="text-lg font-bold text-primary">{evt.startTime?.split(':')[0] >= 18 ? 'Noi' : (evt.startTime?.split(':')[0] >= 12 ? 'Tar' : 'Man')}</span>
+                  <span className="text-sm font-bold text-primary">{evt.startTime?.split(':')[0] >= 18 ? 'Noite' : (evt.startTime?.split(':')[0] >= 12 ? 'Tarde' : 'Manhã')}</span>
                 </div>
                 <div className="flex flex-1 flex-col gap-1 justify-center">
                   <div className="flex items-center gap-2">

@@ -102,9 +102,9 @@ export default function AdminEditScalePage() {
             returnTime: data.returnTime || '',
             location: data.location || '',
             uniform: data.uniform?.includes('Especial') ? data.uniform : 'Outros',
-            customUniform: data.uniform?.includes('Especial') ? '' : data.uniform,
+            customUniform: data.uniform?.includes('Especial') ? '' : (data.uniform || ''),
             format: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? data.format : 'Outros',
-            customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : data.format,
+            customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : (data.format || ''),
           });
           
           if (data.musicians) {
@@ -199,7 +199,7 @@ export default function AdminEditScalePage() {
         format: finalFormat,
         musicians: musiciansData,
         serviceChief: chiefData
-          ? { id: chiefData.id, name: chiefData.name, war_name: chiefData.war_name || '', rank: chiefData.rank || '' }
+          ? { id: chiefData.id, name: chiefData.name || '', war_name: chiefData.war_name || '', rank: chiefData.rank || '' }
           : null,
         expediente: {
           referencia: expediente.referencia,
@@ -303,7 +303,7 @@ export default function AdminEditScalePage() {
       }, 2000);
     } catch (err: any) {
       console.error(err);
-      setError("Erro ao atualizar a Escala. Tente novamente.");
+      setError("Erro ao atualizar: " + (err.message || err.toString()));
     } finally {
       setSaving(false);
     }

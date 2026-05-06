@@ -27,11 +27,10 @@ const formatScaleDate = (dateStr: string): string => {
   } catch { return dateStr; }
 };
 
-/** YYYY-MM-DD → "Curitiba, 07 de abril de 2026." */
-const formatSignatureDate = (dateStr: string): string => {
+/** Gera a data atual da geração do PDF → "Curitiba, 07 de abril de 2026." */
+const formatCurrentSignatureDate = (): string => {
   try {
-    const d = new Date(dateStr + 'T12:00:00');
-    if (isNaN(d.getTime())) return '';
+    const d = new Date();
     const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
     return `Curitiba, ${String(d.getDate()).padStart(2, '0')} de ${months[d.getMonth()]} de ${d.getFullYear()}.`;
   } catch { return ''; }
@@ -345,7 +344,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     if (footerY > 255) { doc.addPage(); footerY = 30; }
 
     const rightX = pageWidth - margin;
-    const signDate = formatSignatureDate(scale.date || '');
+    const signDate = formatCurrentSignatureDate();
     if (signDate) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);

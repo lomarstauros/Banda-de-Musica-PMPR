@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getToken, onMessage } from 'firebase/messaging';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db, messaging, auth } from '@/lib/firebase';
 
 export const useNotifications = () => {
@@ -88,14 +88,46 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
+    let unsubNotif: (() => void) | undefined;
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         // Tenta registrar automaticamente ao logar
         setupNotifications(false);
+
+        // Escuta globalmente as notificações não lidas para atualizar o Badge do ícone do App (PWA)
+        const qNotif = query(
+          collection(db, 'notifications'),
+          where('userId', '==', user.uid),
+          where('read', '==', false)
+        );
+
+        unsubNotif = onSnapshot(qNotif, (snap) => {
+          const unreadCount = snap.docs.length;
+          
+          if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator && 'clearAppBadge' in navigator) {
+            if (unreadCount > 0) {
+              (navigator as any).setAppBadge(unreadCount).catch((err: any) => console.log('Badge API error:', err));
+            } else {
+              (navigator as any).clearAppBadge().catch((err: any) => console.log('Badge API error:', err));
+            }
+          }
+        });
+      } else {
+        if (unsubNotif) {
+          unsubNotif();
+          unsubNotif = undefined;
+        }
+        if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
+          (navigator as any).clearAppBadge().catch(console.log);
+        }
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (unsubNotif) unsubNotif();
+    };
   }, []);
 
   return { fcmToken, setupNotifications };

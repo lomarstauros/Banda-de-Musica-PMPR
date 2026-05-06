@@ -396,7 +396,7 @@ export default function ProfilePage() {
                 />
               </label>
               <label className="flex flex-col flex-1">
-                <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">RE / Identificação</p>
+                <p className="text-slate-700 dark:text-slate-300 text-sm font-medium leading-normal pb-2">RG / Identificação</p>
                 <input 
                   className="flex w-full min-w-0 flex-1 rounded-lg text-slate-900 dark:text-white focus:outline-0 focus:ring-2 focus:ring-primary/20 border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 focus:border-primary h-12 placeholder:text-slate-400 px-[15px] text-base font-normal leading-normal transition-all" 
                   value={formData.re} 

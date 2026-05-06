@@ -37,20 +37,35 @@ const formatCurrentSignatureDate = (): string => {
 };
 
 /**
- * Recebe um nome completo (UPPERCASE) e um nome de guerra (UPPERCASE).
- * Retorna partes: [antes, nomeGuerra, depois] para renderização com bold parcial.
+ * Recebe o conteúdo completo (ex: patente + nome) e o nome de guerra.
+ * Retorna uma lista de segmentos permitindo múltiplos termos em negrito,
+ * mesmo que não sejam sequenciais (ex: "LUIZ JUNIOR" no meio de "LUIZ GONÇALVES JUNIOR").
  */
-const splitByWarName = (fullNameRaw: string, warNameRaw: string) => {
-  const fullName = normalizeSpaces(fullNameRaw);
+const getWarNameSegments = (contentRaw: string, warNameRaw: string) => {
+  const content = normalizeSpaces(contentRaw);
   const warName = normalizeSpaces(warNameRaw);
 
-  if (!warName || !fullName.includes(warName)) return null;
-  const idx = fullName.indexOf(warName);
-  return {
-    before: fullName.substring(0, idx),
-    bold: warName,
-    after: fullName.substring(idx + warName.length),
-  };
+  if (!warName) return [{ text: content, bold: false }];
+
+  const warWords = warName.split(' ');
+  const contentWords = content.split(' ');
+
+  const segments: { text: string; bold: boolean }[] = [];
+
+  contentWords.forEach((word, index) => {
+    // É bold se a palavra exata existe no nome de guerra.
+    const isBold = warWords.includes(word);
+
+    const textToPush = index < contentWords.length - 1 ? word + ' ' : word;
+    
+    if (segments.length > 0 && segments[segments.length - 1].bold === isBold) {
+      segments[segments.length - 1].text += textToPush;
+    } else {
+      segments.push({ text: textToPush, bold: isBold });
+    }
+  });
+
+  return segments;
 };
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -96,8 +111,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     const raw = data.cell.raw as any;
     if (!raw || !raw.warName || typeof raw.content !== 'string') return;
 
-    const parts = splitByWarName(raw.content, raw.warName);
-    if (!parts) return;
+    const segments = getWarNameSegments(raw.content, raw.warName);
+    if (!segments.some(s => s.bold)) return;
 
     const { x, y, width, height } = data.cell;
 
@@ -117,36 +132,20 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     let cx = x + 1.5;
 
     // Helper para medir largura incluindo espaços no final (jsPDF às vezes ignora)
-    const getRobustWidth = (txt: string) => {
+    const getRobustWidth = (txt: string, isBold: boolean) => {
       if (!txt) return 0;
-      doc.setFont('helvetica', 'normal');
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
       const w = doc.getTextWidth(txt + 'A');
       const a = doc.getTextWidth('A');
       return w - a;
     };
 
-    if (parts.before) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(parts.before, cx, textY);
-      cx += getRobustWidth(parts.before);
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.text(parts.bold, cx, textY);
-    
-    // Para a parte 'after', precisamos medir a largura do bold
-    const getBoldWidth = (txt: string) => {
-      doc.setFont('helvetica', 'bold');
-      const w = doc.getTextWidth(txt + 'A');
-      const a = doc.getTextWidth('A');
-      return w - a;
-    };
-    
-    cx += getBoldWidth(parts.bold);
-    
-    if (parts.after) {
-      doc.setFont('helvetica', 'normal');
-      doc.text(parts.after, cx, textY);
-    }
+    segments.forEach(seg => {
+      doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+      doc.text(seg.text, cx, textY);
+      cx += getRobustWidth(seg.text, seg.bold);
+    });
+
     doc.setFont('helvetica', 'normal');
   };
 

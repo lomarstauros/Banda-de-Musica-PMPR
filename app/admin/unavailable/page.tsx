@@ -17,10 +17,10 @@ export default function UnavailableMusiciansPage() {
       try {
         const q = query(collection(db, 'profiles'), orderBy('name', 'asc'));
         const snap = await getDocs(q);
-        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
         
         // Filtrar todos que não estão 'Ativo'
-        const unavailable = docs.filter(p => p.militaryStatus && p.militaryStatus !== 'Ativo');
+        const unavailable = docs.filter((p: any) => p.militaryStatus && p.militaryStatus !== 'Ativo');
         setMusicians(unavailable);
       } catch (e) {
         console.error("Erro ao buscar músicos indisponíveis:", e);

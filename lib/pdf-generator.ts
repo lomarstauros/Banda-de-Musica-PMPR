@@ -152,8 +152,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   // ── LOGOS & CABEÇALHO (Somente se solicitado) ----------------------------
   if (showHeader) {
     try {
-      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 5, 20, 20);
-      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 20, curY - 5, 20, 20);
+      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 5, 20, 20, 'pmpr_logo', 'FAST');
+      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 20, curY - 5, 20, 20, 'banda_logo', 'FAST');
     } catch (e) { console.warn('Logo error:', e); }
 
     doc.setFont('helvetica', 'bold');
@@ -404,7 +404,7 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
       }
     }
 
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
     
     // Preparar profilesMap
     const profilesMap: Record<string, any> = {};
@@ -439,7 +439,7 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
       }
     }
 
-    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
     
     const profilesMap: Record<string, any> = {};
     profiles.forEach((p: any) => { profilesMap[p.id] = p; });

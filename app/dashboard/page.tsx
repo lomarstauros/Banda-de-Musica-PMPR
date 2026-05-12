@@ -27,6 +27,7 @@ export default function DashboardPage() {
   } | null>(null);
   const [nextScales, setNextScales] = useState<any[]>([]);
   const [historyScales, setHistoryScales] = useState<any[]>([]);
+  const [returningTomorrow, setReturningTomorrow] = useState<any[]>([]);
   const [loadingScales, setLoadingScales] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   // scaleId → { confirmed: boolean, notifId: string | null }
@@ -83,6 +84,27 @@ export default function DashboardPage() {
 
           setNextScales(futureScales);
           setHistoryScales(pastScales);
+
+          // 3. Admin Notification for Leaves Ending Tomorrow
+          if (profileData.role === 'admin') {
+            try {
+              const qProfiles = query(collection(db, 'profiles'), where('militaryStatus', '!=', 'Ativo'));
+              const profilesSnap = await getDocs(qProfiles);
+              
+              const today = new Date();
+              // Adjusted for local timezone
+              const tzOff = today.getTimezoneOffset() * 60000;
+              const todayStr = (new Date(today.getTime() - tzOff)).toISOString().split('T')[0];
+
+              const returning = profilesSnap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter((p: any) => p.statusEndDate === todayStr);
+                
+              setReturningTomorrow(returning);
+            } catch (err) {
+              console.error('Erro ao buscar retornos previstos:', err);
+            }
+          }
         }
       } catch (e) {
         console.error("Erro ao carregar dados do dashboard:", e);
@@ -242,6 +264,23 @@ export default function DashboardPage() {
             </div>
           </section>
         )}
+
+        {returningTomorrow.length > 0 && (
+          <section className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 flex flex-col gap-3 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-500">warning</span>
+              <h4 className="text-amber-800 dark:text-amber-400 font-bold text-sm">Retornos Previstos para Amanhã</h4>
+            </div>
+            <div className="flex flex-col gap-2">
+              {returningTomorrow.map((m: any) => (
+                <div key={m.id} className="text-amber-700 dark:text-amber-300 text-xs">
+                  • O período de <strong className="uppercase">{m.militaryStatus}</strong> de <strong>{m.rank} {m.war_name || m.name}</strong> se encerra hoje. Ele(a) retornará automaticamente ao status Ativo amanhã.
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <section className="flex flex-col gap-2">
           <div className="flex items-center justify-between px-1">
             <h3 className="text-[#111318] dark:text-white text-lg font-bold">Próxima Escala</h3>

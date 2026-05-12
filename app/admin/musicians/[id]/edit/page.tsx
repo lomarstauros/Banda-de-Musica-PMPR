@@ -55,6 +55,7 @@ export default function AdminEditMusicianPage() {
     statusEndDate: '',
     photo_url: '',
     institutional_email: '',
+    leaveHistory: [] as any[],
   });
 
   useEffect(() => {
@@ -83,6 +84,7 @@ export default function AdminEditMusicianPage() {
                 statusEndDate: data.statusEndDate || '',
                 photo_url: data.photo_url || '',
                 institutional_email: data.institutional_email || '',
+                leaveHistory: data.leaveHistory || [],
               });
               setOriginalEmail(data.email || '');
             } else {
@@ -167,6 +169,22 @@ export default function AdminEditMusicianPage() {
       const cleanWarName = normalizeSpaces(formData.war_name);
       const cleanRank = normalizeSpaces(formData.rank);
 
+      // Atualiza histórico se for um afastamento válido
+      let updatedHistory = [...formData.leaveHistory];
+      if (formData.militaryStatus !== 'Ativo' && formData.statusStartDate && formData.statusEndDate) {
+        // Checa se já existe no histórico com essas mesmas datas
+        const exists = updatedHistory.find(
+          h => h.startDate === formData.statusStartDate && h.endDate === formData.statusEndDate && h.status === formData.militaryStatus
+        );
+        if (!exists) {
+          updatedHistory.push({
+            status: formData.militaryStatus,
+            startDate: formData.statusStartDate,
+            endDate: formData.statusEndDate
+          });
+        }
+      }
+
       // Salva com as mesmas chaves do Firestore usadas pelo perfil do usuário
       await updateDoc(docRef, {
         name: cleanName,
@@ -183,6 +201,7 @@ export default function AdminEditMusicianPage() {
         statusStartDate: formData.statusStartDate,
         statusEndDate: formData.statusEndDate,
         institutional_email: formData.institutional_email,
+        leaveHistory: updatedHistory,
         // photo_url NÃO é atualizada pelo gestor — é exclusiva do músico
       });
       router.push('/admin/musicians');

@@ -128,6 +128,15 @@ export default function AdminNewMusicianPage() {
         setTimeout(() => reject(new Error('TIMEOUT_FIRESTORE')), 15000)
       );
 
+      const initialLeaveHistory = [];
+      if (formData.militaryStatus !== 'Ativo' && formData.statusStartDate && formData.statusEndDate) {
+        initialLeaveHistory.push({
+          status: formData.militaryStatus,
+          startDate: formData.statusStartDate,
+          endDate: formData.statusEndDate
+        });
+      }
+
       await Promise.race([
         setDoc(finalProfileRef, {
           ...formData,
@@ -138,6 +147,7 @@ export default function AdminNewMusicianPage() {
           uid: finalUid,
           createdAt: serverTimestamp(),
           forcePasswordReset: true,
+          leaveHistory: initialLeaveHistory,
           status: formData.active ? 'active' : 'pending'
         }),
         firestoreTimeout

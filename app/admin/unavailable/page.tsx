@@ -21,33 +21,71 @@ export default function UnavailableMusiciansPage() {
         const snap = await getDocs(q);
         const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
         
-        // Filtrar todos que não estão 'Ativo'
-        const unavailable = docs.filter((p: any) => p.militaryStatus && p.militaryStatus !== 'Ativo');
+        // Não filtramos mais apenas por "não Ativo", pegamos todos para buscar o histórico
+        const current: any[] = [];
+        const pastGrouped: any[] = [];
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const current: any[] = [];
-        const past: any[] = [];
+        docs.forEach((p: any) => {
+          let hasCurrentLeave = false;
+          const userPastLeaves: any[] = [];
 
-        unavailable.forEach((p: any) => {
-          let isPast = false;
-          if (p.statusEndDate) {
-            const end = new Date(p.statusEndDate + 'T23:59:59');
-            if (today > end) {
-              isPast = true;
+          // Verifica o leave principal
+          if (p.militaryStatus && p.militaryStatus !== 'Ativo') {
+            let isPast = false;
+            if (p.statusEndDate) {
+              const end = new Date(p.statusEndDate + 'T23:59:59');
+              if (today > end) isPast = true;
+            }
+            if (isPast) {
+              userPastLeaves.push({
+                status: p.militaryStatus,
+                startDate: p.statusStartDate,
+                endDate: p.statusEndDate
+              });
+            } else {
+              hasCurrentLeave = true;
+              current.push(p);
             }
           }
-          
-          if (isPast) {
-            past.push(p);
-          } else {
-            current.push(p);
+
+          // Verifica os leaves no histórico
+          if (Array.isArray(p.leaveHistory)) {
+            p.leaveHistory.forEach((leave: any) => {
+              const alreadyExists = userPastLeaves.find(
+                (l) => l.startDate === leave.startDate && l.endDate === leave.endDate && l.status === leave.status
+              );
+              
+              if (!alreadyExists) {
+                let isPast = false;
+                if (leave.endDate) {
+                  const end = new Date(leave.endDate + 'T23:59:59');
+                  if (today > end) isPast = true;
+                } else {
+                  isPast = true;
+                }
+
+                if (isPast) {
+                  userPastLeaves.push(leave);
+                }
+              }
+            });
+          }
+
+          if (userPastLeaves.length > 0) {
+            userPastLeaves.sort((a, b) => {
+              if (!a.endDate) return 1;
+              if (!b.endDate) return -1;
+              return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+            });
+            pastGrouped.push({ user: p, leaves: userPastLeaves });
           }
         });
 
         setCurrentMusicians(current);
-        setPastMusicians(past);
+        setPastMusicians(pastGrouped);
       } catch (e) {
         console.error("Erro ao buscar músicos indisponíveis:", e);
       } finally {
@@ -128,7 +166,7 @@ export default function UnavailableMusiciansPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {(activeTab === 'current' ? currentMusicians : pastMusicians).map(m => {
+              {activeTab === 'current' ? currentMusicians.map(m => {
                 const isExpanded = expandedId === m.id;
                 return (
                   <div key={m.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden transition-all">
@@ -195,6 +233,66 @@ export default function UnavailableMusiciansPage() {
                     </AnimatePresence>
                   </div>
                 );
+              }) : pastMusicians.map(group => {
+                const m = group.user;
+                const isExpanded = expandedId === m.id;
+                return (
+                  <div key={m.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden transition-all">
+                    <button 
+                      onClick={() => toggleExpand(m.id)}
+                      className="w-full p-4 flex items-center justify-between text-left focus:outline-none"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="size-10 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center font-bold text-sm shrink-0">
+                          {m.war_name?.[0] || m.name?.[0] || '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 dark:text-white">{m.rank} {m.war_name || m.name}</p>
+                          <p className="text-xs font-bold text-gray-500">{group.leaves.length} afastamento(s) anterior(es)</p>
+                        </div>
+                      </div>
+                      <span className={`material-symbols-outlined text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
+                        expand_more
+                      </span>
+                    </button>
+
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="px-4 pb-4 pt-1"
+                        >
+                          <div className="flex flex-col gap-3">
+                            {group.leaves.map((leave: any, idx: number) => (
+                              <div key={idx} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex flex-col gap-2 border border-gray-100 dark:border-gray-700">
+                                <div className="flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-[16px] text-gray-400">history</span>
+                                  <span className="text-sm font-bold text-gray-900 dark:text-white uppercase">{leave.status}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Início</span>
+                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                      {leave.startDate ? fmtDate(leave.startDate) : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Fim</span>
+                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                      {leave.endDate ? fmtDate(leave.endDate) : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )
               })}
             </div>
           )}

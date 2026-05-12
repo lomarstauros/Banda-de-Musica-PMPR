@@ -45,6 +45,7 @@ export default function NotificationsPage() {
         confirmedAt: serverTimestamp()
       });
       setActiveNotif(null);
+      router.push(`/scales/${notif.scaleId}`);
     } catch (e) {
       console.error('Erro ao confirmar:', e);
     } finally {

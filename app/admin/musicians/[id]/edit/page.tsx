@@ -68,6 +68,28 @@ export default function AdminEditMusicianPage() {
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
               const data = docSnap.data();
+              
+              // Verifica se a licença/afastamento já expirou
+              let currentStatus = data.militaryStatus || 'Ativo';
+              let currentStart = data.statusStartDate || '';
+              let currentEnd = data.statusEndDate || '';
+              
+              if (currentStatus !== 'Ativo' && currentStart && currentEnd) {
+                const endDate = new Date(currentEnd + 'T23:59:59');
+                if (new Date() > endDate) {
+                  currentStatus = 'Ativo';
+                  currentStart = '';
+                  currentEnd = '';
+                  
+                  // Atualiza no banco silenciosamente para limpar o status expirado
+                  updateDoc(docRef, {
+                    militaryStatus: 'Ativo',
+                    statusStartDate: '',
+                    statusEndDate: ''
+                  }).catch(console.error);
+                }
+              }
+
               setFormData({
                 name: data.name || '',
                 war_name: data.war_name || '',
@@ -79,9 +101,9 @@ export default function AdminEditMusicianPage() {
                 phone: data.phone || '',
                 cpf: data.cpf || '',
                 active: data.active ?? true,
-                militaryStatus: data.militaryStatus || 'Ativo',
-                statusStartDate: data.statusStartDate || '',
-                statusEndDate: data.statusEndDate || '',
+                militaryStatus: currentStatus,
+                statusStartDate: currentStart,
+                statusEndDate: currentEnd,
                 photo_url: data.photo_url || '',
                 institutional_email: data.institutional_email || '',
                 leaveHistory: data.leaveHistory || [],

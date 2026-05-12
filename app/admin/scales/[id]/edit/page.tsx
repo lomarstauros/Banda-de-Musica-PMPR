@@ -32,7 +32,8 @@ export default function AdminEditScalePage() {
     uniform: 'Especial A1-A / A1-B',
     customUniform: '',
     format: 'Ensaio',
-    customFormat: ''
+    customFormat: '',
+    classification: 'completa'
   });
 
   const [selectedMusicians, setSelectedMusicians] = useState<string[]>([]);
@@ -105,6 +106,7 @@ export default function AdminEditScalePage() {
             customUniform: data.uniform?.includes('Especial') ? '' : (data.uniform || ''),
             format: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? data.format : 'Outros',
             customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : (data.format || ''),
+            classification: data.classification || 'completa',
           });
           
           if (data.musicians) {
@@ -197,6 +199,7 @@ export default function AdminEditScalePage() {
         ...formData,
         uniform: finalUniform,
         format: finalFormat,
+        classification: formData.classification,
         musicians: musiciansData,
         serviceChief: chiefData
           ? { id: chiefData.id, name: chiefData.name || '', war_name: chiefData.war_name || '', rank: chiefData.rank || '' }
@@ -382,6 +385,22 @@ export default function AdminEditScalePage() {
                     <option>Apresentação local aberto</option>
                     <option>Formatura Militar</option>
                     <option>Outros</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                  </div>
+                </div>
+              </label>
+              
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Escala</span>
+                <div className="relative">
+                  <select 
+                    name="classification" value={formData.classification} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                  >
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                     <span className="material-symbols-outlined text-[20px]">expand_more</span>

@@ -23,8 +23,9 @@ export default function AdminNewScalePage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // 1. Shared Date
+  // 1. Shared Date & Classification
   const [sharedDate, setSharedDate] = useState('');
+  const [sharedClassification, setSharedClassification] = useState('completa');
 
   // 2. Expediente Administrativo (Block 1)
   const [includeExpediente, setIncludeExpediente] = useState(true);
@@ -267,6 +268,7 @@ export default function AdminNewScalePage() {
             permanencia: expediente.permanencia.map(id => ({ id, label: getMusicianLabel(id) }))
           },
           musicians: [], // Geralmente expediente não tem lista de músicos fixa aqui, mas as funções
+          classification: sharedClassification,
           status: 'published'
         });
       }
@@ -292,6 +294,7 @@ export default function AdminNewScalePage() {
             format: s.format === 'Outros' ? s.customFormat : s.format,
             serviceChief: chiefData ? { id: chiefData.id, name: chiefData.name, war_name: chiefData.war_name || '', rank: chiefData.rank || '' } : null,
             musicians: musiciansData,
+            classification: sharedClassification,
             status: 'published'
           });
         }
@@ -414,15 +417,34 @@ export default function AdminNewScalePage() {
             </div>
           )}
 
-          {/* 1. Seleção da Data (Compartilhada) */}
+          {/* 1. Seleção da Data e Tipo (Compartilhada) */}
           <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
-            <label className="flex flex-col gap-2">
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Data Geral</span>
-              <input 
-                type="date" value={sharedDate} onChange={e => setSharedDate(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-              />
-            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Data Geral</span>
+                <input 
+                  type="date" value={sharedDate} onChange={e => setSharedDate(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                />
+              </label>
+              
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tipo</span>
+                <div className="relative">
+                  <select 
+                    value={sharedClassification} 
+                    onChange={e => setSharedClassification(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
+                  >
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                    <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
 
           {/* 2. Bloco: Expediente Administrativo */}

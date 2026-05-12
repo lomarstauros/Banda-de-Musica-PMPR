@@ -223,7 +223,14 @@ export default function AdminScalesListPage() {
               <div key={scale.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">{scale.title}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white">{scale.title}</h3>
+                      {scale.classification === 'provisoria' && (
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 uppercase tracking-widest">
+                          Provisória
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-500">{fmtDate(scale.date)} • {scale.format}</p>
                   </div>
                 </div>

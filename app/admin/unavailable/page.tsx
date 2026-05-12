@@ -8,7 +8,9 @@ import { db } from '@/lib/firebase';
 import { fmtDate } from '@/lib/format-date';
 
 export default function UnavailableMusiciansPage() {
-  const [musicians, setMusicians] = useState<any[]>([]);
+  const [currentMusicians, setCurrentMusicians] = useState<any[]>([]);
+  const [pastMusicians, setPastMusicians] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'current' | 'past'>('current');
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -21,7 +23,31 @@ export default function UnavailableMusiciansPage() {
         
         // Filtrar todos que não estão 'Ativo'
         const unavailable = docs.filter((p: any) => p.militaryStatus && p.militaryStatus !== 'Ativo');
-        setMusicians(unavailable);
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const current: any[] = [];
+        const past: any[] = [];
+
+        unavailable.forEach((p: any) => {
+          let isPast = false;
+          if (p.statusEndDate) {
+            const end = new Date(p.statusEndDate + 'T23:59:59');
+            if (today > end) {
+              isPast = true;
+            }
+          }
+          
+          if (isPast) {
+            past.push(p);
+          } else {
+            current.push(p);
+          }
+        });
+
+        setCurrentMusicians(current);
+        setPastMusicians(past);
       } catch (e) {
         console.error("Erro ao buscar músicos indisponíveis:", e);
       } finally {
@@ -55,10 +81,35 @@ export default function UnavailableMusiciansPage() {
         </header>
 
         <main className="flex-1 p-4 flex flex-col gap-4 pb-24">
+          <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl mb-2">
+            <button
+              onClick={() => setActiveTab('current')}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === 'current'
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              Afastados
+            </button>
+            <button
+              onClick={() => setActiveTab('past')}
+              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+                activeTab === 'past'
+                  ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              Anteriores
+            </button>
+          </div>
+
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Efetivo Indisponível</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+              {activeTab === 'current' ? 'Efetivo Indisponível' : 'Afastamentos Anteriores'}
+            </h2>
             <span className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 text-xs font-bold px-2 py-1 rounded-full">
-              {musicians.length} militares
+              {activeTab === 'current' ? currentMusicians.length : pastMusicians.length} militares
             </span>
           </div>
 
@@ -66,14 +117,18 @@ export default function UnavailableMusiciansPage() {
             <div className="flex justify-center py-10">
               <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
             </div>
-          ) : musicians.length === 0 ? (
+          ) : (activeTab === 'current' ? currentMusicians : pastMusicians).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 text-center">
               <span className="material-symbols-outlined text-[48px] mb-2">check_circle</span>
-              <p className="text-sm">Todo o efetivo está disponível e Ativo.</p>
+              <p className="text-sm">
+                {activeTab === 'current' 
+                  ? 'Todo o efetivo está disponível e Ativo.' 
+                  : 'Nenhum histórico de afastamento encontrado.'}
+              </p>
             </div>
           ) : (
             <div className="flex flex-col gap-3">
-              {musicians.map(m => {
+              {(activeTab === 'current' ? currentMusicians : pastMusicians).map(m => {
                 const isExpanded = expandedId === m.id;
                 return (
                   <div key={m.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden transition-all">

@@ -148,9 +148,13 @@ export default function AdminMusiciansListPage() {
                          musician.role === 'manager' ? 'Gestor' :
                          musician.role}
                       </span>
-                      {currentStatus && (
+                      {currentStatus ? (
                         <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
                           {currentStatus}
+                        </span>
+                      ) : (
+                        <span className="flex-none text-[8px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                          ATIVO
                         </span>
                       )}
                     </div>

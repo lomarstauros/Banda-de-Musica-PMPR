@@ -250,33 +250,35 @@ export default function CalendarPage() {
                  <span className="material-symbols-outlined text-4xl mb-2">event_busy</span>
                  <p className="text-sm font-medium">{loadingEvents ? 'Carregando eventos...' : 'Nenhum evento neste dia'}</p>
              </div>
-          ) : selectedEvents.map((evt: any) => (
-            <Link key={evt.id} href={`/scales/${evt.id}`} className="group flex flex-col rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700/50 overflow-hidden active:scale-[0.99] transition-transform duration-100">
+          ) : selectedEvents.map((evt: any) => {
+            const isProvisoria = evt.classification === 'provisoria';
+            return (
+            <Link key={evt.id} href={`/scales/${evt.id}`} className={`group flex flex-col rounded-xl bg-white dark:bg-slate-800 shadow-sm border ${isProvisoria ? 'border-red-400 dark:border-red-600/50' : 'border-slate-100 dark:border-slate-700/50'} overflow-hidden active:scale-[0.99] transition-transform duration-100`}>
               <div className="flex p-3 gap-4">
-                <div className="flex flex-col items-center justify-center p-2 bg-primary/10 rounded-lg min-w-[4rem] self-start">
-                  <span className="text-xs font-bold text-primary uppercase">{evt.startTime || evt.departureTime}</span>
-                  <span className="text-sm font-bold text-primary">{evt.startTime?.split(':')[0] >= 18 ? 'Noite' : (evt.startTime?.split(':')[0] >= 12 ? 'Tarde' : 'Manhã')}</span>
+                <div className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[4rem] self-start ${isProvisoria ? 'bg-red-50 dark:bg-red-900/20' : 'bg-primary/10'}`}>
+                  <span className={`text-xs font-bold uppercase ${isProvisoria ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}>{evt.startTime || evt.departureTime || '--:--'}</span>
+                  <span className={`text-sm font-bold ${isProvisoria ? 'text-red-600 dark:text-red-400' : 'text-primary'}`}>{evt.startTime ? (evt.startTime.split(':')[0] >= 18 ? 'Noite' : (evt.startTime.split(':')[0] >= 12 ? 'Tarde' : 'Manhã')) : '---'}</span>
                 </div>
                 <div className="flex flex-1 flex-col gap-1 justify-center">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-medium ${evt.format === 'Ensaio' || evt.format === 'Expediente Administrativo' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
                       {evt.format}
                     </span>
-                    {evt.classification === 'provisoria' && (
-                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                        Provisória
+                    {isProvisoria && (
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-black bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/40 dark:text-red-400 dark:border-red-800 uppercase tracking-widest">
+                        PROVISÓRIA
                       </span>
                     )}
                   </div>
-                  <h4 className="text-slate-900 dark:text-white text-base font-bold leading-snug">{evt.title}</h4>
+                  <h4 className="text-slate-900 dark:text-white text-base font-bold leading-snug">{evt.title || 'Evento não nomeado'}</h4>
                   <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                     <span className="material-symbols-outlined text-[16px]">location_on</span>
-                    <p className="text-xs font-medium truncate">{evt.location}</p>
+                    <p className="text-xs font-medium truncate">{evt.location || 'Local não definido'}</p>
                   </div>
                 </div>
               </div>
             </Link>
-          ))}
+          )})}
         </div>
 
         <button className="fixed bottom-24 right-4 z-30 flex size-12 items-center justify-center rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-lg shadow-slate-900/20 active:scale-90 transition-transform">

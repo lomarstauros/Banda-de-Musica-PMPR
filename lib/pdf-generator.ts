@@ -168,18 +168,35 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
     doc.setFontSize(10);
     doc.text(`ESCALA PARA O DIA ${dateLabel}`, pageWidth / 2, curY, { align: 'center' });
-    curY += 10;
+    curY += 8;
+
+    if (scale.classification === 'provisoria') {
+      doc.setTextColor(220, 38, 38); // Red text
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('*** ESCALA PROVISÓRIA ***', pageWidth / 2, curY, { align: 'center' });
+      doc.setTextColor(0, 0, 0); // Reset color
+      doc.setFont('helvetica', 'normal');
+      curY += 10;
+    } else {
+      curY += 2;
+    }
   } else {
     // ── BARRA SEPARADORA PARA NOVOS SERVIÇOS --------------------------------
-    doc.setFillColor(19, 91, 236); // Cor Primária #135bec
+    if (scale.classification === 'provisoria') {
+      doc.setFillColor(220, 38, 38); // Red background for provisional
+    } else {
+      doc.setFillColor(19, 91, 236); // Cor Primária #135bec
+    }
     doc.rect(margin, curY - 10, pageWidth - 2 * margin, 8, 'F');
     
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
+    const prefix = scale.classification === 'provisoria' ? '[PROVISÓRIA] ' : '';
     const serviceTitle = (scale.title || 'SERVIÇO').toUpperCase();
     const serviceTime = scale.startTime ? ` às ${scale.startTime}` : '';
-    doc.text(`PRÓXIMO SERVIÇO: ${serviceTitle}${serviceTime}`, pageWidth / 2, curY - 4.5, { align: 'center' });
+    doc.text(`PRÓXIMO SERVIÇO: ${prefix}${serviceTitle}${serviceTime}`, pageWidth / 2, curY - 4.5, { align: 'center' });
     
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');

@@ -204,15 +204,17 @@ export default function AdminNewScalePage() {
       return;
     }
 
-    // Validação básica do Expediente
-    if (includeExpediente) {
-      if (!expediente.startTime || !expediente.endTime) {
-        setError("Preencha os horários do Expediente Administrativo.");
+    // Validação básica do Expediente (apenas se não for provisória)
+    if (sharedClassification !== 'provisoria') {
+      if (includeExpediente) {
+        if (!expediente.startTime || !expediente.endTime) {
+          setError("Preencha os horários do Expediente Administrativo.");
+          return;
+        }
+      } else if (onlyExpediente) {
+        setError("Você desativou a rotina administrativa.");
         return;
       }
-    } else if (onlyExpediente) {
-      setError("Você desativou a rotina administrativa.");
-      return;
     }
 
     setLoading(true);
@@ -276,8 +278,10 @@ export default function AdminNewScalePage() {
       // Se não for "somente expediente", adicionamos os extras
       if (!onlyExpediente) {
         for (const s of extraServices) {
-          if (!s.title || !s.startTime) {
-            throw new Error(`Preencha o título e o início do serviço: ${s.id}`);
+          if (sharedClassification !== 'provisoria') {
+            if (!s.title || !s.startTime) {
+              throw new Error(`Preencha o título e o início do serviço: ${s.id}`);
+            }
           }
           const chiefData = s.serviceChief ? musicians.find(m => m.id === s.serviceChief) : null;
           const musiciansData = musicians.filter(m => s.selectedMusicians.includes(m.id));

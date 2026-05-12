@@ -177,9 +177,11 @@ export default function AdminEditScalePage() {
 
   const handleUpdateScale = async () => {
     const isReducedFormat = formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo';
-    if (!formData.title || !formData.date || (!isReducedFormat && !formData.departureTime) || (isReducedFormat && !formData.startTime)) {
-      setError(isReducedFormat ? "Preencha ao menos o Nome, Data e Início Previsto." : "Preencha ao menos o Nome, Data e Horário de Saída.");
-      return;
+    if (formData.classification !== 'provisoria') {
+      if (!formData.title || !formData.date || (!isReducedFormat && !formData.departureTime) || (isReducedFormat && !formData.startTime)) {
+        setError(isReducedFormat ? "Preencha ao menos o Nome, Data e Início Previsto." : "Preencha ao menos o Nome, Data e Horário de Saída.");
+        return;
+      }
     }
     
     setSaving(true);

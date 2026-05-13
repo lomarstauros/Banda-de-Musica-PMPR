@@ -8,12 +8,12 @@ import { normalizeSpaces } from './utils';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** CPF: 000.XXX.XXX-00 */
+/** CPF: XXX.123.456-XX */
 const maskCPF = (cpf: string): string => {
   if (!cpf) return '---.---.---/--';
   const clean = cpf.replace(/\D/g, '');
   if (clean.length !== 11) return cpf || '---.---.---/--';
-  return `${clean.substring(0, 3)}.XXX.XXX-${clean.substring(9, 11)}`;
+  return `XXX.${clean.substring(3, 6)}.${clean.substring(6, 9)}-XX`;
 };
 
 /** YYYY-MM-DD → "07 DE ABRIL DE 2026 (TERÇA-FEIRA)" */

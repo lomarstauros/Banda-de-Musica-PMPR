@@ -1,39 +1,6 @@
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
-import path from 'path';
-import { readFileSync } from 'fs';
-
-// Initialize Firebase Admin SDK
-if (!admin.apps.length) {
-  console.log('--- Inicializando Firebase Admin SDK ---');
-  try {
-    const serviceAccountVar = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    if (serviceAccountVar) {
-      console.log('Usando FIREBASE_SERVICE_ACCOUNT de variável de ambiente.');
-      const serviceAccount = JSON.parse(serviceAccountVar);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-    } else {
-      // Local file fallback
-      const serviceAccountPath = path.join(process.cwd(), 'service-account.json');
-      console.log(`Buscando service-account.json em: ${serviceAccountPath}`);
-      
-      const fileContent = readFileSync(serviceAccountPath, 'utf8');
-      const serviceAccount = JSON.parse(fileContent);
-
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      console.log('Firebase Admin SDK inicializado com arquivo local.');
-    }
-  } catch (error) {
-    console.error('ERRO CRÍTICO ao inicializar Firebase Admin:', error);
-  }
-} else {
-  console.log('Firebase Admin SDK já estava inicializado.');
-}
+import { getAdminApp } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 
 export async function POST(request: Request) {
   try {
@@ -49,8 +16,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Lista de IDs de usuário inválida' }, { status: 400 });
     }
 
-    const messaging = admin.messaging();
-    const db = admin.firestore();
+    const app = getAdminApp();
+    const messaging = admin.messaging(app || undefined);
+    const db = admin.firestore(app || undefined);
 
     // Fetch tokens for all users
     const tokens: string[] = [];

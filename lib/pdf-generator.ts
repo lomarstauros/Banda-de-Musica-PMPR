@@ -275,9 +275,20 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     }
   });
 
+  const permanenciaRows: any[] = [];
+  (exp.permanencia || []).forEach((item: any, i: number) => {
+    const id = typeof item === 'object' ? item.id : item;
+    const p = findProfile(id);
+    const data = getPersonData(p, typeof item === 'object' ? item.label : item);
+    if (data && data.content) {
+      permanenciaRows.push([permanenciaRows.length === 0 ? 'PERMANÊNCIA' : '', data, data.cpf]);
+    }
+  });
+
   const expBody = [
     rSarg ? ['SARGENTEAÇÃO', rSarg, rSarg.cpf] : null,
     ...adminRows,
+    ...permanenciaRows,
     ...obraRows,
     rP4 ? ['P4 / FINANÇAS', rP4, rP4.cpf] : null,
   ].filter(Boolean);

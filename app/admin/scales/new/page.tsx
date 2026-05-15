@@ -63,6 +63,7 @@ export default function AdminNewScalePage() {
       format: 'Formatura Militar',
       customFormat: '',
       serviceChief: '',
+      repertoire: '',
       selectedMusicians: [] as string[]
     }]);
   };
@@ -297,6 +298,7 @@ export default function AdminNewScalePage() {
             uniform: s.uniform === 'Outros' ? s.customUniform : s.uniform,
             format: s.format === 'Outros' ? s.customFormat : s.format,
             serviceChief: chiefData ? { id: chiefData.id, name: chiefData.name, war_name: chiefData.war_name || '', rank: chiefData.rank || '' } : null,
+            repertoire: s.repertoire || '',
             musicians: musiciansData,
             classification: sharedClassification,
             status: 'published'
@@ -670,20 +672,99 @@ export default function AdminNewScalePage() {
                 />
               </label>
 
-              <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Formato</span>
+                <div className="relative">
+                  <select 
+                    value={service.format} onChange={e => updateExtraService(service.id, 'format', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
+                  >
+                    <option>Ensaio</option>
+                    <option>Expediente Administrativo</option>
+                    <option>Apresentação local fechado</option>
+                    <option>Apresentação local aberto</option>
+                    <option>Formatura Militar</option>
+                    <option>Outros</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                  </div>
+                </div>
+              </label>
+
+              {service.format === 'Outros' && (
                 <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Formato</span>
+                  <input 
+                    type="text" value={service.customFormat} onChange={e => updateExtraService(service.id, 'customFormat', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                  />
+                </label>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Saída da BM</span>
+                    <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
+                  </label>
+                )}
+                <label className={`flex flex-col gap-1.5 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Início</span>
                   <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
                 </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Término</span>
                   <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
                 </label>
+                {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Retorno</span>
+                    <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
+                  </label>
+                )}
               </div>
 
               <label className="flex flex-col gap-1.5">
                 <span className="text-xs font-bold text-gray-500 uppercase">Local</span>
                 <input type="text" value={service.location} onChange={e => updateExtraService(service.id, 'location', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm" />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-gray-500 uppercase">Uniforme</span>
+                <div className="relative">
+                  <select 
+                    value={service.uniform} onChange={e => updateExtraService(service.id, 'uniform', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
+                  >
+                    <option>Especial A1-A / A1-B</option>
+                    <option>Outros</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                    <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                  </div>
+                </div>
+              </label>
+
+              {service.uniform === 'Outros' && (
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Uniforme</span>
+                  <input 
+                    type="text" value={service.customUniform} onChange={e => updateExtraService(service.id, 'customUniform', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                  />
+                </label>
+              )}
+
+              <label className="flex flex-col gap-1.5">
+                <span className="text-xs font-bold text-gray-500 uppercase">Repertório</span>
+                <textarea 
+                  value={service.repertoire} onChange={e => updateExtraService(service.id, 'repertoire', e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none resize-none font-mono" rows={3} placeholder={'01. Hino Nacional\n02. Dobrado'}
+                />
               </label>
 
               {/* Chief Selection */}

@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
+import { getFormatColors } from '@/lib/scale-formats';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
 
@@ -231,7 +232,12 @@ export default function AdminScalesListPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500">{fmtDate(scale.date)} • {scale.format}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-gray-500">{fmtDate(scale.date)}</span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold border ${getFormatColors(scale.format).bg} ${getFormatColors(scale.format).text} ${getFormatColors(scale.format).border}`}>
+                        {scale.format}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 

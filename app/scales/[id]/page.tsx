@@ -9,6 +9,7 @@ import { db } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { generateScalePDF } from '@/lib/pdf-generator';
+import { getFormatColors } from '@/lib/scale-formats';
 import { fmtDate } from '@/lib/format-date';
 
 export default function ScaleDetailsPage() {
@@ -222,9 +223,11 @@ export default function ScaleDetailsPage() {
                 src="/brasao_banda.png"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-              <div className="absolute bottom-3 left-4 text-white">
-                <p className="text-xs font-medium uppercase tracking-wider opacity-90">{scale.format}</p>
-                <h2 className="text-xl font-bold leading-tight">{scale.title}</h2>
+              <div className="absolute bottom-3 left-4 text-white flex flex-col items-start gap-1">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${getFormatColors(scale.format).bg} ${getFormatColors(scale.format).text} ${getFormatColors(scale.format).border}`}>
+                  {scale.format}
+                </span>
+                <h2 className="text-xl font-bold leading-tight mt-0.5">{scale.title}</h2>
               </div>
             </div>
             <div className="p-4 flex flex-col gap-4">

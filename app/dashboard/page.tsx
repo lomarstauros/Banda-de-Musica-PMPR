@@ -12,6 +12,7 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
 import { getCurrentMilitaryStatus } from '@/lib/military-status';
+import { getFormatColors } from '@/lib/scale-formats';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -303,9 +304,11 @@ export default function DashboardPage() {
               <div className="bg-white dark:bg-[#1A202C] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden group cursor-pointer">
                 <div className="relative h-32 w-full bg-primary">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                  <div className="absolute bottom-3 left-4 text-white">
-                    <p className="text-xs font-medium opacity-90 mb-0.5">{nextScales[0].format}</p>
-                    <h2 className="text-xl font-bold leading-tight">{nextScales[0].title}</h2>
+                  <div className="absolute bottom-3 left-4 text-white flex flex-col items-start gap-1">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${getFormatColors(nextScales[0].format).bg} ${getFormatColors(nextScales[0].format).text} ${getFormatColors(nextScales[0].format).border}`}>
+                      {nextScales[0].format}
+                    </span>
+                    <h2 className="text-xl font-bold leading-tight mt-0.5">{nextScales[0].title}</h2>
                   </div>
                   {/* Badge: escala aberta (sem efetivo definido) */}
                   {(!nextScales[0].musicians || nextScales[0].musicians.length === 0) && (
@@ -424,6 +427,11 @@ export default function DashboardPage() {
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="text-[#111318] dark:text-white font-bold text-base">{scale.title}</h4>
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${getFormatColors(scale.format).bg} ${getFormatColors(scale.format).text} ${getFormatColors(scale.format).border}`}>
+                          {scale.format || 'Evento'}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1 mt-1 text-gray-500 dark:text-gray-400 text-sm">
                         <span className="material-symbols-outlined text-[16px]">schedule</span>
                         <span className="font-bold text-primary">Início: {scale.startTime || scale.departureTime}</span>

@@ -11,6 +11,7 @@ import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { generateDailyScalesPDF } from '@/lib/pdf-generator';
+import { getFormatColors } from '@/lib/scale-formats';
 
 export default function CalendarPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -261,7 +262,7 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex flex-1 flex-col gap-1 justify-center">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-medium ${evt.format === 'Ensaio' || evt.format === 'Expediente Administrativo' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'}`}>
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] sm:text-xs font-bold border ${getFormatColors(evt.format).bg} ${getFormatColors(evt.format).text} ${getFormatColors(evt.format).border}`}>
                       {evt.format}
                     </span>
                     {isProvisoria && (

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { doc, getDoc, updateDoc, serverTimestamp, query, orderBy, limit, getDocs, collection, writeBatch, addDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, query, orderBy, limit, getDocs, collection, writeBatch, addDoc, where } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { isMusicianAvailable } from '@/lib/military-status';

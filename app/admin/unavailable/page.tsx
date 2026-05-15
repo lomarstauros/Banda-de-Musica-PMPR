@@ -54,22 +54,21 @@ export default function UnavailableMusiciansPage() {
           // Verifica os leaves no histórico
           if (Array.isArray(p.leaveHistory)) {
             p.leaveHistory.forEach((leave: any) => {
+              // Se é exatamente o mesmo afastamento que está ativo no momento, ignora (pois já está na aba Afastados)
+              const isCurrentActiveLeave = hasCurrentLeave && 
+                p.militaryStatus === leave.status && 
+                p.statusStartDate === leave.startDate && 
+                p.statusEndDate === leave.endDate;
+
+              if (isCurrentActiveLeave) return;
+
               const alreadyExists = userPastLeaves.find(
                 (l) => l.startDate === leave.startDate && l.endDate === leave.endDate && l.status === leave.status
               );
               
               if (!alreadyExists) {
-                let isPast = false;
-                if (leave.endDate) {
-                  const end = new Date(leave.endDate + 'T23:59:59');
-                  if (today > end) isPast = true;
-                } else {
-                  isPast = true;
-                }
-
-                if (isPast) {
-                  userPastLeaves.push(leave);
-                }
+                // Adiciona ao histórico, independente da data, pois já não é o status ativo atual
+                userPastLeaves.push(leave);
               }
             });
           }

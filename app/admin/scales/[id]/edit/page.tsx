@@ -197,6 +197,63 @@ export default function AdminEditScalePage() {
         ? musicians.find((m: any) => m.id === serviceChief) || null
         : null;
 
+      // 1.5 Verificar conflitos de horário
+      const schedules: { uid: string, title: string, startTime: string, scaleId: string }[] = [];
+      const existingScalesQ = query(collection(db, "scales"), where("date", "==", formData.date));
+      const existingSnap = await getDocs(existingScalesQ);
+      existingSnap.forEach(docSnap => {
+        if (docSnap.id === params.id) return; // Ignora a escala atual que está sendo editada
+        const d = docSnap.data();
+        const sTime = d.startTime;
+        if (!sTime) return;
+        const addUid = (uid: string | null | undefined) => { if (uid) schedules.push({ uid, title: d.title || d.format || 'Serviço', startTime: sTime, scaleId: docSnap.id }); };
+        
+        if (d.serviceChief?.id) addUid(d.serviceChief.id);
+        if (d.musicians) d.musicians.forEach((m: any) => addUid(m.id));
+        if (d.expediente) {
+          addUid(d.expediente.regenteMaestroId);
+          addUid(d.expediente.regenteId);
+          addUid(d.expediente.arquivoId);
+          addUid(d.expediente.sargenteacaoId);
+          addUid(d.expediente.p4FinancasTransporteId);
+          d.expediente.administrativo?.forEach((m: any) => addUid(m.id));
+          d.expediente.obra?.forEach((m: any) => addUid(m.id));
+          d.expediente.permanencia?.forEach((m: any) => addUid(m.id));
+        }
+      });
+
+      const currentScaleUids: string[] = [];
+      const addCurrentUid = (uid: string | null | undefined) => { if (uid) currentScaleUids.push(uid); };
+      addCurrentUid(chiefData?.id);
+      musiciansData.forEach((m: any) => addCurrentUid(m.id));
+      addCurrentUid(expediente.regenteMaestro);
+      addCurrentUid(expediente.regente);
+      addCurrentUid(expediente.arquivo);
+      addCurrentUid(expediente.sargenteacao);
+      addCurrentUid(expediente.p4FinancasTransporte);
+      expediente.administrativo.forEach((id: string) => addCurrentUid(id));
+      expediente.obra.forEach((id: string) => addCurrentUid(id));
+      expediente.permanencia.forEach((id: string) => addCurrentUid(id));
+
+      const conflicts: string[] = [];
+      for (const uid of currentScaleUids) {
+        const existingConflict = schedules.find(s => s.uid === uid && s.startTime === formData.startTime);
+        if (existingConflict) {
+          const m = musicians.find((mx: any) => mx.id === uid);
+          const name = m ? (m.war_name || m.name) : 'Militar';
+          const conflictStr = `- ${name} (em "${existingConflict.title}")`;
+          if (!conflicts.includes(conflictStr)) conflicts.push(conflictStr);
+        }
+      }
+
+      if (conflicts.length > 0) {
+        const confirmMsg = `Atenção! O(s) usuário(s) já tem uma escala de serviço nessa mesma data e horário:\n\n${conflicts.join('\n')}\n\nVocê tem certeza que deseja continuar e salvar a edição?`;
+        if (!window.confirm(confirmMsg)) {
+          setSaving(false);
+          return;
+        }
+      }
+
       await updateDoc(scaleRef, {
         ...formData,
         uniform: finalUniform,

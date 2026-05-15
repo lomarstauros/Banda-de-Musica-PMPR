@@ -304,6 +304,77 @@ export default function AdminNewScalePage() {
         }
       }
 
+      // 1.5 Verificar conflitos de horário
+      const schedules: { uid: string, title: string, startTime: string }[] = [];
+      const existingScalesQ = query(collection(db, "scales"), where("date", "==", sharedDate));
+      const existingSnap = await getDocs(existingScalesQ);
+      existingSnap.forEach(doc => {
+        const d = doc.data();
+        const sTime = d.startTime;
+        if (!sTime) return;
+        const addUid = (uid: string | null | undefined) => { if (uid) schedules.push({ uid, title: d.title || d.format || 'Serviço', startTime: sTime }); };
+        
+        if (d.serviceChief?.id) addUid(d.serviceChief.id);
+        if (d.musicians) d.musicians.forEach((m: any) => addUid(m.id));
+        if (d.expediente) {
+          addUid(d.expediente.regenteMaestroId);
+          addUid(d.expediente.regenteId);
+          addUid(d.expediente.arquivoId);
+          addUid(d.expediente.sargenteacaoId);
+          addUid(d.expediente.p4FinancasTransporteId);
+          d.expediente.administrativo?.forEach((m: any) => addUid(m.id));
+          d.expediente.obra?.forEach((m: any) => addUid(m.id));
+          d.expediente.permanencia?.forEach((m: any) => addUid(m.id));
+        }
+      });
+
+      const newSchedules: { uid: string, title: string, startTime: string }[] = [];
+      for (const d of docsToCreate) {
+        const sTime = d.startTime;
+        if (!sTime) continue;
+        const addUid = (uid: string | null | undefined) => { if (uid) newSchedules.push({ uid, title: d.title || d.format || 'Serviço', startTime: sTime }); };
+        
+        if (d.serviceChief?.id) addUid(d.serviceChief.id);
+        if (d.musicians) d.musicians.forEach((m: any) => addUid(m.id));
+        if (d.expediente) {
+          addUid(d.expediente.regenteMaestroId);
+          addUid(d.expediente.regenteId);
+          addUid(d.expediente.arquivoId);
+          addUid(d.expediente.sargenteacaoId);
+          addUid(d.expediente.p4FinancasTransporteId);
+          d.expediente.administrativo?.forEach((m: any) => addUid(m.id));
+          d.expediente.obra?.forEach((m: any) => addUid(m.id));
+          d.expediente.permanencia?.forEach((m: any) => addUid(m.id));
+        }
+      }
+
+      const conflicts: string[] = [];
+      for (const newSched of newSchedules) {
+        const existingConflict = schedules.find(s => s.uid === newSched.uid && s.startTime === newSched.startTime);
+        if (existingConflict) {
+          const m = musicians.find(m => m.id === newSched.uid);
+          const name = m ? (m.war_name || m.name) : 'Militar';
+          conflicts.push(`- ${name} (em "${existingConflict.title}")`);
+        } else {
+          const internalConflict = newSchedules.find(s => s !== newSched && s.uid === newSched.uid && s.startTime === newSched.startTime);
+          if (internalConflict) {
+             const m = musicians.find(m => m.id === newSched.uid);
+             const name = m ? (m.war_name || m.name) : 'Militar';
+             const conflictStr = `- ${name} (em múltiplas escalas nesta tela)`;
+             if (!conflicts.includes(conflictStr)) conflicts.push(conflictStr);
+          }
+        }
+      }
+
+      const uniqueConflicts = [...new Set(conflicts)];
+      if (uniqueConflicts.length > 0) {
+        const confirmMsg = `Atenção! O(s) usuário(s) já tem uma escala de serviço nessa mesma data e horário:\n\n${uniqueConflicts.join('\n')}\n\nVocê tem certeza que deseja continuar?`;
+        if (!window.confirm(confirmMsg)) {
+          setLoading(false);
+          return;
+        }
+      }
+
       // 2. Salvar todos os documentos
       for (const d of docsToCreate) {
         const scaleRef = await addDoc(collection(db, "scales"), {

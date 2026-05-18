@@ -176,6 +176,61 @@ export default function AdminEditScalePage() {
   };
 
   const handleUpdateScale = async () => {
+    if (formData.classification === 'folga') {
+      if (!formData.date) {
+        setError("Preencha a Data.");
+        return;
+      }
+      setSaving(true);
+      setError(null);
+      try {
+        const scaleRef = doc(db, "scales", params.id as string);
+        await updateDoc(scaleRef, {
+          title: 'FOLGA',
+          date: formData.date,
+          format: 'Folga',
+          classification: 'folga',
+          musicians: [],
+          serviceChief: null,
+          expediente: null,
+          repertoire: '',
+          updatedAt: serverTimestamp()
+        });
+
+        // Registro de Auditoria
+        try {
+          const currentUser = auth.currentUser;
+          if (currentUser) {
+            const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+            const adminData = adminSnap.data();
+            const adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+
+            await addDoc(collection(db, "audit_logs"), {
+              userId: currentUser.uid,
+              userName: adminName,
+              action: 'update',
+              entityId: params.id as string,
+              entityTitle: 'FOLGA',
+              timestamp: serverTimestamp()
+            });
+          }
+        } catch (auditErr) {
+          console.error("Erro ao registrar log de auditoria:", auditErr);
+        }
+
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/admin/scales');
+        }, 2000);
+      } catch (err: any) {
+        console.error(err);
+        setError("Erro ao atualizar: " + (err.message || err.toString()));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
     const isReducedFormat = formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo';
     if (formData.classification !== 'provisoria') {
       if (!formData.title || !formData.date || (!isReducedFormat && !formData.departureTime) || (isReducedFormat && !formData.startTime)) {
@@ -460,6 +515,7 @@ export default function AdminEditScalePage() {
                   >
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="folga">FOLGA</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                     <span className="material-symbols-outlined text-[20px]">expand_more</span>
@@ -467,7 +523,7 @@ export default function AdminEditScalePage() {
                 </div>
               </label>
 
-              {formData.format === 'Outros' && (
+              {formData.classification !== 'folga' && formData.format === 'Outros' && (
                 <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Formato</span>
                   <input 
@@ -516,8 +572,10 @@ export default function AdminEditScalePage() {
               </div>
             </div>
 
-            {/* Bloco 0: Expediente Administrativo */}
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-4 shadow-sm">
+            {formData.classification !== 'folga' && (
+              <>
+                {/* Bloco 0: Expediente Administrativo */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-4 shadow-sm">
 
               {/* Referência */}
               <label className="flex flex-col gap-2">
@@ -961,6 +1019,9 @@ export default function AdminEditScalePage() {
                 })}
               </div>
             </div>
+            
+            </>
+            )}
 
           </div>
         </main>

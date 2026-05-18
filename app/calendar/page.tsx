@@ -231,11 +231,11 @@ export default function CalendarPage() {
 
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">{capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}</h3>
-          {selectedEvents.length > 0 && (
+          {selectedEvents.some(e => e.classification !== 'folga') && (
             <div className="flex items-center gap-2">
               <button className="text-primary text-sm font-semibold hover:underline">Ver tudo</button>
               <button 
-                onClick={() => generateDailyScalesPDF(selectedEvents)}
+                onClick={() => generateDailyScalesPDF(selectedEvents.filter(e => e.classification !== 'folga'))}
                 title="Baixar todas as escalas do dia"
                 className="flex items-center justify-center size-9 rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95"
               >
@@ -252,6 +252,27 @@ export default function CalendarPage() {
                  <p className="text-sm font-medium">{loadingEvents ? 'Carregando eventos...' : 'Nenhum evento neste dia'}</p>
              </div>
           ) : selectedEvents.map((evt: any) => {
+            if (evt.classification === 'folga') {
+              return (
+                <div key={evt.id} className="relative overflow-hidden group flex flex-col rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md border-0 active:scale-[0.99] transition-transform duration-100 p-6 flex items-center justify-center">
+                  <div className="absolute -right-4 -top-4 opacity-20 pointer-events-none">
+                    <span className="material-symbols-outlined text-[100px] text-white">weekend</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-2 z-10 text-white">
+                    <span className="material-symbols-outlined text-[32px]">event_available</span>
+                    <h3 className="text-xl font-black tracking-[0.2em] uppercase">Folga</h3>
+                    <p className="text-xs font-medium text-emerald-100">Não há serviço escalado</p>
+                  </div>
+                  {/* Option to view the edit page if admin clicks (hidden functionally but wrapped in link if needed, we'll keep it as a simple div or add an edit button for admins if necessary. For now, it's just a banner as requested) */}
+                  {(profile?.role === 'admin' || profile?.role === 'master' || profile?.role === 'manager') && (
+                    <Link href={`/admin/scales/${evt.id}/edit`} className="absolute top-2 right-2 p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                      <span className="material-symbols-outlined text-[18px]">edit</span>
+                    </Link>
+                  )}
+                </div>
+              );
+            }
+
             const isProvisoria = evt.classification === 'provisoria';
             return (
             <Link key={evt.id} href={`/scales/${evt.id}`} className={`group flex flex-col rounded-xl bg-white dark:bg-slate-800 shadow-sm border ${isProvisoria ? 'border-red-400 dark:border-red-600/50' : 'border-slate-100 dark:border-slate-700/50'} overflow-hidden active:scale-[0.99] transition-transform duration-100`}>

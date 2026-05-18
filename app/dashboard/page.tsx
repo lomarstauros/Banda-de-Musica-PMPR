@@ -300,6 +300,21 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-500">Nenhuma escala prevista para você no momento.</p>
             </div>
           ) : (
+            nextScales[0].classification === 'folga' ? (
+              <div className="relative overflow-hidden group flex flex-col rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md border-0 p-8 flex items-center justify-center">
+                <div className="absolute -right-4 -top-4 opacity-20 pointer-events-none">
+                  <span className="material-symbols-outlined text-[120px] text-white">weekend</span>
+                </div>
+                <div className="flex flex-col items-center gap-3 z-10 text-white text-center">
+                  <span className="material-symbols-outlined text-[48px]">event_available</span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-bold uppercase tracking-widest text-emerald-100">{fmtDate(nextScales[0].date)}</span>
+                    <h2 className="text-3xl font-black tracking-[0.2em] uppercase">Folga</h2>
+                  </div>
+                  <p className="text-sm font-medium text-emerald-50 mt-2">Nenhum serviço escalado para esta data</p>
+                </div>
+              </div>
+            ) : (
             <Link href={`/scales/${nextScales[0].id}`}>
               <div className="bg-white dark:bg-[#1A202C] rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden group cursor-pointer">
                 <div className="relative h-32 w-full bg-primary">
@@ -399,6 +414,7 @@ export default function DashboardPage() {
                 </div>
               </div>
             </Link>
+            )
           )}
         </section>
 
@@ -411,7 +427,35 @@ export default function DashboardPage() {
           </div>
           <div className="relative pl-2">
             <div className="absolute left-[27px] top-4 bottom-4 w-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                  {historyScales.map((scale: any) => (
+                  {historyScales.map((scale: any) => {
+                    if (scale.classification === 'folga') {
+                      return (
+                        <div key={scale.id} className="relative grid grid-cols-[54px_1fr] gap-4 mb-6 group">
+                          <div className="flex flex-col items-center z-10">
+                            <div className="size-14 rounded-xl bg-white dark:bg-[#1A202C] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center shrink-0">
+                              <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
+                                {new Date(`${scale.date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' })}
+                              </span>
+                              <span className="text-xl font-bold text-[#111318] dark:text-white">
+                                {new Date(`${scale.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-900/30 dark:to-teal-900/30 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="size-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined">weekend</span>
+                              </div>
+                              <div className="flex flex-col">
+                                <h4 className="text-emerald-800 dark:text-emerald-300 font-bold text-base tracking-widest uppercase">Folga</h4>
+                                <span className="text-xs text-emerald-600 dark:text-emerald-500 font-medium">Sem serviço escalado</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
               <Link key={scale.id} href={`/scales/${scale.id}`} className="relative grid grid-cols-[54px_1fr] gap-4 mb-6 group cursor-pointer">
                 <div className="flex flex-col items-center z-10">
                   <div className="size-14 rounded-xl bg-white dark:bg-[#1A202C] border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col items-center justify-center shrink-0 group-hover:border-primary/30 transition-colors">
@@ -462,7 +506,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
 
             {historyScales.length === 0 && (
               <div className="py-8 text-center text-gray-400 text-sm italic">

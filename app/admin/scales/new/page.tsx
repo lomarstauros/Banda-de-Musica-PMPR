@@ -200,6 +200,59 @@ export default function AdminNewScalePage() {
       return;
     }
     
+    if (sharedClassification === 'folga') {
+      setLoading(true);
+      setError(null);
+      try {
+        const currentUser = user || auth.currentUser;
+        let adminName = 'Admin';
+        if (currentUser) {
+          const adminSnap = await getDoc(doc(db, 'profiles', currentUser.uid));
+          const adminData = adminSnap.data();
+          adminName = adminData?.war_name || adminData?.name || currentUser.email || 'Admin';
+          
+          const role = adminData?.role || 'musician';
+          const allowedRoles = ['admin', 'manager', 'master'];
+          const isHeliomar = currentUser.email === 'heliomardejesus87@gmail.com';
+          
+          if (!isHeliomar && !allowedRoles.includes(role.toLowerCase())) {
+            throw new Error("Você não tem permissão para publicar escalas. Contate o administrador master.");
+          }
+        } else {
+          throw new Error("Usuário não autenticado. Faça login novamente.");
+        }
+
+        const scaleRef = await addDoc(collection(db, "scales"), {
+          title: 'FOLGA',
+          date: sharedDate,
+          format: 'Folga',
+          classification: 'folga',
+          musicians: [],
+          status: 'published',
+          createdAt: serverTimestamp()
+        });
+
+        if (currentUser) {
+          await addDoc(collection(db, "audit_logs"), {
+            userId: currentUser.uid,
+            userName: adminName,
+            action: 'create',
+            entityId: scaleRef.id,
+            entityTitle: 'FOLGA',
+            timestamp: serverTimestamp()
+          });
+        }
+
+        setSuccess(true);
+        setTimeout(() => router.push('/dashboard'), 2000);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Erro ao publicar. Tente novamente.");
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!onlyExpediente && !includeExpediente && extraServices.length === 0) {
       setError("Adicione ao menos um Expediente Administrativo ou um Serviço Extra.");
       return;
@@ -515,6 +568,7 @@ export default function AdminNewScalePage() {
                   >
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="folga">FOLGA</option>
                   </select>
                   <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
                     <span className="material-symbols-outlined text-[18px]">expand_more</span>
@@ -524,8 +578,10 @@ export default function AdminNewScalePage() {
             </div>
           </div>
 
-          {/* 2. Bloco: Expediente Administrativo */}
-          <div className={`bg-white dark:bg-gray-900 rounded-xl border flex flex-col shadow-sm overflow-hidden transition-all ${includeExpediente ? 'border-blue-100 dark:border-blue-900/30' : 'border-gray-200 dark:border-gray-800 opacity-70'}`}>
+          {sharedClassification !== 'folga' && (
+            <>
+              {/* 2. Bloco: Expediente Administrativo */}
+              <div className={`bg-white dark:bg-gray-900 rounded-xl border flex flex-col shadow-sm overflow-hidden transition-all ${includeExpediente ? 'border-blue-100 dark:border-blue-900/30' : 'border-gray-200 dark:border-gray-800 opacity-70'}`}>
             <div className="px-4 py-4 flex items-center justify-between w-full">
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div className="relative inline-flex items-center">
@@ -829,6 +885,8 @@ export default function AdminNewScalePage() {
             <span className="material-symbols-outlined text-[32px]">add_circle</span>
             Acrescentar Mais um Serviço Extra
           </button>
+            </>
+          )}
 
         </main>
 
@@ -841,6 +899,11 @@ export default function AdminNewScalePage() {
             >
               {loading ? (
                 <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>
+              ) : sharedClassification === 'folga' ? (
+                <>
+                  Publicar Folga
+                  <span className="material-symbols-outlined text-[20px]">event_available</span>
+                </>
               ) : (
                 <>
                   Publicar {1 + extraServices.length} {1 + extraServices.length === 1 ? 'Serviço' : 'Serviços'}

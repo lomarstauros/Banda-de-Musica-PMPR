@@ -7,12 +7,15 @@ export const metadata: Metadata = {
   title: 'Banda de Música PMPR',
   description: 'Gerenciamento de escalas de serviço',
   manifest: '/manifest.json',
-  themeColor: '#1e293b',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Banda PMPR',
   },
+};
+
+export const viewport = {
+  themeColor: '#1e293b',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

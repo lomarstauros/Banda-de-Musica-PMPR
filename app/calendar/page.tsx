@@ -23,7 +23,7 @@ export default function CalendarPage() {
   const currentYear = currentDateObj.getFullYear();
   const currentDay = now.getDate();
   
-  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; instrument?: string } | null>(null);
+  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; instrument?: string; role?: string } | null>(null);
   const [view, setView] = useState<'month'|'week'>('month');
   const [selectedDate, setSelectedDate] = useState(currentDay);
   const [events, setEvents] = useState<any[]>([]);

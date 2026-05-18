@@ -25,6 +25,7 @@ export default function DashboardPage() {
     militaryStatus?: string;
     statusStartDate?: string;
     statusEndDate?: string;
+    role?: string;
   } | null>(null);
   const [nextScales, setNextScales] = useState<any[]>([]);
   const [historyScales, setHistoryScales] = useState<any[]>([]);

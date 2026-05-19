@@ -114,6 +114,19 @@ export default function AdminMusiciansListPage() {
               </Link>
             </div>
 
+            <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+              <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <span className="material-symbols-outlined text-[28px]">groups</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">Efetivo Total</span>
+                <div className="flex items-baseline gap-1 mt-0.5">
+                  <span className="text-2xl font-black text-gray-900 dark:text-white leading-none">{musicians.length}</span>
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">militares</span>
+                </div>
+              </div>
+            </div>
+
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                 <span className="material-symbols-outlined">search</span>

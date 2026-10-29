@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { doc, getDoc, updateDoc, serverTimestamp, query, orderBy, limit, getDocs, collection, writeBatch, addDoc, where } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -39,6 +39,78 @@ export default function AdminEditScalePage() {
   const [selectedMusicians, setSelectedMusicians] = useState<string[]>([]);
   const [serviceChief, setServiceChief] = useState<string>('');
   const [repertoire, setRepertoire] = useState('');
+  const [signerSelection, setSignerSelection] = useState<string>('');
+
+  // Opções para o responsável por assinar a escala em PDF
+  const signerOptions = useMemo(() => {
+    const list: { key: string; value: string; label: string }[] = [];
+
+    // Comandante da Banda de Música
+    const commanders = musicians.filter(m => {
+      const inst = (m.instrument || '').toLowerCase();
+      const role = (m.role || '').toLowerCase();
+      return (inst.includes('comandante') && !inst.includes('sub')) || role === 'comandante';
+    });
+
+    // Subcomandante da Banda
+    const subcommanders = musicians.filter(m => {
+      const inst = (m.instrument || '').toLowerCase();
+      const role = (m.role || '').toLowerCase();
+      return inst.includes('subcomandante') || inst.includes('regente') || role === 'subcomandante';
+    });
+
+    // Adiciona comandantes com título "Maestro Chefe da Banda de Música da PMPR"
+    commanders.forEach(m => {
+      const name = m.name || m.war_name || '';
+      const rank = m.rank ? `${m.rank} ` : '';
+      list.push({
+        key: `cmd_${m.id}`,
+        value: `${m.id}|Maestro Chefe da Banda de Música da PMPR`,
+        label: `${rank}${name} — Maestro Chefe da Banda de Música da PMPR`
+      });
+    });
+
+    // Adiciona subcomandantes com título "Regente Resp. pelo Cmd da Banda de Música da PMPR"
+    subcommanders.forEach(m => {
+      const name = m.name || m.war_name || '';
+      const rank = m.rank ? `${m.rank} ` : '';
+      list.push({
+        key: `sub_${m.id}`,
+        value: `${m.id}|Regente Resp. pelo Cmd da Banda de Música da PMPR`,
+        label: `${rank}${name} — Regente Resp. pelo Cmd da Banda de Música da PMPR`
+      });
+    });
+
+    // Fallback: se não houver militares cadastrados com essas funções exatas, permitir escolher qualquer um com esses títulos
+    if (commanders.length === 0 || subcommanders.length === 0) {
+      musicians.forEach(m => {
+        const name = m.name || m.war_name || '';
+        const rank = m.rank ? `${m.rank} ` : '';
+        if (commanders.length === 0) {
+          list.push({
+            key: `cmd_fallback_${m.id}`,
+            value: `${m.id}|Maestro Chefe da Banda de Música da PMPR`,
+            label: `${rank}${name} — Maestro Chefe da Banda de Música da PMPR`
+          });
+        }
+        if (subcommanders.length === 0) {
+          list.push({
+            key: `sub_fallback_${m.id}`,
+            value: `${m.id}|Regente Resp. pelo Cmd da Banda de Música da PMPR`,
+            label: `${rank}${name} — Regente Resp. pelo Cmd da Banda de Música da PMPR`
+          });
+        }
+      });
+    }
+
+    return list;
+  }, [musicians]);
+
+  useEffect(() => {
+    if (!signerSelection && signerOptions.length > 0) {
+      setSignerSelection(signerOptions[0].value);
+    }
+  }, [signerOptions, signerSelection]);
 
   // Expediente Administrativo
   const [expediente, setExpediente] = useState({
@@ -109,6 +181,13 @@ export default function AdminEditScalePage() {
             classification: data.classification || 'completa',
           });
           
+          if (data.signer && data.signer.id) {
+            setSignerSelection(`${data.signer.id}|${data.signer.title}`);
+          } else if (data.expediente?.regenteMaestroId) {
+            setSignerSelection(`${data.expediente.regenteMaestroId}|Maestro Chefe da Banda de Música da PMPR`);
+          } else if (data.expediente?.regenteId) {
+            setSignerSelection(`${data.expediente.regenteId}|Regente Resp. pelo Cmd da Banda de Música da PMPR`);
+          }
           if (data.musicians) {
             const prevIds = data.musicians.map((m: any) => m.id);
             setSelectedMusicians(prevIds);
@@ -309,11 +388,27 @@ export default function AdminEditScalePage() {
         }
       }
 
+      let signerData: any = null;
+      if (signerSelection) {
+        const [signerId, signerTitle] = signerSelection.split('|');
+        const signerMusician = musicians.find((m: any) => m.id === signerId);
+        if (signerMusician) {
+          signerData = {
+            id: signerMusician.id,
+            name: signerMusician.name || '',
+            war_name: signerMusician.war_name || '',
+            rank: signerMusician.rank || '',
+            title: signerTitle
+          };
+        }
+      }
+
       await updateDoc(scaleRef, {
         ...formData,
         uniform: finalUniform,
         format: finalFormat,
         classification: formData.classification,
+        signer: signerData,
         musicians: musiciansData,
         serviceChief: chiefData
           ? { id: chiefData.id, name: chiefData.name || '', war_name: chiefData.war_name || '', rank: chiefData.rank || '' }
@@ -522,6 +617,35 @@ export default function AdminEditScalePage() {
                   </div>
                 </div>
               </label>
+
+              {formData.classification !== 'folga' && (
+                <label className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[18px] text-primary">draw</span>
+                      Responsável por Assinar a Escala (PDF)
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-semibold uppercase">Assinatura Eletrônica</span>
+                  </div>
+                  <div className="relative">
+                    <select 
+                      value={signerSelection} 
+                      onChange={e => setSignerSelection(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
+                    >
+                      <option value="">— Selecione o Responsável pela Assinatura —</option>
+                      {signerOptions.map(opt => (
+                        <option key={opt.key} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                    </div>
+                  </div>
+                </label>
+              )}
 
               {formData.classification !== 'folga' && formData.format === 'Outros' && (
                 <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">

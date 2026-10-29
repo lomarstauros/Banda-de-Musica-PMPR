@@ -75,8 +75,8 @@ const getWarNameSegments = (contentRaw: string, warNameRaw: string) => {
  * Desenha uma página ou bloco de escala no documento jsPDF fornecido.
  * @returns O Y final após o desenho.
  */
-const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number; signatureExpediente?: any } = {}) => {
-  const { showHeader = true, showSignatures = true, startY, signatureExpediente } = options;
+const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number; signatureExpediente?: any; signatureSigner?: any } = {}) => {
+  const { showHeader = true, showSignatures = true, startY, signatureExpediente, signatureSigner } = options;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
   let curY = startY || 15;
@@ -152,17 +152,18 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   // ── LOGOS & CABEÇALHO (Somente se solicitado) ----------------------------
   if (showHeader) {
     try {
-      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 5, 20, 20, 'pmpr_logo', 'FAST');
-      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 20, curY - 5, 20, 20, 'banda_logo', 'FAST');
+      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 3, 22, 22, 'pmpr_logo', 'FAST');
+      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 22, curY - 3, 22, 22, 'banda_logo', 'FAST');
     } catch (e) { console.warn('Logo error:', e); }
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
     doc.text('ESTADO DO PARANÁ', pageWidth / 2, curY, { align: 'center' });
     doc.text('POLÍCIA MILITAR', pageWidth / 2, curY + 5, { align: 'center' });
-    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, curY + 10, { align: 'center' });
-    doc.text('BANDA DE MÚSICA', pageWidth / 2, curY + 15, { align: 'center' });
-    curY += 25;
+    doc.text('COMANDO GERAL', pageWidth / 2, curY + 10, { align: 'center' });
+    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, curY + 15, { align: 'center' });
+    doc.text('BANDA DE MÚSICA', pageWidth / 2, curY + 20, { align: 'center' });
+    curY += 28;
 
     // ── TÍTULO DA DATA -------------------------------------------------------
     const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
@@ -365,52 +366,95 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     curY = (doc as any).lastAutoTable?.finalY ?? curY;
   }
 
-  // ── ASSINATURAS (Somente se solicitado) -----------------------------------
+  // ── ASSINATURA DA AUTORIDADE RESPONSÁVEL (Ajustada à esquerda, totalmente abaixo de tudo) ─
   if (showSignatures) {
-    let footerY = curY + 15;
-    if (footerY > 255) { doc.addPage(); footerY = 30; }
+    let footerY = curY + 12;
+    if (footerY > 255) { doc.addPage(); footerY = 25; }
 
     const rightX = pageWidth - margin;
     const signDate = formatCurrentSignatureDate();
     if (signDate) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
-      doc.text(signDate, rightX, footerY, { align: 'right' });
-      footerY += 12;
-    }
-
-    const drawSignRight = (y: number, fullName: string, funcao: string) => {
-      doc.setFontSize(8);
-      const centerX = rightX - 40;
-      doc.setFont('helvetica', 'bolditalic');
-      doc.setTextColor(160, 70, 0);
-      doc.text('(Assinado eletronicamente)', centerX, y, { align: 'center' });
       doc.setTextColor(0, 0, 0);
-      const nameY = y + 5;
-      doc.setFont('helvetica', 'bold');
-      doc.text(fullName, centerX, nameY, { align: 'center' });
-      doc.text(funcao, centerX, nameY + 5, { align: 'center' });
-      doc.setFont('helvetica', 'normal');
-    };
+      doc.text(signDate, rightX, footerY, { align: 'right' });
+      footerY += 8;
+    }
 
     const sigExp = signatureExpediente || exp;
-    const sigMaestroChefePerson = findProfile(sigExp.regenteMaestroId) || null;
-    const sigSargPerson = findProfile(sigExp.sargenteacaoId) || null;
+    const signerData = scale.signer || signatureSigner || sigExp.signer || null;
 
-    if (sigMaestroChefePerson) {
-      const fname = normalizeSpaces(`${(sigMaestroChefePerson.rank || '').toUpperCase()} ${(sigMaestroChefePerson.name || '').toUpperCase()}`);
-      drawSignRight(footerY, fname, 'Maestro Chefe da Banda de Música.');
-      footerY += 20;
+    let signerPerson: any = null;
+    let signerTitle = 'Maestro Chefe da Banda de Música da PMPR';
+
+    if (signerData && signerData.id) {
+      signerPerson = findProfile(signerData.id) || signerData;
+      signerTitle = signerData.title || 'Maestro Chefe da Banda de Música da PMPR';
+    } else if (sigExp.regenteMaestroId) {
+      signerPerson = findProfile(sigExp.regenteMaestroId);
+      signerTitle = 'Maestro Chefe da Banda de Música da PMPR';
+    } else if (sigExp.regenteId) {
+      signerPerson = findProfile(sigExp.regenteId);
+      signerTitle = 'Regente Resp. pelo Cmd da Banda de Música da PMPR';
     } else if (sigExp.regenteMaestro) {
-      drawSignRight(footerY, normalizeSpaces(sigExp.regenteMaestro.toUpperCase()), 'Maestro Chefe da Banda de Música.');
-      footerY += 20;
+      signerPerson = { name: sigExp.regenteMaestro, war_name: '', rank: '' };
+      signerTitle = 'Maestro Chefe da Banda de Música da PMPR';
     }
 
-    if (sigSargPerson) {
-      const fname = normalizeSpaces(`${(sigSargPerson.rank || '').toUpperCase()} ${(sigSargPerson.name || '').toUpperCase()}`);
-      drawSignRight(footerY, fname, 'Sargenteante da Banda de Música');
-    } else if (sigExp.sargenteacao) {
-      drawSignRight(footerY, normalizeSpaces(sigExp.sargenteacao.toUpperCase()), 'Sargenteante da Banda de Música');
+    if (signerPerson) {
+      const rank = normalizeSpaces((signerPerson.rank || '').toUpperCase());
+      const rawName = normalizeSpaces((signerPerson.name || '').toUpperCase());
+      const warName = normalizeSpaces((signerPerson.war_name || '').toUpperCase());
+      const fullNameWithRank = rank ? `${rank} ${rawName}` : rawName;
+
+      // Segmentos com nome de guerra em negrito
+      const nameSegments = getWarNameSegments(fullNameWithRank, warName);
+
+      const redHeader = 'ASSINADO ELETRONICAMENTE';
+      const titleLine = signerTitle;
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      const wRed = doc.getTextWidth(redHeader);
+
+      let wName = 0;
+      nameSegments.forEach(seg => {
+        doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+        wName += doc.getTextWidth(seg.text);
+      });
+
+      doc.setFont('helvetica', 'normal');
+      const wTitle = doc.getTextWidth(titleLine);
+
+      // Bloco alinhado à esquerda da folha, com os textos centralizados entre si dentro do bloco
+      const blockMaxWidth = Math.max(wRed, wName, wTitle);
+      const blockLeft = margin;
+      const blockCenterX = blockLeft + (blockMaxWidth / 2);
+
+      // Linha 1: "ASSINADO ELETRONICAMENTE" (caixa alta, negrito, em vermelho)
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(220, 20, 20);
+      doc.text(redHeader, blockCenterX, footerY, { align: 'center' });
+
+      // Linha 2: Nome completo com nome de guerra em negrito
+      footerY += 4.5;
+      let startNameX = blockCenterX - (wName / 2);
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(8);
+      nameSegments.forEach(seg => {
+        doc.setFont('helvetica', seg.bold ? 'bold' : 'normal');
+        doc.text(seg.text, startNameX, footerY);
+        startNameX += doc.getTextWidth(seg.text);
+      });
+
+      // Linha 3: Título do cargo
+      footerY += 4.5;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.text(titleLine, blockCenterX, footerY, { align: 'center' });
+
+      footerY += 8;
     }
     curY = footerY;
   }
@@ -483,6 +527,9 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
       }
     }
 
+    const scaleWithSigner = scales.find(s => s.signer && s.signer.id);
+    const chosenSigner = scaleWithSigner ? scaleWithSigner.signer : (scales[scales.length - 1].signer || null);
+
     let currentY = 15;
     scales.forEach((scale, index) => {
       // Se não for a primeira escala, adicionar um espaçamento maior para o divisor
@@ -506,7 +553,8 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
         showHeader: index === 0,
         showSignatures: index === scales.length - 1,
         startY: currentY,
-        signatureExpediente: sigExp
+        signatureExpediente: sigExp,
+        signatureSigner: chosenSigner
       });
     });
 

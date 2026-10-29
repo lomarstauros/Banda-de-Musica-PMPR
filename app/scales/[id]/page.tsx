@@ -302,6 +302,12 @@ export default function ScaleDetailsPage() {
 
                 <div className="grid grid-cols-1 gap-3">
                   {[ 
+                    ...(scale.signer ? [{
+                      label: `Assinatura PDF (${scale.signer.title})`,
+                      val: `${scale.signer.rank ? `${scale.signer.rank} ` : ''}${scale.signer.name || scale.signer.war_name}`,
+                      icon: 'draw',
+                      color: 'text-emerald-600'
+                    }] : []),
                     { label: 'Maestro Chefe', val: scale.expediente?.regenteMaestro, icon: 'military_tech', color: 'text-amber-600' },
                     { label: 'Regente', val: scale.expediente?.regente, icon: 'edit_note', color: 'text-blue-600' },
                     { label: 'Chefe do Serviço', val: scale.serviceChief ? `${scale.serviceChief.rank || ''} ${scale.serviceChief.war_name || scale.serviceChief.name}` : null, icon: 'star', color: 'text-amber-500' },

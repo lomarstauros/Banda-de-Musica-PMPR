@@ -371,13 +371,12 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     let footerY = curY + 12;
     if (footerY > 255) { doc.addPage(); footerY = 25; }
 
-    const rightX = pageWidth - margin;
     const signDate = formatCurrentSignatureDate();
     if (signDate) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
-      doc.text(signDate, rightX, footerY, { align: 'right' });
+      doc.text(signDate, margin, footerY);
       footerY += 8;
     }
 
@@ -410,11 +409,11 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       // Segmentos com nome de guerra em negrito
       const nameSegments = getWarNameSegments(fullNameWithRank, warName);
 
-      const redHeader = 'ASSINADO ELETRONICAMENTE';
+      const redHeader = 'Assinado Eletronicamente';
       const titleLine = signerTitle;
 
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('helvetica', 'bolditalic');
       const wRed = doc.getTextWidth(redHeader);
 
       let wName = 0;
@@ -431,9 +430,9 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       const blockLeft = margin;
       const blockCenterX = blockLeft + (blockMaxWidth / 2);
 
-      // Linha 1: "ASSINADO ELETRONICAMENTE" (caixa alta, negrito, em vermelho)
+      // Linha 1: "Assinado Eletronicamente" (itálico, em vermelho)
       doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('helvetica', 'bolditalic');
       doc.setTextColor(220, 20, 20);
       doc.text(redHeader, blockCenterX, footerY, { align: 'center' });
 

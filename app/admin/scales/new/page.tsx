@@ -9,7 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { isMusicianAvailable } from '@/lib/military-status';
 import AvailabilityBoard, { buildRange, findConflict, type Occupation } from '@/components/scales/availability-board';
-import PopoutWindow from '@/components/scales/popout-window';
+import PopoutWindow, { openPopoutWindow } from '@/components/scales/popout-window';
 import { sortByRankThenName } from '@/lib/sort-military';
 
 
@@ -168,13 +168,29 @@ export default function AdminNewScalePage() {
 
   // ── Quadro de Escalação: ocupações por horário (evita o mesmo nome 2x no mesmo horário) ──
   const [viewMode, setViewMode] = useState<'form' | 'board'>('form');
-  const [boardPopout, setBoardPopout] = useState(false);
+  const [boardWin, setBoardWin] = useState<Window | null>(null);
+  const boardPopout = !!boardWin;
+
+  // Fecha a janela do quadro ao sair/recarregar a tela principal
+  useEffect(() => {
+    if (!boardWin) return;
+    const close = () => boardWin.close();
+    window.addEventListener('beforeunload', close);
+    return () => { window.removeEventListener('beforeunload', close); close(); };
+  }, [boardWin]);
 
   // No computador (tela larga) abre o quadro em outra janela; no celular troca de aba
   const handleTabClick = (mode: 'form' | 'board') => {
     if (mode === 'board' && window.innerWidth >= 1024) {
+      if (boardWin && !boardWin.closed) { boardWin.focus(); return; }
+      const win = openPopoutWindow();
+      if (!win) {
+        alert('O navegador bloqueou a nova janela. Permita pop-ups para este site e tente novamente.');
+        setViewMode('board');
+        return;
+      }
       setViewMode('form');
-      setBoardPopout(true);
+      setBoardWin(win);
       return;
     }
     setViewMode(mode);
@@ -782,8 +798,8 @@ export default function AdminNewScalePage() {
                 ))}
               </div>
 
-              {boardPopout && (
-                <PopoutWindow title="Quadro de Escalação — Banda de Música PMPR" onClose={() => setBoardPopout(false)}>
+              {boardWin && (
+                <PopoutWindow win={boardWin} title="Quadro de Escalação — Banda de Música PMPR" onClose={() => setBoardWin(null)}>
                   <div className="flex flex-col gap-3">
                     <h1 className="text-lg font-bold text-gray-900 dark:text-white">Quadro de Escalação</h1>
                     {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-sm font-semibold">{error}</div>}

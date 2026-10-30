@@ -372,13 +372,8 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     if (footerY > 255) { doc.addPage(); footerY = 25; }
 
     const signDate = formatCurrentSignatureDate();
-    if (signDate) {
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(0, 0, 0);
-      doc.text(signDate, margin, footerY);
-      footerY += 8;
-    }
+    const dateY = footerY;
+    if (signDate) footerY += 8;
 
     const sigExp = signatureExpediente || exp;
     const signerData = scale.signer || signatureSigner || sigExp.signer || null;
@@ -409,7 +404,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       // Segmentos com nome de guerra em negrito
       const nameSegments = getWarNameSegments(fullNameWithRank, warName);
 
-      const redHeader = 'Assinado Eletronicamente';
+      const redHeader = 'Assinado eletronicamente';
       const titleLine = signerTitle;
 
       doc.setFontSize(8);
@@ -424,11 +419,19 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
 
       doc.setFont('helvetica', 'normal');
       const wTitle = doc.getTextWidth(titleLine);
+      const wDate = signDate ? doc.getTextWidth(signDate) : 0;
 
       // Bloco alinhado à esquerda da folha, com os textos centralizados entre si dentro do bloco
-      const blockMaxWidth = Math.max(wRed, wName, wTitle);
+      const blockMaxWidth = Math.max(wRed, wName, wTitle, wDate);
       const blockLeft = margin;
       const blockCenterX = blockLeft + (blockMaxWidth / 2);
+
+      // Data centralizada no mesmo eixo de "Assinado eletronicamente"
+      if (signDate) {
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
+        doc.text(signDate, blockCenterX, dateY, { align: 'center' });
+      }
 
       // Linha 1: "Assinado Eletronicamente" (itálico, em vermelho)
       doc.setFontSize(8);
@@ -454,6 +457,11 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       doc.text(titleLine, blockCenterX, footerY, { align: 'center' });
 
       footerY += 8;
+    } else if (signDate) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      doc.text(signDate, margin, dateY);
     }
     curY = footerY;
   }

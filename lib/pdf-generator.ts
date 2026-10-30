@@ -152,8 +152,16 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   // ── LOGOS & CABEÇALHO (Somente se solicitado) ----------------------------
   if (showHeader) {
     try {
-      if (PMPR_LOGO) doc.addImage(PMPR_LOGO, 'PNG', margin, curY - 3, 22, 22, 'pmpr_logo', 'FAST');
-      if (BANDA_LOGO) doc.addImage(BANDA_LOGO, 'PNG', pageWidth - margin - 22, curY - 3, 22, 22, 'banda_logo', 'FAST');
+      // Desenha a imagem preservando a proporção original, centralizada numa caixa de 22x22 mm
+      const drawLogoFit = (img: string, boxX: number, boxY: number, box: number, alias: string) => {
+        const props = doc.getImageProperties(img);
+        const ratio = props.width / props.height;
+        const w = ratio >= 1 ? box : box * ratio;
+        const h = ratio >= 1 ? box / ratio : box;
+        doc.addImage(img, 'PNG', boxX + (box - w) / 2, boxY + (box - h) / 2, w, h, alias, 'FAST');
+      };
+      if (PMPR_LOGO) drawLogoFit(PMPR_LOGO, margin, curY - 3, 22, 'pmpr_logo');
+      if (BANDA_LOGO) drawLogoFit(BANDA_LOGO, pageWidth - margin - 22, curY - 3, 22, 'banda_logo');
     } catch (e) { console.warn('Logo error:', e); }
 
     doc.setFont('helvetica', 'bold');

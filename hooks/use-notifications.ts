@@ -36,10 +36,10 @@ export const useNotifications = () => {
       }
 
       // Get token
-      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+      const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BJMxlAcW4rhGzkQUyVeKBDPKM8o9l9W5HMn4SUU6sg5bu-_Csgf4aVcU6Y48yXRmLSnMO7XuZKndtsLacA_WWdU';
       if (!vapidKey) {
-        console.warn('NEXT_PUBLIC_FIREBASE_VAPID_KEY não está configurada no ambiente. Notificações push FCM desativadas temporariamente.');
-        if (isManual) alert('Aviso: Chave VAPID do Firebase não está configurada neste ambiente.');
+        console.warn('Chave VAPID não configurada.');
+        if (isManual) alert('Aviso: Chave VAPID do Firebase não encontrada.');
         return;
       }
 

@@ -8,6 +8,7 @@ import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, wr
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { isMusicianAvailable } from '@/lib/military-status';
+import AvailabilityBoard, { buildRange, findConflict, type Occupation } from '@/components/scales/availability-board';
 import { sortByRankThenName } from '@/lib/sort-military';
 
 
@@ -149,6 +150,7 @@ export default function AdminNewScalePage() {
   };
 
   const toggleMulti = (field: 'administrativo' | 'permanencia' | 'obra', id: string) => {
+    if (!expediente[field].includes(id) && blockIfConflict(`exp:${field}`, id)) return;
     setExpediente(prev => ({
       ...prev,
       [field]: prev[field].includes(id)
@@ -161,6 +163,55 @@ export default function AdminNewScalePage() {
     const m = musicians.find(x => x.id === id);
     if (!m) return id;
     return m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name || id;
+  };
+
+  // ── Quadro de Escalação: ocupações por horário (evita o mesmo nome 2x no mesmo horário) ──
+  const [viewMode, setViewMode] = useState<'form' | 'board'>('form');
+
+  const occupations = useMemo<Occupation[]>(() => {
+    const list: Occupation[] = [];
+    if (includeExpediente) {
+      const r = buildRange(expediente.startTime, expediente.endTime);
+      (['administrativo', 'obra', 'permanencia'] as const).forEach(g => list.push({
+        key: `exp:${g}`, label: g.charAt(0).toUpperCase() + g.slice(1), ...r, ids: expediente[g], assignable: true,
+      }));
+      (['regenteMaestro', 'regente', 'arquivo', 'sargenteacao', 'p4FinancasTransporte'] as const).forEach(f => {
+        const id = (expediente as any)[f];
+        if (id) list.push({ key: `exp-role:${f}`, label: 'Expediente Administrativo', ...r, ids: [id], assignable: false });
+      });
+    }
+    extraServices.forEach((s, i) => {
+      const r = buildRange(s.departureTime || s.startTime, s.returnTime || s.endTime);
+      const label = s.title?.trim() || `Serviço Extra ${i + 1}`;
+      list.push({ key: `svc:${s.id}`, label, ...r, ids: s.selectedMusicians, assignable: true });
+      if (s.serviceChief) list.push({ key: `svc-chief:${s.id}`, label: `${label} (Chefe)`, ...r, ids: [s.serviceChief], assignable: false });
+    });
+    return list;
+  }, [includeExpediente, expediente, extraServices]);
+
+  const blockIfConflict = (targetKey: string, musicianId: string) => {
+    const c = findConflict(occupations, targetKey, musicianId);
+    if (c) {
+      setError(`${getMusicianLabel(musicianId)} já está escalado em "${c.label}" no mesmo horário.`);
+      return true;
+    }
+    return false;
+  };
+
+  const handleBoardAssign = (targetKey: string, musicianId: string) => {
+    setError(null);
+    if (targetKey.startsWith('exp:')) toggleMulti(targetKey.slice(4) as any, musicianId);
+    else if (targetKey.startsWith('svc:')) handleMusicianToggle(targetKey.slice(4), musicianId);
+  };
+
+  const handleBoardUnassign = (targetKey: string, musicianId: string) => {
+    if (targetKey.startsWith('exp:')) {
+      const g = targetKey.slice(4) as 'administrativo' | 'obra' | 'permanencia';
+      setExpediente(prev => ({ ...prev, [g]: prev[g].filter((x: string) => x !== musicianId) }));
+    } else if (targetKey.startsWith('svc:')) {
+      const sid = targetKey.slice(4);
+      setExtraServices(prev => prev.map(s => s.id === sid ? { ...s, selectedMusicians: s.selectedMusicians.filter((x: string) => x !== musicianId) } : s));
+    }
   };
 
   // Conjunto de todas as funções de Comando/Administração
@@ -258,6 +309,7 @@ export default function AdminNewScalePage() {
     if (!service) return;
 
     if (musicianId === service.serviceChief) return;
+    if (!service.selectedMusicians.includes(musicianId) && blockIfConflict(`svc:${serviceId}`, musicianId)) return;
 
     const newList = service.selectedMusicians.includes(musicianId)
       ? service.selectedMusicians.filter((id: string) => id !== musicianId)
@@ -699,6 +751,36 @@ export default function AdminNewScalePage() {
 
           {sharedClassification !== 'folga' && (
             <>
+              {/* Abas: Formulário / Quadro de Escalação */}
+              <div className="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl" role="tablist">
+                {([['form', 'Formulário', 'edit_note'], ['board', 'Quadro de Escalação', 'groups']] as const).map(([mode, label, icon]) => (
+                  <button
+                    key={mode}
+                    id={`tab-${mode}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={viewMode === mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition-all ${viewMode === mode ? 'bg-white dark:bg-gray-900 text-primary shadow-sm' : 'text-gray-500'}`}
+                  >
+                    <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {viewMode === 'board' ? (
+                <AvailabilityBoard
+                  date={sharedDate}
+                  musicians={musicians}
+                  occupations={occupations}
+                  isAvailable={(m) => isMusicianAvailable(m, sharedDate)}
+                  getLabel={getMusicianLabel}
+                  onAssign={handleBoardAssign}
+                  onUnassign={handleBoardUnassign}
+                />
+              ) : (
+              <>
               {/* 2. Bloco: Expediente Administrativo */}
               <div className={`bg-white dark:bg-gray-900 rounded-xl border flex flex-col shadow-sm overflow-hidden transition-all ${includeExpediente ? 'border-blue-100 dark:border-blue-900/30' : 'border-gray-200 dark:border-gray-800 opacity-70'}`}>
             <div className="px-4 py-4 flex items-center justify-between w-full">
@@ -1004,6 +1086,8 @@ export default function AdminNewScalePage() {
             <span className="material-symbols-outlined text-[32px]">add_circle</span>
             Acrescentar Mais um Serviço Extra
           </button>
+              </>
+              )}
             </>
           )}
 

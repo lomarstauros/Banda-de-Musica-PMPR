@@ -9,6 +9,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { isMusicianAvailable } from '@/lib/military-status';
 import AvailabilityBoard, { buildRange, findConflict, type Occupation } from '@/components/scales/availability-board';
+import PopoutWindow from '@/components/scales/popout-window';
 import { sortByRankThenName } from '@/lib/sort-military';
 
 
@@ -167,6 +168,17 @@ export default function AdminNewScalePage() {
 
   // ── Quadro de Escalação: ocupações por horário (evita o mesmo nome 2x no mesmo horário) ──
   const [viewMode, setViewMode] = useState<'form' | 'board'>('form');
+  const [boardPopout, setBoardPopout] = useState(false);
+
+  // No computador (tela larga) abre o quadro em outra janela; no celular troca de aba
+  const handleTabClick = (mode: 'form' | 'board') => {
+    if (mode === 'board' && window.innerWidth >= 1024) {
+      setViewMode('form');
+      setBoardPopout(true);
+      return;
+    }
+    setViewMode(mode);
+  };
 
   const occupations = useMemo<Occupation[]>(() => {
     const list: Occupation[] = [];
@@ -759,15 +771,34 @@ export default function AdminNewScalePage() {
                     id={`tab-${mode}`}
                     type="button"
                     role="tab"
-                    aria-selected={viewMode === mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition-all ${viewMode === mode ? 'bg-white dark:bg-gray-900 text-primary shadow-sm' : 'text-gray-500'}`}
+                    aria-selected={mode === 'board' ? (viewMode === 'board' || boardPopout) : viewMode === mode}
+                    onClick={() => handleTabClick(mode)}
+                    className={`flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-black uppercase tracking-wide transition-all ${(mode === 'board' ? (viewMode === 'board' || boardPopout) : viewMode === mode) ? 'bg-white dark:bg-gray-900 text-primary shadow-sm' : 'text-gray-500'}`}
                   >
                     <span className="material-symbols-outlined text-[18px]">{icon}</span>
                     {label}
+                    {mode === 'board' && <span className="material-symbols-outlined text-[14px] hidden lg:inline">open_in_new</span>}
                   </button>
                 ))}
               </div>
+
+              {boardPopout && (
+                <PopoutWindow title="Quadro de Escalação — Banda de Música PMPR" onClose={() => setBoardPopout(false)}>
+                  <div className="flex flex-col gap-3">
+                    <h1 className="text-lg font-bold text-gray-900 dark:text-white">Quadro de Escalação</h1>
+                    {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-sm font-semibold">{error}</div>}
+                    <AvailabilityBoard
+                      date={sharedDate}
+                      musicians={musicians}
+                      occupations={occupations}
+                      isAvailable={(m) => isMusicianAvailable(m, sharedDate)}
+                      getLabel={getMusicianLabel}
+                      onAssign={handleBoardAssign}
+                      onUnassign={handleBoardUnassign}
+                    />
+                  </div>
+                </PopoutWindow>
+              )}
 
               {viewMode === 'board' ? (
                 <AvailabilityBoard

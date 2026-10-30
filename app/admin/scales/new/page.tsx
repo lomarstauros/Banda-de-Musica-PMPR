@@ -691,7 +691,7 @@ export default function AdminNewScalePage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
-      <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl pb-24">
+      <div className="relative w-full max-w-md lg:max-w-6xl bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl pb-28">
         <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
           <Link href="/admin/scales">
             <button className="flex items-center justify-center p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white">
@@ -874,62 +874,66 @@ export default function AdminNewScalePage() {
                 </label>
 
                 {/* Roles Selection */}
-                {[
-                  { label: 'Maestro Chefe', field: 'regenteMaestro', role: 'comandante da banda de música' },
-                  { label: 'Regente', field: 'regente', role: 'subcomandante da banda de música' },
-                  { label: 'Arquivo', field: 'arquivo', admin: true },
-                  { label: 'Sargenteação', field: 'sargenteacao', admin: true },
-                  { label: 'P4 / Finanças', field: 'p4FinancasTransporte', admin: true }
-                ].map(r => (
-                  <label key={r.field} className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">{r.label}</span>
-                    <div className="relative">
-                      <select 
-                        value={(expediente as any)[r.field]} 
-                        onChange={e => setExpediente(p => ({ ...p, [r.field]: e.target.value }))}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-sm appearance-none outline-none"
-                      >
-                        <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione —</option>
-                        {musicians.filter(m => r.role ? (m.instrument || '').toLowerCase() === r.role : isAdminFunction(m)).map(m => {
-                          const available = isMusicianAvailable(m, sharedDate);
-                          return <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
-                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[
+                    { label: 'Maestro Chefe', field: 'regenteMaestro', role: 'comandante da banda de música' },
+                    { label: 'Regente', field: 'regente', role: 'subcomandante da banda de música' },
+                    { label: 'Arquivo', field: 'arquivo', admin: true },
+                    { label: 'Sargenteação', field: 'sargenteacao', admin: true },
+                    { label: 'P4 / Finanças', field: 'p4FinancasTransporte', admin: true }
+                  ].map(r => (
+                    <label key={r.field} className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">{r.label}</span>
+                      <div className="relative">
+                        <select 
+                          value={(expediente as any)[r.field]} 
+                          onChange={e => setExpediente(p => ({ ...p, [r.field]: e.target.value }))}
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-sm appearance-none outline-none"
+                        >
+                          <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione —</option>
+                          {musicians.filter(m => r.role ? (m.instrument || '').toLowerCase() === r.role : isAdminFunction(m)).map(m => {
+                            const available = isMusicianAvailable(m, sharedDate);
+                            return <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id} disabled={!available}>{available ? getMusicianLabel(m.id) : `🔒 ${getMusicianLabel(m.id)}`}</option>;
+                          })}
+                        </select>
+                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
+                          <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                        </div>
                       </div>
-                    </div>
-                  </label>
-                ))}
+                    </label>
+                  ))}
+                </div>
 
                 {/* List Selection Group */}
-                {(['administrativo', 'obra', 'permanencia'] as const).map(group => (
-                  <div key={group} className="flex flex-col gap-2">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center justify-between">
-                      {group.charAt(0).toUpperCase() + group.slice(1)}
-                      <span className="text-primary">{expediente[group].length} sel.</span>
-                    </span>
-                    <div className="flex flex-wrap gap-1">
-                      {expediente[group].map(id => (
-                        <span key={id} onClick={() => toggleMulti(group, id)} className="cursor-pointer inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5 font-bold">
-                          {getMusicianLabel(id)}
-                        </span>
-                      ))}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(['administrativo', 'obra', 'permanencia'] as const).map(group => (
+                    <div key={group} className="flex flex-col gap-2">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center justify-between">
+                        {group.charAt(0).toUpperCase() + group.slice(1)}
+                        <span className="text-primary">{expediente[group].length} sel.</span>
+                      </span>
+                      <div className="flex flex-wrap gap-1 min-h-[24px]">
+                        {expediente[group].map(id => (
+                          <span key={id} onClick={() => toggleMulti(group, id)} className="cursor-pointer inline-flex items-center gap-1 text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5 font-bold">
+                            {getMusicianLabel(id)}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar py-1">
+                        {musicians.map(m => {
+                          const available = isMusicianAvailable(m, sharedDate);
+                          const checked = expediente[group].includes(m.id);
+                          return (
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors cursor-pointer ${!available ? 'opacity-40' : checked ? 'bg-primary/5' : ''}`}>
+                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary" />
+                              <span className="text-xs font-medium dark:text-white">{getMusicianLabel(m.id)}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[120px] overflow-y-auto no-scrollbar py-1">
-                      {musicians.map(m => {
-                        const available = isMusicianAvailable(m, sharedDate);
-                        const checked = expediente[group].includes(m.id);
-                        return (
-                          <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors cursor-pointer ${!available ? 'opacity-40' : checked ? 'bg-primary/5' : ''}`}>
-                            <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary" />
-                            <span className="text-xs font-medium dark:text-white">{getMusicianLabel(m.id)}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </motion.div>
             )}
 
@@ -951,188 +955,190 @@ export default function AdminNewScalePage() {
           <div className="h-px bg-gray-100 dark:bg-gray-800 my-2" />
 
           {/* 3. Lista de Escalas Extras (Documentos Independentes) */}
-          {extraServices.map((service, index) => (
-            <motion.div 
-              key={service.id} 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-lg ring-1 ring-black/5"
-            >
-              <div className="flex items-center justify-between border-b border-gray-50 dark:border-gray-800 pb-3">
-                <div className="flex items-center gap-2">
-                  <div className="size-6 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-black">{index + 1}</div>
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tighter">Escala de Serviço Extra</h3>
-                </div>
-                <button type="button" onClick={() => removeExtraService(service.id)} className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
-                  <span className="material-symbols-outlined text-[20px]">delete</span>
-                </button>
-              </div>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-bold text-gray-500 uppercase">Título do Evento</span>
-                <input 
-                  type="text" value={service.title} onChange={e => updateExtraService(service.id, 'title', e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" placeholder="Ex: Concerto de Natal" 
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Formato</span>
-                <div className="relative">
-                  <select 
-                    value={service.format} onChange={e => updateExtraService(service.id, 'format', e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
-                  >
-                    <option>Ensaio</option>
-                    <option>Expediente Administrativo</option>
-                    <option>Apresentação local fechado</option>
-                    <option>Apresentação local aberto</option>
-                    <option>Formatura Militar</option>
-                    <option>Outros</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[16px]">expand_more</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {extraServices.map((service, index) => (
+              <motion.div 
+                key={service.id} 
+                initial={{ opacity: 0, y: 20 }} 
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-lg ring-1 ring-black/5"
+              >
+                <div className="flex items-center justify-between border-b border-gray-50 dark:border-gray-800 pb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="size-6 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-black">{index + 1}</div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tighter">Escala de Serviço Extra</h3>
                   </div>
+                  <button type="button" onClick={() => removeExtraService(service.id)} className="text-red-500 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all">
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
                 </div>
-              </label>
 
-              {service.format === 'Outros' && (
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Formato</span>
+                  <span className="text-xs font-bold text-gray-500 uppercase">Título do Evento</span>
                   <input 
-                    type="text" value={service.customFormat} onChange={e => updateExtraService(service.id, 'customFormat', e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                    type="text" value={service.title} onChange={e => updateExtraService(service.id, 'title', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" placeholder="Ex: Concerto de Natal" 
                   />
                 </label>
-              )}
 
-              <div className="grid grid-cols-2 gap-3">
-                {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Saída da BM</span>
-                    <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
-                  </label>
-                )}
-                <label className={`flex flex-col gap-1.5 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Início</span>
-                  <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Término</span>
-                  <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
-                </label>
-                {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Retorno</span>
-                    <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
-                  </label>
-                )}
-              </div>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-bold text-gray-500 uppercase">Local</span>
-                <input type="text" value={service.location} onChange={e => updateExtraService(service.id, 'location', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm" />
-              </label>
-
-              <label className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold text-gray-500 uppercase">Uniforme</span>
-                <div className="relative">
-                  <select 
-                    value={service.uniform} onChange={e => updateExtraService(service.id, 'uniform', e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
-                  >
-                    <option>Especial A1-A / A1-B</option>
-                    <option>Outros</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Formato</span>
+                  <div className="relative">
+                    <select 
+                      value={service.format} onChange={e => updateExtraService(service.id, 'format', e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
+                    >
+                      <option>Ensaio</option>
+                      <option>Expediente Administrativo</option>
+                      <option>Apresentação local fechado</option>
+                      <option>Apresentação local aberto</option>
+                      <option>Formatura Militar</option>
+                      <option>Outros</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                    </div>
                   </div>
-                </div>
-              </label>
+                </label>
 
-              {service.uniform === 'Outros' && (
+                {service.format === 'Outros' && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Formato</span>
+                    <input 
+                      type="text" value={service.customFormat} onChange={e => updateExtraService(service.id, 'customFormat', e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                    />
+                  </label>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">Saída da BM</span>
+                      <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
+                    </label>
+                  )}
+                  <label className={`flex flex-col gap-1.5 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Início</span>
+                    <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Término</span>
+                    <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                  </label>
+                  {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">Retorno</span>
+                      <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
+                    </label>
+                  )}
+                </div>
+
                 <label className="flex flex-col gap-1.5">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Uniforme</span>
-                  <input 
-                    type="text" value={service.customUniform} onChange={e => updateExtraService(service.id, 'customUniform', e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                  <span className="text-xs font-bold text-gray-500 uppercase">Local</span>
+                  <input type="text" value={service.location} onChange={e => updateExtraService(service.id, 'location', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm" />
+                </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Uniforme</span>
+                  <div className="relative">
+                    <select 
+                      value={service.uniform} onChange={e => updateExtraService(service.id, 'uniform', e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none appearance-none transition-all"
+                    >
+                      <option>Especial A1-A / A1-B</option>
+                      <option>Outros</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[16px]">expand_more</span>
+                    </div>
+                  </div>
+                </label>
+
+                {service.uniform === 'Outros' && (
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase">Descreva o Uniforme</span>
+                    <input 
+                      type="text" value={service.customUniform} onChange={e => updateExtraService(service.id, 'customUniform', e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none" 
+                    />
+                  </label>
+                )}
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-bold text-gray-500 uppercase">Repertório</span>
+                  <textarea 
+                    value={service.repertoire} onChange={e => updateExtraService(service.id, 'repertoire', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none resize-none font-mono" rows={3} placeholder={'01. Hino Nacional\n02. Dobrado'}
                   />
                 </label>
-              )}
 
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-bold text-gray-500 uppercase">Repertório</span>
-                <textarea 
-                  value={service.repertoire} onChange={e => updateExtraService(service.id, 'repertoire', e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none resize-none font-mono" rows={3} placeholder={'01. Hino Nacional\n02. Dobrado'}
-                />
-              </label>
-
-              {/* Chief Selection */}
-              <label className="flex flex-col gap-1.5">
-                <span className="text-xs font-bold text-amber-600 uppercase flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[16px]">military_tech</span>
-                  Chefe do Serviço
-                </span>
-                <select 
-                  value={service.serviceChief} 
-                  onChange={e => updateExtraService(service.id, 'serviceChief', e.target.value)}
-                  className="w-full rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5 text-gray-900 dark:text-white px-3 py-2.5 text-sm outline-none"
-                >
-                  <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione o Chefe —</option>
-                  {musicians.filter(m => isMusicianAvailable(m, sharedDate)).map(m => (
-                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id}>{getMusicianLabel(m.id)}</option>
-                  ))}
-                </select>
-              </label>
-
-              {/* Musicians Selection */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-primary uppercase">Efetivo Escalado ({service.selectedMusicians.length})</span>
-                  <button type="button" onClick={() => updateExtraService(service.id, 'selectedMusicians', [])} className="text-[10px] font-bold text-gray-400 hover:text-red-500 uppercase">Limpar</button>
-                </div>
-                
-                {recentScales.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
-                    {recentScales.map(rs => (
-                      <button key={rs.id} type="button" onClick={() => applySuggestion(service.id, rs.musicians)} className="flex-none bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 text-[10px] font-bold dark:text-gray-300">
-                        {rs.title}
-                      </button>
+                {/* Chief Selection */}
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-bold text-amber-600 uppercase flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[16px]">military_tech</span>
+                    Chefe do Serviço
+                  </span>
+                  <select 
+                    value={service.serviceChief} 
+                    onChange={e => updateExtraService(service.id, 'serviceChief', e.target.value)}
+                    className="w-full rounded-xl border border-amber-200 dark:border-amber-900/30 bg-amber-50/30 dark:bg-amber-900/5 text-gray-900 dark:text-white px-3 py-2.5 text-sm outline-none"
+                  >
+                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="">— Selecione o Chefe —</option>
+                    {musicians.filter(m => isMusicianAvailable(m, sharedDate)).map(m => (
+                      <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" key={m.id} value={m.id}>{getMusicianLabel(m.id)}</option>
                     ))}
+                  </select>
+                </label>
+
+                {/* Musicians Selection */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-primary uppercase">Efetivo Escalado ({service.selectedMusicians.length})</span>
+                    <button type="button" onClick={() => updateExtraService(service.id, 'selectedMusicians', [])} className="text-[10px] font-bold text-gray-400 hover:text-red-500 uppercase">Limpar</button>
                   </div>
-                )}
+                  
+                  {recentScales.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+                      {recentScales.map(rs => (
+                        <button key={rs.id} type="button" onClick={() => applySuggestion(service.id, rs.musicians)} className="flex-none bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 text-[10px] font-bold dark:text-gray-300">
+                          {rs.title}
+                        </button>
+                      ))}
+                    </div>
+                  )}
 
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[180px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
-                  {musicians.filter(m => m.id !== service.serviceChief).map(m => {
-                    const available = isMusicianAvailable(m, sharedDate);
-                    const checked = service.selectedMusicians.includes(m.id);
-                    return (
-                      <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${!available ? 'opacity-40 cursor-not-allowed' : checked ? 'bg-primary/5' : ''}`}>
-                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => handleMusicianToggle(service.id, m.id)} className="size-4 rounded border-gray-300 text-primary" />
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold dark:text-white leading-tight">{getMusicianLabel(m.id)}</span>
-                          <span className="text-[8px] text-gray-400 uppercase leading-none mt-0.5">{m.instrument}</span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[220px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
+                    {musicians.filter(m => m.id !== service.serviceChief).map(m => {
+                      const available = isMusicianAvailable(m, sharedDate);
+                      const checked = service.selectedMusicians.includes(m.id);
+                      return (
+                        <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${!available ? 'opacity-40 cursor-not-allowed' : checked ? 'bg-primary/5' : ''}`}>
+                          <input type="checkbox" checked={checked} disabled={!available} onChange={() => handleMusicianToggle(service.id, m.id)} className="size-4 rounded border-gray-300 text-primary" />
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold dark:text-white leading-tight">{getMusicianLabel(m.id)}</span>
+                            <span className="text-[8px] text-gray-400 uppercase leading-none mt-0.5">{m.instrument}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))}
 
-          <button 
-            type="button" 
-            onClick={addExtraService}
-            className="w-full py-5 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all flex flex-col items-center justify-center gap-2 font-black text-xs uppercase tracking-[0.2em] shadow-sm shadow-primary/5"
-          >
-            <span className="material-symbols-outlined text-[32px]">add_circle</span>
-            Acrescentar Mais um Serviço Extra
-          </button>
+            <button 
+              type="button" 
+              onClick={addExtraService}
+              className="w-full py-8 rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary transition-all flex flex-col items-center justify-center gap-2 font-black text-xs uppercase tracking-[0.2em] shadow-sm shadow-primary/5 min-h-[200px]"
+            >
+              <span className="material-symbols-outlined text-[36px]">add_circle</span>
+              Acrescentar Mais um Serviço Extra
+            </button>
+          </div>
               </>
               )}
             </>
@@ -1141,7 +1147,7 @@ export default function AdminNewScalePage() {
         </main>
 
         <footer className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 dark:bg-background-dark/95 backdrop-blur-md border-t border-gray-100 dark:border-gray-800 z-30 flex items-center justify-center">
-          <div className="w-full max-w-md">
+          <div className="w-full max-w-md lg:max-w-xl">
             <button 
               disabled={loading || !sharedDate || (userRole !== 'admin' && userRole !== 'master' && userRole !== 'manager' && user?.email !== 'heliomardejesus87@gmail.com')}
               onClick={() => handleCreateScale(false)}

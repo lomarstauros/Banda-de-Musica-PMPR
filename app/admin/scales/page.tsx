@@ -162,7 +162,7 @@ export default function AdminScalesListPage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
-      <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl">
+      <div className="relative w-full max-w-md lg:max-w-6xl bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl">
         <header className="sticky top-0 z-10 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
           <Link href="/admin/swaps">
             <button className="flex items-center justify-center p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white">
@@ -177,8 +177,9 @@ export default function AdminScalesListPage() {
           </Link>
         </header>
 
-        <main className="flex-1 flex flex-col pb-24 overflow-x-hidden">
-          <div className="px-4 py-2 mt-2">
+        <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-6 p-4 lg:p-6 pb-24 overflow-x-hidden">
+          {/* Coluna Esquerda: Calendário (5 colunas no desktop) */}
+          <div className="lg:col-span-5 flex flex-col gap-4 bg-white dark:bg-gray-900 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm h-fit">
             <div className="flex h-10 w-full items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 p-1">
               <label className="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-[0.3rem] transition-all has-[:checked]:bg-white dark:has-[:checked]:bg-slate-700 has-[:checked]:shadow-sm text-slate-500 dark:text-slate-400 has-[:checked]:text-primary dark:has-[:checked]:text-white text-sm font-medium leading-normal relative group">
                 <span className="z-10">Mês</span>
@@ -189,30 +190,32 @@ export default function AdminScalesListPage() {
                 <input checked={view === 'week'} onChange={() => setView('week')} className="invisible absolute w-0 h-0" name="view-toggle" type="radio" value="Week"/>
               </label>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-4 px-4 pt-2 pb-6 border-b border-slate-100 dark:border-slate-800/50">
-            <div className="flex items-center justify-between px-2">
-              <button onClick={() => setCurrentDateObj(new Date(currentYear, currentMonth - 1, 1))} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
-                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-              </button>
-              <p className="text-slate-900 dark:text-white text-base font-bold">{capitalizedMonthName}</p>
-              <button onClick={() => setCurrentDateObj(new Date(currentYear, currentMonth + 1, 1))} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
-                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-              </button>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between px-2">
+                <button onClick={() => setCurrentDateObj(new Date(currentYear, currentMonth - 1, 1))} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <p className="text-slate-900 dark:text-white text-base font-bold">{capitalizedMonthName}</p>
+                <button onClick={() => setCurrentDateObj(new Date(currentYear, currentMonth + 1, 1))} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-7 gap-y-2">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
+                  <div key={i} className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center justify-center h-8">{day}</div>
+                ))}
+                {view === 'month' ? renderMonthGrid() : renderWeekGrid()}
+              </div>
             </div>
+          </div>
 
-            <div className="grid grid-cols-7 gap-y-2">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((day, i) => (
-                <div key={i} className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-wider flex items-center justify-center h-8">{day}</div>
-              ))}
-              {view === 'month' ? renderMonthGrid() : renderWeekGrid()}
+          {/* Coluna Direita: Escalas do dia selecionado (7 colunas no desktop) */}
+          <div className="lg:col-span-7 flex flex-col gap-4">
+            <div className="flex flex-col">
+              <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">{capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}</h3>
             </div>
-          </div>
-
-          <div className="flex flex-col px-4 pt-4 pb-2">
-            <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">{capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}</h3>
-          </div>
 
           <div className="flex flex-col gap-4 px-4 pb-8 mt-2">
             {selectedEvents.length === 0 ? (
@@ -293,6 +296,7 @@ export default function AdminScalesListPage() {
               </div>
             ))}
           </div>
+        </div>
         </main>
       </div>
     </div>

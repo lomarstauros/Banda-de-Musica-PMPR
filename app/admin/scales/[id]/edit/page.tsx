@@ -547,7 +547,7 @@ export default function AdminEditScalePage() {
 
   return (
     <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
-      <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl">
+      <div className="relative w-full max-w-md lg:max-w-6xl bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl">
         <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
           <Link href="/admin/scales">
             <button className="flex items-center justify-center p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white">

@@ -152,7 +152,7 @@ export default function AvailabilityBoard({ date, musicians, occupations, isAvai
           placeholder="Buscar nome ou instrumento..."
           className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm outline-none"
         />
-        <div className="grid grid-cols-2 gap-1.5 max-h-[360px] overflow-y-auto no-scrollbar">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-1.5 max-h-[360px] lg:max-h-[520px] overflow-y-auto no-scrollbar">
           {available.map(m => (
             <button
               key={m.id}

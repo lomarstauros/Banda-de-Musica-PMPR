@@ -38,8 +38,8 @@ export const useNotifications = () => {
       // Get token
       const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
       if (!vapidKey) {
-        console.error('NEXT_PUBLIC_FIREBASE_VAPID_KEY não está configurada.');
-        if (isManual) alert('Erro interno: Chave VAPID ausente.');
+        console.warn('NEXT_PUBLIC_FIREBASE_VAPID_KEY não está configurada no ambiente. Notificações push FCM desativadas temporariamente.');
+        if (isManual) alert('Aviso: Chave VAPID do Firebase não está configurada neste ambiente.');
         return;
       }
 

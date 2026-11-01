@@ -61,3 +61,76 @@ export function getWhatsAppDirectUrl(phone: string | undefined | null, message: 
 export function getWhatsAppBroadcastUrl(message: string): string {
   return `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
 }
+
+export function buildScaleWhatsAppMessage(scales: any[], dateStr: string): string {
+  let displayDate = dateStr;
+  if (dateStr && dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) displayDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+
+  let msg = `🎵 *BANDA DE MÚSICA DA PMPR*\n`;
+  msg += `📋 *ESCALA DE SERVIÇO — ${displayDate}*\n`;
+  msg += `─────────────────────────\n\n`;
+
+  if (!scales || scales.length === 0) {
+    msg += `Nenhum serviço escalado.\n`;
+    return msg;
+  }
+
+  scales.forEach((scale, idx) => {
+    const isExpediente = scale.format === 'Expediente Administrativo' || (scale.title && scale.title.toLowerCase().includes('expediente administrativo'));
+    
+    if (isExpediente) {
+      msg += `🏛️ *EXPEDIENTE ADMINISTRATIVO*\n`;
+      if (scale.startTime && scale.endTime) {
+        msg += `⏰ *Horário:* ${scale.startTime} às ${scale.endTime}\n`;
+      }
+      if (scale.uniform) {
+        msg += `👔 *Fardamento:* ${scale.uniform}\n`;
+      }
+      if (scale.expediente) {
+        const e = scale.expediente;
+        if (e.regenteMaestro) msg += `🎖️ *Maestro Chefe:* ${e.regenteMaestro}\n`;
+        if (e.regente) msg += `🎖️ *Regente:* ${e.regente}\n`;
+        if (e.sargenteacao) msg += `🎖️ *Sargenteação:* ${e.sargenteacao}\n`;
+      }
+    } else {
+      const title = scale.title || scale.format || `Serviço ${idx + 1}`;
+      msg += `🎺 *${title.toUpperCase()}*\n`;
+      if (scale.format && scale.format !== title) {
+        msg += `📌 *Formato:* ${scale.format}\n`;
+      }
+      if (scale.startTime) {
+        msg += `⏰ *Início:* ${scale.startTime}${scale.endTime ? ` | *Término:* ${scale.endTime}` : ''}\n`;
+      }
+      if (scale.departureTime) {
+        msg += `🚌 *Saída BM:* ${scale.departureTime}\n`;
+      }
+      if (scale.location) {
+        msg += `📍 *Local:* ${scale.location}\n`;
+      }
+      if (scale.uniform) {
+        msg += `👔 *Fardamento:* ${scale.uniform}\n`;
+      }
+      if (scale.serviceChief?.name) {
+        msg += `⭐ *Chefe de Serviço:* ${scale.serviceChief.name}\n`;
+      }
+      if (scale.musicians && scale.musicians.length > 0) {
+        msg += `👥 *Efetivo Escalado (${scale.musicians.length}):*\n`;
+        scale.musicians.forEach((m: any) => {
+          const rank = m.rank ? `${m.rank} ` : '';
+          const name = m.war_name || m.name || 'Militar';
+          const inst = m.instrument ? ` (${m.instrument})` : '';
+          msg += `   • ${rank}${name}${inst}\n`;
+        });
+      }
+    }
+    msg += `\n`;
+  });
+
+  msg += `─────────────────────────\n`;
+  msg += `📱 Acesse o aplicativo da Banda PMPR para mais detalhes.\n`;
+
+  return msg.trim();
+}

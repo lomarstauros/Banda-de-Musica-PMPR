@@ -157,13 +157,13 @@ export default function AdminEditScalePage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!params.id) return;
-      
+
       try {
         setLoading(true);
         // 1. Fetch Scale Data
         const scaleRef = doc(db, "scales", params.id as string);
         const scaleSnap = await getDoc(scaleRef);
-        
+
         if (scaleSnap.exists()) {
           const data = scaleSnap.data();
           setFormData({
@@ -180,7 +180,7 @@ export default function AdminEditScalePage() {
             customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : (data.format || ''),
             classification: data.classification || 'completa',
           });
-          
+
           if (data.signer && data.signer.id) {
             setSignerSelection(`${data.signer.id}|${data.signer.title}`);
           } else if (data.expediente?.regenteMaestroId) {
@@ -235,8 +235,8 @@ export default function AdminEditScalePage() {
   const applySuggestion = (musicians: any[]) => {
     if (!musicians) return;
     const ids = musicians.map(m => m.id);
-    const isAlreadyApplied = ids.length === selectedMusicians.length && 
-                             ids.every(id => selectedMusicians.includes(id));
+    const isAlreadyApplied = ids.length === selectedMusicians.length &&
+      ids.every(id => selectedMusicians.includes(id));
     setSelectedMusicians(isAlreadyApplied ? [] : ids);
   };
 
@@ -247,9 +247,9 @@ export default function AdminEditScalePage() {
   const handleMusicianToggle = (id: string) => {
     const musician = musicians.find(m => m.id === id);
     if (musician && !isMusicianAvailable(musician, formData.date)) {
-      return; 
+      return;
     }
-    setSelectedMusicians(prev => 
+    setSelectedMusicians(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
     );
   };
@@ -317,7 +317,7 @@ export default function AdminEditScalePage() {
         return;
       }
     }
-    
+
     setSaving(true);
     setError(null);
     try {
@@ -341,7 +341,7 @@ export default function AdminEditScalePage() {
         const sTime = d.startTime;
         if (!sTime) return;
         const addUid = (uid: string | null | undefined) => { if (uid) schedules.push({ uid, title: d.title || d.format || 'Serviço', startTime: sTime, scaleId: docSnap.id }); };
-        
+
         if (d.serviceChief?.id) addUid(d.serviceChief.id);
         if (d.musicians) d.musicians.forEach((m: any) => addUid(m.id));
         if (d.expediente) {
@@ -467,7 +467,7 @@ export default function AdminEditScalePage() {
         ...expediente.obra,
         ...expediente.permanencia
       ]);
-      
+
       const uniqueNotifiedIds = Array.from(allNotifiedIds).filter(id => !!id);
 
       if (uniqueNotifiedIds.length > 0) {
@@ -498,11 +498,11 @@ export default function AdminEditScalePage() {
               scaleId: params.id
             })
           })
-          .then(async (res) => {
-            const data = await res.json();
-            console.log('Resposta da API de Push:', data);
-          })
-          .catch(err => console.error('Erro de rede ao enviar push:', err));
+            .then(async (res) => {
+              const data = await res.json();
+              console.log('Resposta da API de Push:', data);
+            })
+            .catch(err => console.error('Erro de rede ao enviar push:', err));
         } catch (pushErr) {
           console.error("Erro ao preparar envio de notificações push:", pushErr);
         }
@@ -576,16 +576,16 @@ export default function AdminEditScalePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Data</span>
-                  <input 
+                  <input
                     name="date" type="date" value={formData.date} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                   />
                 </label>
 
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Formato</span>
                   <div className="relative">
-                    <select 
+                    <select
                       name="format" value={formData.format} onChange={handleChange}
                       className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
                     >
@@ -601,11 +601,11 @@ export default function AdminEditScalePage() {
                     </div>
                   </div>
                 </label>
-                
+
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Escala</span>
                   <div className="relative">
-                    <select 
+                    <select
                       name="classification" value={formData.classification} onChange={handleChange}
                       className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
                     >
@@ -630,8 +630,8 @@ export default function AdminEditScalePage() {
                     <span className="text-[10px] text-gray-400 font-semibold uppercase">Assinatura Eletrônica</span>
                   </div>
                   <div className="relative">
-                    <select 
-                      value={signerSelection} 
+                    <select
+                      value={signerSelection}
                       onChange={e => setSignerSelection(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
                     >
@@ -652,43 +652,43 @@ export default function AdminEditScalePage() {
               {formData.classification !== 'folga' && formData.format === 'Outros' && (
                 <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Formato</span>
-                  <input 
+                  <input
                     name="customFormat" value={formData.customFormat} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                   />
                 </motion.label>
               )}
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
                   <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
-                    <input 
+                    <input
                       name="departureTime" type="time" value={formData.departureTime} onChange={handleChange}
-                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </motion.label>
                 )}
                 <label className={`flex flex-col gap-2 ${(formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Início Previsto</span>
-                  <input 
+                  <input
                     name="startTime" type="time" value={formData.startTime} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                   />
                 </label>
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Término Previsto</span>
-                  <input 
+                  <input
                     name="endTime" type="time" value={formData.endTime} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                   />
                 </label>
                 {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
                   <motion.label initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Retorno Previsto</span>
-                    <input 
+                    <input
                       name="returnTime" type="time" value={formData.returnTime} onChange={handleChange}
-                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
                   </motion.label>
                 )}
@@ -703,7 +703,7 @@ export default function AdminEditScalePage() {
                   <label className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setExpediente(prev => ({ ...prev, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))}
                         className="text-[10px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
@@ -883,10 +883,9 @@ export default function AdminEditScalePage() {
                           const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
                           const checked = expediente.administrativo.includes(m.id);
                           return (
-                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                            }`}>
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${!available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                                checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                              }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('administrativo', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
                               {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
@@ -923,10 +922,9 @@ export default function AdminEditScalePage() {
                           const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
                           const checked = expediente.obra.includes(m.id);
                           return (
-                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                            }`}>
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${!available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                                checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                              }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('obra', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
                               {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
@@ -963,10 +961,9 @@ export default function AdminEditScalePage() {
                           const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
                           const checked = expediente.permanencia.includes(m.id);
                           return (
-                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                            }`}>
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${!available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                                checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                              }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('permanencia', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
                               {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
@@ -1011,9 +1008,9 @@ export default function AdminEditScalePage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <label className="flex flex-col gap-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Nome do Evento</span>
-                      <input 
+                      <input
                         name="title" value={formData.title} onChange={handleChange}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </label>
 
@@ -1023,17 +1020,17 @@ export default function AdminEditScalePage() {
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
                           <span className="material-symbols-outlined text-[20px]">location_on</span>
                         </div>
-                        <input 
+                        <input
                           name="location" value={formData.location} onChange={handleChange}
-                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                         />
                       </div>
                     </label>
-                    
+
                     <label className="flex flex-col gap-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Uniforme Exigido</span>
                       <div className="relative">
-                        <select 
+                        <select
                           name="uniform" value={formData.uniform} onChange={handleChange}
                           className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
                         >
@@ -1050,120 +1047,119 @@ export default function AdminEditScalePage() {
                   {formData.uniform === 'Outros' && (
                     <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
                       <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Uniforme</span>
-                      <input 
+                      <input
                         name="customUniform" value={formData.customUniform} onChange={handleChange}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                       />
                     </motion.label>
                   )}
                 </div>
 
 
-            {/* Bloco 3: Repertório */}
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-amber-500">queue_music</span>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Repertório</span>
-                <span className="ml-auto text-[10px] text-gray-400">Uma música por linha</span>
-              </div>
-              <textarea
-                value={repertoire}
-                onChange={(e) => setRepertoire(e.target.value)}
-                rows={5}
-                placeholder={'01. Hino Nacional Brasileiro\n02. Dobrado 220\n03. Canção da PMPR'}
-                className="w-full rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none resize-none transition-all placeholder:text-gray-400 font-mono leading-relaxed"
-              />
-            </div>
+                {/* Bloco 3: Repertório */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-3 shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px] text-amber-500">queue_music</span>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Repertório</span>
+                    <span className="ml-auto text-[10px] text-gray-400">Uma música por linha</span>
+                  </div>
+                  <textarea
+                    value={repertoire}
+                    onChange={(e) => setRepertoire(e.target.value)}
+                    rows={5}
+                    placeholder={'01. Hino Nacional Brasileiro\n02. Dobrado 220\n03. Canção da PMPR'}
+                    className="w-full rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/10 px-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-400 focus:border-amber-400 outline-none resize-none transition-all placeholder:text-gray-400 font-mono leading-relaxed"
+                  />
+                </div>
 
-            {/* Bloco 4: Músicos */}
-            <div className="flex flex-col gap-3">
-              {recentScales.length > 0 && (
-                <div className="flex flex-col gap-2 mb-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Sugestões de Efetivo (Recentes)</span>
-                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    {recentScales.filter(s => s.id !== params.id).map((scale) => (
-                      <button 
-                        key={scale.id}
-                        type="button"
-                        onClick={() => applySuggestion(scale.musicians)}
-                        className="flex-none bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-3 rounded-xl flex flex-col gap-1 hover:border-primary/40 transition-all text-left shadow-sm min-w-[140px]"
-                      >
-                        <span className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">{scale.title}</span>
-                        <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium lowercase">
-                          <span className="material-symbols-outlined text-[12px]">group</span>
-                          {scale.musicians?.length || 0} músicos
-                        </div>
-                      </button>
-                    ))}
+                {/* Bloco 4: Músicos */}
+                <div className="flex flex-col gap-3">
+                  {recentScales.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-2">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Sugestões de Efetivo (Recentes)</span>
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                        {recentScales.filter(s => s.id !== params.id).map((scale) => (
+                          <button
+                            key={scale.id}
+                            type="button"
+                            onClick={() => applySuggestion(scale.musicians)}
+                            className="flex-none bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-3 rounded-xl flex flex-col gap-1 hover:border-primary/40 transition-all text-left shadow-sm min-w-[140px]"
+                          >
+                            <span className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">{scale.title}</span>
+                            <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium lowercase">
+                              <span className="material-symbols-outlined text-[12px]">group</span>
+                              {scale.musicians?.length || 0} músicos
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Efetivo Escalado ({selectedMusicians.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMusicians([])}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      Limpar lista
+                    </button>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800 shadow-sm max-h-[250px] overflow-y-auto no-scrollbar">
+                    {musicians.map((musician: any) => {
+                      const isAvailable = isMusicianAvailable(musician, formData.date);
+                      const isChecked = selectedMusicians.includes(musician.id);
+                      const warName = musician.war_name || musician.name || '';
+                      const displayName = musician.war_name
+                        ? `${musician.rank || ''} ${musician.war_name}`.trim()
+                        : musician.name || 'Sem nome';
+                      const avatarInitial = warName.charAt(0).toUpperCase() || '?';
+                      return (
+                        <label
+                          key={musician.id}
+                          className={`p-4 flex items-center gap-3 transition-colors ${!isAvailable ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/20' :
+                              isChecked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer'
+                            }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={!isAvailable}
+                            onChange={() => handleMusicianToggle(musician.id)}
+                            className="size-5 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
+                          />
+                          <div className="flex-none size-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-sm text-primary dark:bg-primary/20">
+                            {avatarInitial}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm font-bold truncate ${isChecked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{displayName}</p>
+                              {!isAvailable && (
+                                <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                  {musician.militaryStatus}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{musician.instrument}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
-              )}
 
-              <div className="flex items-center justify-between px-1">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Efetivo Escalado ({selectedMusicians.length})</span>
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedMusicians([])}
-                  className="text-xs font-bold text-primary hover:underline"
-                >
-                  Limpar lista
-                </button>
-              </div>
-              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 divide-y divide-gray-50 dark:divide-gray-800 shadow-sm max-h-[250px] overflow-y-auto no-scrollbar">
-                {musicians.map((musician: any) => {
-                  const isAvailable = isMusicianAvailable(musician, formData.date);
-                  const isChecked = selectedMusicians.includes(musician.id);
-                  const warName = musician.war_name || musician.name || '';
-                  const displayName = musician.war_name
-                    ? `${musician.rank || ''} ${musician.war_name}`.trim()
-                    : musician.name || 'Sem nome';
-                  const avatarInitial = warName.charAt(0).toUpperCase() || '?';
-                  return (
-                    <label 
-                      key={musician.id} 
-                      className={`p-4 flex items-center gap-3 transition-colors ${
-                        !isAvailable ? 'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800/20' : 
-                        isChecked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer'
-                      }`}
-                    >
-                      <input 
-                        type="checkbox" 
-                        checked={isChecked}
-                        disabled={!isAvailable}
-                        onChange={() => handleMusicianToggle(musician.id)}
-                        className="size-5 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50"
-                      />
-                      <div className="flex-none size-10 rounded-full bg-primary/10 flex items-center justify-center font-black text-sm text-primary dark:bg-primary/20">
-                        {avatarInitial}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className={`text-sm font-bold truncate ${isChecked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{displayName}</p>
-                          {!isAvailable && (
-                            <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                              {musician.militaryStatus}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{musician.instrument}</p>
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-            
-            </>
+              </>
             )}
 
           </div>
         </main>
 
-        <footer className="sticky bottom-0 p-4 bg-white dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 z-10">
-          <button 
+        <footer className="sticky bottom-0 p-4 bg-white dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 z-10 flex justify-center">
+          <button
             disabled={saving}
             onClick={handleUpdateScale}
-            className="w-full h-14 rounded-xl bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+            className="w-full max-w-md lg:max-w-xl h-14 rounded-xl bg-amber-500 text-white font-bold shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
           >
             {saving ? (
               <span className="material-symbols-outlined animate-spin text-[24px]">progress_activity</span>

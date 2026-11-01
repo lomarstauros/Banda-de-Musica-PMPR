@@ -50,7 +50,7 @@ export function BottomNav() {
   }, [user]);
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-[#1A202C] border-t border-gray-100 dark:border-gray-800 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white dark:bg-[#1A202C] border-t border-gray-100 dark:border-gray-800 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] lg:hidden">
       <div className="grid grid-cols-5 h-16 items-center px-1">
         <Link href="/dashboard" className={`flex flex-col items-center justify-center h-full gap-1 group transition-colors ${pathname.startsWith('/dashboard') || pathname.startsWith('/scales') ? 'text-primary' : 'text-slate-400 dark:text-slate-500 hover:text-primary'}`}>
           <span className={`material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform ${pathname.startsWith('/dashboard') || pathname.startsWith('/scales') ? 'filled' : ''}`}>format_list_bulleted</span>

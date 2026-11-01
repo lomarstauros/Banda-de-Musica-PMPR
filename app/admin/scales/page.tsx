@@ -11,6 +11,7 @@ import { generateScalePDF, generateDailyScalesPDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { useFirebase } from '@/components/providers/firebase-provider';
+import { BottomNav } from '@/components/ui/bottom-nav';
 
 export default function AdminScalesListPage() {
   const { user } = useFirebase();

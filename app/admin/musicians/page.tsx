@@ -11,6 +11,7 @@ import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
+import { BottomNav } from '@/components/ui/bottom-nav';
 
 export default function AdminMusiciansListPage() {
   const [search, setSearch] = useState('');
@@ -231,24 +232,7 @@ export default function AdminMusiciansListPage() {
           </div>
         </main>
 
-        <nav className="fixed bottom-0 w-full max-w-md bg-white dark:bg-background-dark border-t border-gray-100 dark:border-gray-800 pb-safe pt-2 px-6 flex justify-between items-center z-40 pb-4">
-          <Link href="/admin/swaps" className="flex flex-col items-center gap-1 text-gray-400">
-            <span className="material-symbols-outlined">swap_horiz</span>
-            <span className="text-[10px] font-medium">Permutas</span>
-          </Link>
-          <Link href="/admin/scales/new" className="flex flex-col items-center gap-1 text-gray-400">
-            <span className="material-symbols-outlined">add_box</span>
-            <span className="text-[10px] font-medium">Escalas</span>
-          </Link>
-          <Link href="/admin/musicians" className="flex flex-col items-center gap-1 text-primary">
-            <span className="material-symbols-outlined filled">group</span>
-            <span className="text-[10px] font-medium">Efetivo</span>
-          </Link>
-          <Link href="/login" className="flex flex-col items-center gap-1 text-gray-400">
-            <span className="material-symbols-outlined">logout</span>
-            <span className="text-[10px] font-medium">Sair</span>
-          </Link>
-        </nav>
+        <BottomNav />
       </div>
     </div>
   );

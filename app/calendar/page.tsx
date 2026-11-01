@@ -167,9 +167,9 @@ export default function CalendarPage() {
   const capitalizedWeekDayName = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1);
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-slate-900 dark:text-white font-sans antialiased selection:bg-primary/30">
-      <div className="relative flex h-full min-h-screen w-full flex-col pb-24 overflow-x-hidden max-w-md mx-auto bg-white dark:bg-background-dark shadow-xl">
-        <header className="flex items-center bg-white dark:bg-[#1A202C] px-4 py-3 justify-between sticky top-0 z-20 border-b border-gray-100 dark:border-gray-800 backdrop-blur-md">
+    <div className="bg-transparent text-slate-900 dark:text-white font-sans antialiased selection:bg-primary/30 w-full">
+      <div className="relative flex h-full min-h-screen lg:min-h-0 w-full flex-col pb-24 lg:pb-8 overflow-x-hidden max-w-md lg:max-w-none mx-auto bg-white dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 shadow-xl lg:shadow-2xl">
+        <header className="flex items-center bg-white dark:bg-[#121620]/95 px-4 lg:px-6 py-3.5 justify-between sticky top-0 z-20 border-b border-gray-100 dark:border-white/10 backdrop-blur-md lg:rounded-t-3xl">
           <div className="flex items-center gap-3">
             <Link href="/profile" className="relative group/avatar cursor-pointer">
               {displayPhoto ? (

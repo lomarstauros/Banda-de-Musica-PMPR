@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css'; // Global styles
 import FirebaseProvider from '@/components/providers/firebase-provider';
 import NotificationInitializer from '@/components/notifications/notification-initializer';
+import { AppShell } from '@/components/ui/app-shell';
 
 export const metadata: Metadata = {
   title: 'Banda de Música PMPR',
@@ -32,9 +33,9 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
       <body suppressHydrationWarning className="bg-background-light dark:bg-background-dark font-sans antialiased text-slate-900 dark:text-white flex flex-col min-h-screen">
         <FirebaseProvider>
           <NotificationInitializer />
-          <div className="flex-1 flex flex-col relative w-full">
+          <AppShell>
             {children}
-          </div>
+          </AppShell>
           <footer className="w-full py-3 mt-auto text-center text-[11px] sm:text-xs text-slate-500/80 dark:text-slate-400/80 bg-background-light/50 dark:bg-background-dark/50 backdrop-blur-sm relative z-50 border-t border-slate-200/50 dark:border-slate-800/50">
             <p className="font-medium tracking-wide">&copy; {new Date().getFullYear()} Stauros Studios&reg;. Todos os direitos reservados.</p>
           </footer>

@@ -144,11 +144,11 @@ export default function SwapsPage() {
   const pendingReceived = receivedSwaps.filter(s => s.status === 'Aguardando Parceiro').length;
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
-      <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col min-h-screen shadow-2xl">
+    <div className="bg-transparent font-sans flex flex-col items-center lg:items-stretch w-full">
+      <div className="relative w-full max-w-md lg:max-w-none bg-background-light dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 flex flex-col min-h-screen lg:min-h-0 shadow-2xl">
 
         {/* Header */}
-        <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+        <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-[#121620]/95 backdrop-blur-md px-4 lg:px-6 py-3.5 flex items-center justify-between border-b border-gray-200 dark:border-white/10 lg:rounded-t-3xl">
           <div className="flex items-center gap-3">
             {displayPhoto ? (
               <div className="size-10 rounded-full bg-cover bg-center border-2 border-primary/20" style={{ backgroundImage: `url(${displayPhoto})` }} />

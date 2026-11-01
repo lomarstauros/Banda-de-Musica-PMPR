@@ -275,9 +275,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-white font-sans">
-      <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md lg:max-w-4xl mx-auto bg-background-light dark:bg-background-dark shadow-xl pb-24">
-        <div className="sticky top-0 z-50 flex items-center bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm p-4 pb-2 justify-between border-b border-slate-200 dark:border-slate-800">
+    <div className="bg-transparent text-slate-900 dark:text-white font-sans w-full">
+      <div className="relative flex min-h-screen lg:min-h-0 w-full flex-col overflow-x-hidden max-w-md lg:max-w-none mx-auto bg-background-light dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 shadow-xl lg:shadow-2xl pb-24 lg:pb-8">
+        <div className="sticky top-0 z-50 flex items-center bg-background-light/95 dark:bg-[#121620]/95 backdrop-blur-sm p-4 lg:px-6 py-3 justify-between border-b border-slate-200 dark:border-white/10 lg:rounded-t-3xl">
           <Link href="/dashboard">
             <button className="text-slate-900 dark:text-white flex size-12 shrink-0 items-center justify-start hover:opacity-70 transition-opacity">
               <span className="material-symbols-outlined">arrow_back_ios</span>

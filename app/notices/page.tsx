@@ -84,11 +84,11 @@ export default function NoticesPage() {
 
   // Render logic continues below
   return (
-    <div className="bg-background-light dark:bg-background-dark font-sans text-slate-900 dark:text-white antialiased transition-colors duration-200">
-      <div className="relative flex min-h-screen w-full flex-col max-w-md mx-auto overflow-x-hidden pb-24 bg-background-light dark:bg-background-dark shadow-2xl">
+    <div className="bg-transparent font-sans text-slate-900 dark:text-white antialiased transition-colors duration-200 w-full">
+      <div className="relative flex min-h-screen lg:min-h-0 w-full flex-col max-w-md lg:max-w-none mx-auto overflow-x-hidden pb-24 lg:pb-8 bg-background-light dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 shadow-2xl">
         
         {/* Header Fixed Area */}
-        <header className="sticky top-0 z-20 flex items-center justify-between bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md p-4 pb-2 transition-colors">
+        <header className="sticky top-0 z-20 flex items-center justify-between bg-background-light/95 dark:bg-[#121620]/95 backdrop-blur-md p-4 lg:px-6 py-3.5 transition-colors lg:rounded-t-3xl border-b border-gray-100 dark:border-white/10">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Avisos</h1>
           <div className="flex items-center gap-2">
             <button className="relative flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white dark:bg-surface-dark text-slate-600 dark:text-slate-300 shadow-sm ring-1 ring-black/5 dark:ring-white/10 active:scale-95 transition-all">

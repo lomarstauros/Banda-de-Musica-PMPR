@@ -8,7 +8,6 @@ import { doc, getDoc, collection, query, orderBy, limit, getDocs, onSnapshot, wh
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
-import { DesktopSidebar } from '@/components/ui/desktop-sidebar';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
@@ -311,16 +310,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Workspace: Desktop with Sidebar and Adaptive Grid */}
-      <div className="flex-1 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex gap-8 items-start">
+      {/* Main Workspace Content Area */}
+      <main className="flex-1 flex flex-col gap-6 min-w-0 w-full px-4 sm:px-6 lg:px-0 py-4 sm:py-6">
         
-        {/* Desktop Sidebar (Floating Átrio style) */}
-        <DesktopSidebar />
-
-        {/* Content Area */}
-        <main className="flex-1 flex flex-col gap-6 min-w-0 w-full">
-          
-          {/* Top Bar on Desktop */}
+        {/* Top Bar on Desktop */}
           <section className="hidden lg:flex items-center justify-between pb-3 border-b border-white/5">
             <div className="flex flex-col">
               <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
@@ -796,7 +789,6 @@ export default function DashboardPage() {
 
           <div className="h-16 lg:h-8"></div>
         </main>
-      </div>
 
       {/* BottomNav persists on mobile and is hidden on desktop */}
       <BottomNav />

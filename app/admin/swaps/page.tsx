@@ -287,9 +287,9 @@ export default function AdminSwapsPage() {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center">
-      <div className="relative w-full max-w-md bg-background-light dark:bg-background-dark flex flex-col h-full min-h-screen shadow-2xl overflow-x-hidden">
-        <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md px-4 py-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-800">
+    <div className="bg-transparent font-sans flex flex-col items-center lg:items-stretch w-full">
+      <div className="relative w-full max-w-md lg:max-w-none bg-background-light dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 flex flex-col h-full min-h-screen lg:min-h-0 shadow-2xl overflow-x-hidden">
+        <header className="sticky top-0 z-20 bg-background-light/95 dark:bg-[#121620]/95 backdrop-blur-md px-4 lg:px-6 py-3.5 flex items-center justify-between border-b border-gray-200 dark:border-white/10 lg:rounded-t-3xl">
           <div className="flex items-center gap-3">
             <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary overflow-hidden border border-primary/20 shadow-sm">
               {displayPhoto
@@ -311,7 +311,7 @@ export default function AdminSwapsPage() {
         </header>
 
         {/* Quick nav */}
-        <div className="px-4 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+        <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
           <Link href="/admin/scales/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 px-5 text-sm font-bold text-green-700 dark:text-green-400 hover:bg-green-200 transition-colors border border-green-200 dark:border-green-800 shadow-sm">Nova Escala</button></Link>
           <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Permutas</button>
           <Link href="/admin/scales"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Histórico Escalas</button></Link>

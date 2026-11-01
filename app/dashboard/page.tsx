@@ -516,19 +516,39 @@ export default function DashboardPage() {
                   
                   {/* Header do Card */}
                   <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-2xl sm:text-3xl font-black text-white capitalize tracking-tight">
-                        {new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).format(new Date(`${currentFeaturedScale.date}T12:00:00`))}
-                      </span>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black border ${getFormatColors(currentFeaturedScale.format).bg} ${getFormatColors(currentFeaturedScale.format).text} ${getFormatColors(currentFeaturedScale.format).border}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex flex-col min-w-0">
+                        <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                          {(() => {
+                            try {
+                              const dateObj = new Date(`${currentFeaturedScale.date}T12:00:00`);
+                              const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(dateObj);
+                              const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(dateObj);
+                              const month = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(dateObj);
+                              const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+                              const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+                              
+                              return (
+                                <>
+                                  <span className="whitespace-nowrap">{capWeekday}, {day}</span>{' '}
+                                  <span className="whitespace-nowrap text-gray-200">de {capMonth}</span>
+                                </>
+                              );
+                            } catch {
+                              return currentFeaturedScale.date;
+                            }
+                          })()}
+                        </h3>
+                      </div>
+                      <span className={`inline-flex items-center shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black border ${getFormatColors(currentFeaturedScale.format).bg} ${getFormatColors(currentFeaturedScale.format).text} ${getFormatColors(currentFeaturedScale.format).border}`}>
                         {currentFeaturedScale.format || 'Evento'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 text-sm text-gray-400 font-medium">
-                      <span className="text-white font-semibold">{currentFeaturedScale.title}</span>
+                      <span className="text-white font-semibold truncate">{currentFeaturedScale.title}</span>
                       <span>•</span>
-                      <span className="text-blue-400 font-bold">
+                      <span className="text-blue-400 font-bold whitespace-nowrap">
                         {currentFeaturedScale.startTime || currentFeaturedScale.departureTime}
                         {currentFeaturedScale.endTime ? ` às ${currentFeaturedScale.endTime}` : ''}
                       </span>
@@ -572,7 +592,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Badges e Ações */}
-                  <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                         <span className="size-2 rounded-full bg-emerald-500"></span>
@@ -587,14 +607,14 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Botões de Ação */}
-                    <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-12 sm:flex sm:items-center gap-2 w-full sm:w-auto">
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
                           generateScalePDF(currentFeaturedScale);
                         }}
                         title="Baixar PDF Oficial"
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-all font-bold text-xs"
+                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-all font-bold text-xs shrink-0"
                       >
                         <span className="material-symbols-outlined text-[18px]">download</span>
                         <span>PDF</span>
@@ -603,9 +623,9 @@ export default function DashboardPage() {
                       <button
                         onClick={(e) => handleVerify(e, currentFeaturedScale)}
                         disabled={verifying === currentFeaturedScale.id}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs transition-all border ${
+                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
                           viewedScales[currentFeaturedScale.id]?.confirmed
-                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/30'
+                            ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/30'
                             : 'bg-white/5 border-white/10 text-gray-300 hover:border-blue-500 hover:text-white'
                         }`}
                       >
@@ -619,15 +639,15 @@ export default function DashboardPage() {
                         ) : (
                           <>
                             <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                            <span>Dar Ciência</span>
+                            <span className="truncate">Ciência</span>
                           </>
                         )}
                       </button>
 
-                      <Link href={`/scales/${currentFeaturedScale.id}`}>
-                        <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95">
-                          <span>Abrir escala</span>
-                          <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                      <Link href={`/scales/${currentFeaturedScale.id}`} className="col-span-5 sm:col-auto min-w-0">
+                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95 truncate">
+                          <span className="truncate">Abrir escala</span>
+                          <span className="material-symbols-outlined text-[16px] shrink-0">arrow_forward</span>
                         </button>
                       </Link>
                     </div>

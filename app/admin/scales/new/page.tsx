@@ -11,13 +11,15 @@ import { isMusicianAvailable } from '@/lib/military-status';
 import AvailabilityBoard, { buildRange, findConflict, type Occupation } from '@/components/scales/availability-board';
 import PopoutWindow, { openPopoutWindow } from '@/components/scales/popout-window';
 import { sortByRankThenName } from '@/lib/sort-military';
-
-
+import { generateDailyScalesPDF, viewDailyScalesPDF } from '@/lib/pdf-generator';
+import { getWhatsAppBroadcastUrl, buildScaleWhatsAppMessage } from '@/lib/whatsapp';
 
 export default function AdminNewScalePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [createdScales, setCreatedScales] = useState<any[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recentScales, setRecentScales] = useState<any[]>([]);
   const [musicians, setMusicians] = useState<any[]>([]);
@@ -656,8 +658,9 @@ export default function AdminNewScalePage() {
         }
       }
 
+      setCreatedScales(docsToCreate);
       setSuccess(true);
-      setTimeout(() => router.push('/dashboard'), 2000);
+      setLoading(false);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Erro ao publicar. Tente novamente.");
@@ -666,16 +669,132 @@ export default function AdminNewScalePage() {
   };
 
   if (success) {
+    const formattedDate = sharedDate.includes('-')
+      ? sharedDate.split('-').reverse().join('/')
+      : sharedDate;
+
+    const handleViewPdf = async () => {
+      setPdfLoading(true);
+      try {
+        await viewDailyScalesPDF(createdScales, musicians);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setPdfLoading(false);
+      }
+    };
+
+    const handleDownloadPdf = async () => {
+      setPdfLoading(true);
+      try {
+        await generateDailyScalesPDF(createdScales, musicians);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setPdfLoading(false);
+      }
+    };
+
+    const handleShareWhatsApp = () => {
+      const msg = buildScaleWhatsAppMessage(createdScales, sharedDate);
+      const url = getWhatsAppBroadcastUrl(msg);
+      window.open(url, '_blank');
+    };
+
     return (
-      <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center justify-center">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center p-6 text-center max-w-md">
-          <div className="size-24 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-6 ring-8 ring-green-50 dark:ring-green-900/10">
-            <span className="material-symbols-outlined text-[48px]">check_circle</span>
+      <div className="bg-background-light dark:bg-background-dark font-sans min-h-screen flex flex-col items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95, y: 10 }} 
+          animate={{ opacity: 1, scale: 1, y: 0 }} 
+          className="flex flex-col items-center justify-center p-6 sm:p-8 text-center max-w-lg w-full bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-xl"
+        >
+          <div className="size-20 bg-green-100 dark:bg-green-900/30 text-green-500 rounded-full flex items-center justify-center mb-5 ring-8 ring-green-50 dark:ring-green-900/10">
+            <span className="material-symbols-outlined text-[44px]">check_circle</span>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Escalas Publicadas!</h2>
-          <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-10">
-            A rotina e os serviços para o dia <strong className="text-gray-700 dark:text-gray-300">{sharedDate}</strong> foram salvos com sucesso e o efetivo notificado.
+
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Escalas Publicadas com Sucesso!
+          </h2>
+
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            A rotina e os serviços para o dia <strong className="text-gray-800 dark:text-gray-200">{formattedDate}</strong> foram salvos no sistema e o efetivo foi notificado.
           </p>
+
+          {/* Resumo dos serviços criados */}
+          {createdScales.length > 0 && (
+            <div className="w-full bg-gray-50 dark:bg-gray-800/60 rounded-2xl p-4 mb-6 border border-gray-100 dark:border-gray-800 text-left">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block mb-2">
+                Serviços Cadastrados ({createdScales.length})
+              </span>
+              <ul className="space-y-1.5 text-xs text-gray-700 dark:text-gray-300">
+                {createdScales.map((s, idx) => (
+                  <li key={idx} className="flex items-center justify-between gap-2">
+                    <span className="font-semibold truncate">
+                      {s.format === 'Expediente Administrativo' ? '🏛️ Expediente Administrativo' : `🎺 ${s.title || s.format}`}
+                    </span>
+                    <span className="text-[11px] text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {s.startTime ? `${s.startTime}${s.endTime ? ` - ${s.endTime}` : ''}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Ações: PDF e WhatsApp */}
+          <div className="w-full flex flex-col gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleViewPdf}
+                disabled={pdfLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-primary/10 hover:bg-primary/20 text-primary dark:text-blue-400 font-bold text-sm rounded-xl transition-all border border-primary/20 shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">visibility</span>
+                {pdfLoading ? 'Gerando...' : 'Visualizar PDF'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold text-sm rounded-xl transition-all border border-gray-200 dark:border-gray-700 shadow-sm active:scale-95 disabled:opacity-50"
+              >
+                <span className="material-symbols-outlined text-[20px]">download</span>
+                {pdfLoading ? 'Baixando...' : 'Baixar PDF'}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-green-500/20 active:scale-95"
+            >
+              <svg className="size-5 fill-current" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.971.53 1.83.811 2.795.811 3.182 0 5.768-2.587 5.768-5.766 0-3.18-2.586-5.767-5.767-5.767zm7.558 5.766c0 4.167-3.391 7.558-7.558 7.558-1.309 0-2.535-.341-3.619-.937l-4.412 1.157 1.177-4.298c-.689-1.139-1.077-2.457-1.077-3.48 0-4.167 3.391-7.558 7.558-7.558 4.167 0 7.558 3.391 7.558 7.558zm-3.084 3.738c-.147.414-.737.765-1.189.865-.393.086-.906.155-2.616-.554-2.189-.907-3.606-3.136-3.715-3.282-.108-.146-.889-1.184-.889-2.259 0-1.074.561-1.603.76-1.821.199-.219.434-.274.579-.274.145 0 .29.002.417.008.134.007.313-.051.49.373.181.434.616 1.503.67 1.613.054.11.09.238.018.384-.073.146-.11.237-.218.365-.109.127-.229.284-.327.382-.109.109-.223.228-.096.446.127.218.564.93 1.209 1.505.83.74 1.531.968 1.749 1.077.218.109.345.091.472-.055.127-.145.544-.636.69-.854.145-.218.29-.182.49-.109.199.073 1.268.599 1.486.708.218.109.363.164.417.255.054.091.054.529-.093.943z"/>
+              </svg>
+              Compartilhar Escala no WhatsApp
+            </button>
+          </div>
+
+          {/* Links de Navegação */}
+          <div className="w-full flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-4 text-xs font-semibold">
+            <Link 
+              href="/admin/scales" 
+              className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white flex items-center gap-1 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+              Lista de Escalas
+            </Link>
+
+            <Link 
+              href="/dashboard" 
+              className="text-primary hover:underline flex items-center gap-1 transition-colors"
+            >
+              Início
+              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+            </Link>
+          </div>
         </motion.div>
       </div>
     );
@@ -719,22 +838,22 @@ export default function AdminNewScalePage() {
 
           {/* 1. Seleção da Data e Tipo (Compartilhada) */}
           <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Data Geral</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <label className="flex flex-col gap-2 min-w-0">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider truncate">Data Geral</span>
                 <input 
                   type="date" value={sharedDate} onChange={e => setSharedDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                  className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
                 />
               </label>
               
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tipo</span>
-                <div className="relative">
+              <label className="flex flex-col gap-2 min-w-0">
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider truncate">Tipo</span>
+                <div className="relative min-w-0">
                   <select 
                     value={sharedClassification} 
                     onChange={e => setSharedClassification(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
+                    className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all appearance-none"
                   >
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
                     <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
@@ -854,14 +973,14 @@ export default function AdminNewScalePage() {
 
             {showExpediente && includeExpediente && (
               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="px-4 pb-5 flex flex-col gap-5 border-t border-blue-50 dark:border-blue-900/20 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="flex flex-col gap-2">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Início</span>
-                    <input type="time" value={expediente.startTime} onChange={e => setExpediente(p => ({ ...p, startTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
+                <div className="grid grid-cols-2 gap-3 min-w-0">
+                  <label className="flex flex-col gap-2 min-w-0">
+                    <span className="text-xs font-bold text-gray-500 uppercase truncate">Início</span>
+                    <input type="time" value={expediente.startTime} onChange={e => setExpediente(p => ({ ...p, startTime: e.target.value }))} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
                   </label>
-                  <label className="flex flex-col gap-2">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Término</span>
-                    <input type="time" value={expediente.endTime} onChange={e => setExpediente(p => ({ ...p, endTime: e.target.value }))} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
+                  <label className="flex flex-col gap-2 min-w-0">
+                    <span className="text-xs font-bold text-gray-500 uppercase truncate">Término</span>
+                    <input type="time" value={expediente.endTime} onChange={e => setExpediente(p => ({ ...p, endTime: e.target.value }))} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" />
                   </label>
                 </div>
 
@@ -1011,28 +1130,28 @@ export default function AdminNewScalePage() {
                   </label>
                 )}
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 min-w-0">
                   {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                    <label className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Saída da BM</span>
-                      <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
+                    <label className="flex flex-col gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Saída da BM</span>
+                      <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
                     </label>
                   )}
-                  <label className={`flex flex-col gap-1.5 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Início</span>
-                    <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                  <label className={`flex flex-col gap-1.5 min-w-0 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Início</span>
+                    <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
                   </label>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <label className="flex flex-col gap-1.5">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase">Término</span>
-                    <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                <div className="grid grid-cols-2 gap-3 min-w-0">
+                  <label className="flex flex-col gap-1.5 min-w-0">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Término</span>
+                    <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
                   </label>
                   {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                    <label className="flex flex-col gap-1.5">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase">Retorno</span>
-                      <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
+                    <label className="flex flex-col gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Retorno</span>
+                      <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
                     </label>
                   )}
                 </div>

@@ -1072,7 +1072,7 @@ export default function AdminEditScalePage() {
                   />
                 </div>
 
-                {/* Bloco 4: Músicos */}
+                {/* Bloco 4: Efetivo */}
                 <div className="flex flex-col gap-3">
                   {recentScales.length > 0 && (
                     <div className="flex flex-col gap-2 mb-2">
@@ -1088,7 +1088,7 @@ export default function AdminEditScalePage() {
                             <span className="text-xs font-bold text-gray-900 dark:text-white line-clamp-1">{scale.title}</span>
                             <div className="flex items-center gap-1 text-[10px] text-gray-500 font-medium lowercase">
                               <span className="material-symbols-outlined text-[12px]">group</span>
-                              {scale.musicians?.length || 0} músicos
+                              {scale.musicians?.length || 0} no efetivo
                             </div>
                           </button>
                         ))}

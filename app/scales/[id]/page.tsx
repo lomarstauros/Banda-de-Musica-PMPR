@@ -431,7 +431,7 @@ export default function ScaleDetailsPage() {
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Efetivo Escalado</h3>
-              <span className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full font-medium">{scale.musicians?.length || 0} Músicos</span>
+              <span className="text-xs bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full font-medium">{scale.musicians?.length || 0} Efetivo</span>
             </div>
             <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
               {scale.musicians?.map((person: any, i: number) => (

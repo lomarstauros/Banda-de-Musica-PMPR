@@ -76,21 +76,15 @@ export function DesktopSidebar() {
       active: pathname === '/dashboard',
     },
     {
-      label: 'Programação',
-      href: '/calendar',
-      icon: 'calendar_month',
-      active: pathname.startsWith('/calendar'),
+      label: 'Escalas',
+      href: '/admin/scales',
+      icon: 'format_list_bulleted',
+      active: pathname.startsWith('/admin/scales') || (pathname.startsWith('/scales') && !pathname.startsWith('/swaps')),
     },
     ...(userRole === 'admin' || userRole === 'master'
       ? [
           {
-            label: 'Escalas',
-            href: '/admin/scales',
-            icon: 'format_list_bulleted',
-            active: pathname.startsWith('/admin/scales') || (pathname.startsWith('/scales') && !pathname.startsWith('/swaps')),
-          },
-          {
-            label: 'Músicos',
+            label: 'Efetivo',
             href: '/admin/musicians',
             icon: 'groups',
             active: pathname.startsWith('/admin/musicians'),
@@ -153,7 +147,7 @@ export function DesktopSidebar() {
           <div className="flex flex-col">
             <span className="text-base font-extrabold text-white tracking-tight leading-tight">Banda PMPR</span>
             <span className="text-[11px] font-medium text-gray-400">
-              {userRole === 'master' ? 'Painel Master' : userRole === 'admin' ? 'Painel Gestor' : 'Portal do Músico'}
+              {userRole === 'master' ? 'Painel Master' : userRole === 'admin' ? 'Painel Gestor' : 'Portal do Efetivo'}
             </span>
           </div>
         </Link>

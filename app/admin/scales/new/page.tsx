@@ -674,7 +674,7 @@ export default function AdminNewScalePage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Escalas Publicadas!</h2>
           <p className="text-gray-500 dark:text-gray-400 leading-relaxed mb-10">
-            A rotina e os serviços para o dia <strong className="text-gray-700 dark:text-gray-300">{sharedDate}</strong> foram salvos com sucesso e os músicos notificados.
+            A rotina e os serviços para o dia <strong className="text-gray-700 dark:text-gray-300">{sharedDate}</strong> foram salvos com sucesso e o efetivo notificado.
           </p>
         </motion.div>
       </div>

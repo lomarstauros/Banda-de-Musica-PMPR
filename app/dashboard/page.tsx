@@ -588,7 +588,7 @@ export default function DashboardPage() {
                       {currentFeaturedScale.musicians?.length > 0 && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/5 text-gray-300 border border-white/10">
                           <span className="material-symbols-outlined text-[16px]">groups</span>
-                          {currentFeaturedScale.musicians.length} músicos
+                          {currentFeaturedScale.musicians.length} no efetivo
                         </span>
                       )}
                     </div>

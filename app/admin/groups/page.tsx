@@ -19,7 +19,7 @@ export default function AdminGroupsPage() {
         <main className="flex-1 p-4 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Grupos de Instrumentos</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Organize os músicos por naipes para facilitar a criação de escalas.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Organize o efetivo por naipes para facilitar a criação de escalas.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
@@ -35,7 +35,7 @@ export default function AdminGroupsPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-base font-bold text-gray-900 dark:text-white">{group.name}</h3>
-                  <p className="text-xs text-gray-500 font-medium">{group.count} Músicos cadastrados</p>
+                  <p className="text-xs text-gray-500 font-medium">{group.count} Militares cadastrados</p>
                 </div>
                 <button className="size-10 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors">
                   <span className="material-symbols-outlined">chevron_right</span>
@@ -53,13 +53,13 @@ export default function AdminGroupsPage() {
               </Link>
               <Link href="/admin/musicians/new" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:bg-gray-100 transition-colors gap-2">
                 <span className="material-symbols-outlined text-gray-500 text-[28px]">person_add</span>
-                <span className="text-xs font-bold text-gray-600 dark:text-gray-400">Novo Músico</span>
+                <span className="text-xs font-bold text-gray-600 dark:text-gray-400">Novo Militar</span>
               </Link>
             </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-3">
-            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-1">Músicos Recentes</h3>
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-1">Efetivo Recente</h3>
             <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
               {[
                 { name: 'Sd. Rocha', instrument: 'Trombone', group: 'Metais' },

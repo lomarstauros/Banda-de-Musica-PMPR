@@ -93,8 +93,8 @@ export default function AdminNewNoticePage() {
 
         <main className="flex-1 p-6 flex flex-col gap-6">
           <div className="flex flex-col gap-2">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Comunicar a Banda</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Envie comunicados, ordens de serviço ou avisos urgentes para os músicos.</p>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Comunicar o Efetivo</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Envie comunicados, ordens de serviço ou avisos urgentes para o efetivo.</p>
           </div>
 
           <div className="flex flex-col gap-4">

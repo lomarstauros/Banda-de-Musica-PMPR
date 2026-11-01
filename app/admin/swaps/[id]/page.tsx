@@ -22,7 +22,7 @@ export default function AdminSwapDetailPage() {
         <main className="flex-1 p-6 flex flex-col gap-8">
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Solicitação de Troca</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Revise os detalhes da permuta entre os músicos antes de aprovar ou recusar.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Revise os detalhes da permuta entre os militares do efetivo antes de aprovar ou recusar.</p>
           </div>
 
           <div className="flex items-center justify-between px-4 py-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">

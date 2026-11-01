@@ -7,12 +7,17 @@ import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDoc,
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { getFormatColors } from '@/lib/scale-formats';
-import { generateScalePDF } from '@/lib/pdf-generator';
+import { generateScalePDF, generateDailyScalesPDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
+import { sortByRankThenName } from '@/lib/sort-military';
+import { useFirebase } from '@/components/providers/firebase-provider';
 
 export default function AdminScalesListPage() {
+  const { user } = useFirebase();
+  const [userRole, setUserRole] = useState<'user' | 'admin' | 'master'>('user');
   const [scales, setScales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedScaleIds, setExpandedScaleIds] = useState<string[]>([]);
 
   const now = new Date();
   const [currentDateObj, setCurrentDateObj] = useState(new Date());
@@ -28,6 +33,28 @@ export default function AdminScalesListPage() {
     setSelectedDate(new Date().getDate());
   }, []);
 
+  // Verificar papel do usuário logado (gestor / master / militar)
+  useEffect(() => {
+    const checkRole = async () => {
+      if (user) {
+        try {
+          const snap = await getDoc(doc(db, 'profiles', user.uid));
+          if (snap.exists()) {
+            const role = snap.data().role?.toLowerCase();
+            if (role === 'master') {
+              setUserRole('master');
+            } else if (role === 'admin' || role === 'manager') {
+              setUserRole('admin');
+            }
+          }
+        } catch (error) {
+          console.error("Erro ao verificar papel:", error);
+        }
+      }
+    };
+    checkRole();
+  }, [user]);
+
   useEffect(() => {
     const q = query(collection(db, 'scales'), orderBy('date', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -41,6 +68,12 @@ export default function AdminScalesListPage() {
 
     return () => unsubscribe();
   }, []);
+
+  const toggleScaleRoster = (id: string) => {
+    setExpandedScaleIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const handleDelete = async (id: string, title: string) => {
     if (window.confirm(`Tem certeza que deseja excluir a escala "${title}"?`)) {
@@ -160,21 +193,27 @@ export default function AdminScalesListPage() {
   const weekDayName = selectedDayDate.toLocaleDateString('pt-BR', { weekday: 'long' });
   const capitalizedWeekDayName = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1);
 
+  const isManager = userRole === 'admin' || userRole === 'master';
+
   return (
     <div className="bg-transparent font-sans flex flex-col items-center lg:items-stretch w-full">
       <div className="relative w-full max-w-md lg:max-w-none bg-background-light dark:bg-[#121620]/90 backdrop-blur-xl lg:rounded-3xl lg:border lg:border-white/10 flex flex-col h-full min-h-screen lg:min-h-0 shadow-2xl">
         <header className="sticky top-0 z-10 bg-background-light/95 dark:bg-[#121620]/95 backdrop-blur-md px-4 lg:px-6 py-3.5 flex items-center justify-between border-b border-gray-200 dark:border-white/10 lg:rounded-t-3xl">
-          <Link href="/admin/swaps">
+          <Link href={isManager ? "/admin/swaps" : "/dashboard"}>
             <button className="flex items-center justify-center p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-900 dark:text-white">
               <span className="material-symbols-outlined">arrow_back_ios_new</span>
             </button>
           </Link>
           <h1 className="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">Escalas Publicadas</h1>
-          <Link href="/admin/scales/new">
-            <button className="flex items-center justify-center p-2 rounded-full text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
-              <span className="material-symbols-outlined">add</span>
-            </button>
-          </Link>
+          {isManager ? (
+            <Link href="/admin/scales/new">
+              <button className="flex items-center justify-center p-2 rounded-full text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Nova Escala">
+                <span className="material-symbols-outlined">add</span>
+              </button>
+            </Link>
+          ) : (
+            <div className="size-9" />
+          )}
         </header>
 
         <main className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-6 p-4 lg:p-6 pb-24 overflow-x-hidden">
@@ -213,90 +252,210 @@ export default function AdminScalesListPage() {
 
           {/* Coluna Direita: Escalas do dia selecionado (7 colunas no desktop) */}
           <div className="lg:col-span-7 flex flex-col gap-4">
-            <div className="flex flex-col">
-              <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">{capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}</h3>
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">
+                {capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}
+              </h3>
+              {selectedEvents.some(e => e.classification !== 'folga') && (
+                <button 
+                  onClick={() => generateDailyScalesPDF(selectedEvents.filter(e => e.classification !== 'folga'))}
+                  title="Baixar todas as escalas do dia em PDF"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 text-xs font-bold"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  <span className="hidden sm:inline">PDF do Dia</span>
+                </button>
+              )}
             </div>
 
-          <div className="flex flex-col gap-4 px-4 pb-8 mt-2">
-            {selectedEvents.length === 0 ? (
-               <div className="flex flex-col items-center justify-center py-12 text-gray-400 text-center">
-                   <span className="material-symbols-outlined text-[48px] mb-2">event_busy</span>
-                   <p className="text-sm font-medium">Nenhuma escala neste dia.</p>
-               </div>
-            ) : selectedEvents.map((scale: any) => (
-              <div key={scale.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-white">{scale.title}</h3>
-                      {scale.classification === 'provisoria' && (
-                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 uppercase tracking-widest">
-                          Provisória
-                        </span>
+            <div className="flex flex-col gap-4 px-1 pb-8 mt-1">
+              {selectedEvents.length === 0 ? (
+                 <div className="flex flex-col items-center justify-center py-12 text-gray-400 text-center bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+                     <span className="material-symbols-outlined text-[48px] mb-2 opacity-50">event_busy</span>
+                     <p className="text-sm font-medium">Nenhuma escala neste dia.</p>
+                 </div>
+              ) : selectedEvents.map((scale: any) => {
+                // Banner especial para dias marcados como "Folga"
+                if (scale.classification === 'folga') {
+                  return (
+                    <div key={scale.id} className="relative overflow-hidden group flex flex-col rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-md p-6 flex items-center justify-center">
+                      <div className="absolute -right-4 -top-4 opacity-20 pointer-events-none">
+                        <span className="material-symbols-outlined text-[100px] text-white">weekend</span>
+                      </div>
+                      <div className="flex flex-col items-center gap-2 z-10 text-white">
+                        <span className="material-symbols-outlined text-[32px]">event_available</span>
+                        <h3 className="text-xl font-black tracking-[0.2em] uppercase">Folga</h3>
+                        <p className="text-xs font-medium text-emerald-100">Não há serviço escalado</p>
+                      </div>
+                      {isManager && (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 z-20">
+                          <Link href={`/admin/scales/${scale.id}/edit`} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors" title="Editar">
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </Link>
+                          <button onClick={() => handleDelete(scale.id, 'Folga')} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors" title="Excluir">
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500">{fmtDate(scale.date)}</span>
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold border ${getFormatColors(scale.format).bg} ${getFormatColors(scale.format).text} ${getFormatColors(scale.format).border}`}>
-                        {scale.format}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-1 mt-1 justify-between bg-slate-50 dark:bg-slate-800/50 p-2 rounded-xl">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-2">
-                    <span className="material-symbols-outlined text-[16px]">group</span>
-                    {scale.musicians?.length || 0} Efetivo
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => generateScalePDF(scale)}
-                      className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-primary hover:bg-primary/10 transition-colors"
-                      title="Baixar PDF da Escala"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">download</span>
-                    </button>
-                    <Link href={`/admin/scales/${scale.id}/confirmations`}>
-                      <button 
-                        className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
-                        title="Ver Confirmações"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">fact_check</span>
-                      </button>
-                    </Link>
-                    <Link href={`/admin/scales/${scale.id}/edit`}>
-                      <button 
-                        className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                        title="Editar Escala"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">edit</span>
-                      </button>
-                    </Link>
-                    <button 
-                      onClick={() => handleDelete(scale.id, scale.title)}
-                      className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="Excluir Escala"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">delete</span>
-                    </button>
-                  </div>
-                </div>
+                  );
+                }
 
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {scale.musicians?.slice(0, 3).map((m: any, i: number) => (
-                    <span key={i} className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-600 dark:text-gray-400">
-                      {m.rank} {m.war_name || m.name}
-                    </span>
-                  ))}
-                  {(scale.musicians?.length > 3) && (
-                    <span className="text-[10px] text-gray-400 px-1 py-0.5 font-bold">+{scale.musicians.length - 3}</span>
-                  )}
-                </div>
-              </div>
-            ))}
+                const isExpanded = expandedScaleIds.includes(scale.id);
+                const sortedMusicians = [...(scale.musicians || [])].sort(sortByRankThenName);
+
+                return (
+                  <div key={scale.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white">{scale.title}</h3>
+                          {scale.classification === 'provisoria' && (
+                            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 uppercase tracking-widest">
+                              Provisória
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500">{fmtDate(scale.date)}</span>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold border ${getFormatColors(scale.format).bg} ${getFormatColors(scale.format).text} ${getFormatColors(scale.format).border}`}>
+                            {scale.format}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-2 mt-1 justify-between bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wider pl-1">
+                          <span className="material-symbols-outlined text-[18px] text-primary">groups</span>
+                          <span>{sortedMusicians.length} Efetivo</span>
+                        </div>
+
+                        {/* Botão para alternar exibição completa / compacta dos nomes escalados */}
+                        {sortedMusicians.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleScaleRoster(scale.id)}
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                              isExpanded 
+                                ? 'bg-primary text-white border-primary shadow-sm' 
+                                : 'bg-white dark:bg-slate-900 text-primary border-primary/30 hover:bg-primary/10'
+                            } active:scale-95`}
+                            title={isExpanded ? "Ocultar nomes escalados" : "Mostrar todos os nomes na sequência padrão por graduação"}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">
+                              {isExpanded ? 'visibility_off' : 'visibility'}
+                            </span>
+                            <span>{isExpanded ? 'Ocultar Efetivo' : 'Ver Efetivo'}</span>
+                            <span className={`material-symbols-outlined text-[16px] transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                              expand_more
+                            </span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => generateScalePDF(scale)}
+                          className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Baixar PDF da Escala"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">download</span>
+                        </button>
+                        <Link href={`/admin/scales/${scale.id}/confirmations`}>
+                          <button 
+                            className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+                            title="Ver Confirmações"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">fact_check</span>
+                          </button>
+                        </Link>
+                        {isManager && (
+                          <>
+                            <Link href={`/admin/scales/${scale.id}/edit`}>
+                              <button 
+                                className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                title="Editar Escala"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                            </Link>
+                            <button 
+                              onClick={() => handleDelete(scale.id, scale.title)}
+                              className="size-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                              title="Excluir Escala"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Exibição dos militares escalados: Compacta ou Expandida */}
+                    {!isExpanded ? (
+                      <div 
+                        onClick={() => toggleScaleRoster(scale.id)}
+                        className="flex flex-wrap items-center gap-1.5 mt-1 cursor-pointer group/roster p-1 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                        title="Clique para ver todos os nomes escalados"
+                      >
+                        {sortedMusicians.slice(0, 3).map((m: any, i: number) => (
+                          <span key={i} className="text-[10px] font-medium bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300 border border-gray-200/50 dark:border-gray-700/50">
+                            {m.rank} {m.war_name || m.name}
+                          </span>
+                        ))}
+                        {sortedMusicians.length > 3 && (
+                          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded group-hover/roster:bg-primary group-hover/roster:text-white transition-colors">
+                            +{sortedMusicians.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">military_tech</span>
+                            Efetivo Escalado (Sequência Padrão por Graduação)
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={() => toggleScaleRoster(scale.id)}
+                            className="text-[11px] font-semibold text-gray-500 hover:text-red-500 flex items-center gap-0.5"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                            Ocultar
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-80 overflow-y-auto pr-1">
+                          {sortedMusicians.map((m: any, idx: number) => (
+                            <div 
+                              key={m.id || idx}
+                              className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <span className="size-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                                  {idx + 1}
+                                </span>
+                                <span className="font-semibold text-gray-900 dark:text-white truncate">
+                                  {m.rank} {m.war_name || m.name}
+                                </span>
+                              </div>
+                              {m.instrument && (
+                                <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400 shrink-0 bg-white dark:bg-slate-900 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-800">
+                                  {m.instrument}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
         </main>
       </div>
     </div>

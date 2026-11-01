@@ -573,50 +573,52 @@ export default function AdminEditScalePage() {
             {/* Bloco 2: Cronograma (AGORA PRIMEIRO) */}
             <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Cronograma</h3>
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Data</span>
-                <input 
-                  name="date" type="date" value={formData.date} onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                />
-              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Data</span>
+                  <input 
+                    name="date" type="date" value={formData.date} onChange={handleChange}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                  />
+                </label>
 
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Formato</span>
-                <div className="relative">
-                  <select 
-                    name="format" value={formData.format} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
-                  >
-                    <option>Ensaio</option>
-                    <option>Expediente Administrativo</option>
-                    <option>Apresentação local fechado</option>
-                    <option>Apresentação local aberto</option>
-                    <option>Formatura Militar</option>
-                    <option>Outros</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Formato</span>
+                  <div className="relative">
+                    <select 
+                      name="format" value={formData.format} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                    >
+                      <option>Ensaio</option>
+                      <option>Expediente Administrativo</option>
+                      <option>Apresentação local fechado</option>
+                      <option>Apresentação local aberto</option>
+                      <option>Formatura Militar</option>
+                      <option>Outros</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                    </div>
                   </div>
-                </div>
-              </label>
-              
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Escala</span>
-                <div className="relative">
-                  <select 
-                    name="classification" value={formData.classification} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
-                  >
-                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
-                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
-                    <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="folga">FOLGA</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                </label>
+                
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Tipo de Escala</span>
+                  <div className="relative">
+                    <select 
+                      name="classification" value={formData.classification} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                    >
+                      <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="completa">Escala Completa</option>
+                      <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="provisoria">Escala Provisória</option>
+                      <option className="text-gray-900 bg-white dark:bg-gray-800 dark:text-white" value="folga">FOLGA</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                    </div>
                   </div>
-                </div>
-              </label>
+                </label>
+              </div>
 
               {formData.classification !== 'folga' && (
                 <label className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
@@ -657,7 +659,7 @@ export default function AdminEditScalePage() {
                 </motion.label>
               )}
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
                   <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
                     <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
@@ -674,9 +676,6 @@ export default function AdminEditScalePage() {
                     className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
                   />
                 </label>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Término Previsto</span>
                   <input 
@@ -700,354 +699,364 @@ export default function AdminEditScalePage() {
               <>
                 {/* Bloco 0: Expediente Administrativo */}
                 <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 flex flex-col gap-4 shadow-sm">
-
-              {/* Referência */}
-              <label className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
-                  <button 
-                    type="button"
-                    onClick={() => setExpediente(prev => ({ ...prev, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))}
-                    className="text-[10px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
-                  >
-                    Usar padrão do Maestro
-                  </button>
-                </div>
-                <input type="text" value={expediente.referencia}
-                  onChange={e => setExpediente(prev => ({ ...prev, referencia: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
-                  placeholder="Ex: Of. nº 123/2026 - CBPMPR" />
-              </label>
-
-              {/* Maestro Chefe */}
-              {(() => {
-                const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'comandante da banda de música');
-                return (
+                  {/* Referência */}
                   <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Maestro Chefe</span>
-                    <div className="relative">
-                      <select value={expediente.regenteMaestro}
-                        onChange={e => {
-                          const m = musicians.find((x: any) => x.id === e.target.value);
-                          if (m && !isMusicianAvailable(m, formData.date)) return;
-                          setExpediente(prev => ({ ...prev, regenteMaestro: e.target.value }));
-                        }}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                        <option value="">— Selecione —</option>
-                        {opts.map((m: any) => {
-                          const available = isMusicianAvailable(m, formData.date);
-                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Referência</span>
+                      <button 
+                        type="button"
+                        onClick={() => setExpediente(prev => ({ ...prev, referencia: 'Determinação do Sr. Maestro Chefe da Banda de Música.' }))}
+                        className="text-[10px] font-bold text-primary bg-primary/5 hover:bg-primary/10 px-2 py-1 rounded-lg transition-colors"
+                      >
+                        Usar padrão do Maestro
+                      </button>
                     </div>
+                    <input type="text" value={expediente.referencia}
+                      onChange={e => setExpediente(prev => ({ ...prev, referencia: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                      placeholder="Ex: Of. nº 123/2026 - CBPMPR" />
                   </label>
-                );
-              })()}
 
-              {/* Regente */}
-              {(() => {
-                const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'subcomandante da banda de música');
-                return (
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente</span>
-                    <div className="relative">
-                      <select value={expediente.regente}
-                        onChange={e => {
-                          const m = musicians.find((x: any) => x.id === e.target.value);
-                          if (m && !isMusicianAvailable(m, formData.date)) return;
-                          setExpediente(prev => ({ ...prev, regente: e.target.value }));
-                        }}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                        <option value="">— Selecione (Opcional) —</option>
-                        {opts.map((m: any) => {
-                          const available = isMusicianAvailable(m, formData.date);
-                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                  </label>
-                );
-              })()}
+                  {/* Cargos em Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Maestro Chefe */}
+                    {(() => {
+                      const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'comandante da banda de música');
+                      return (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Maestro Chefe</span>
+                          <div className="relative">
+                            <select value={expediente.regenteMaestro}
+                              onChange={e => {
+                                const m = musicians.find((x: any) => x.id === e.target.value);
+                                if (m && !isMusicianAvailable(m, formData.date)) return;
+                                setExpediente(prev => ({ ...prev, regenteMaestro: e.target.value }));
+                              }}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                              <option value="">— Selecione —</option>
+                              {opts.map((m: any) => {
+                                const available = isMusicianAvailable(m, formData.date);
+                                const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                                return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                              })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </label>
+                      );
+                    })()}
 
-              {/* Arquivo */}
-              {(() => {
-                const opts = musicians.filter(isAdminFunction);
-                return (
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Arquivo</span>
-                    <div className="relative">
-                      <select value={expediente.arquivo}
-                        onChange={e => {
-                          const m = musicians.find((x: any) => x.id === e.target.value);
-                          if (m && !isMusicianAvailable(m, formData.date)) return;
-                          setExpediente(prev => ({ ...prev, arquivo: e.target.value }));
-                        }}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                        <option value="">— Selecione —</option>
-                        {opts.map((m: any) => {
-                          const available = isMusicianAvailable(m, formData.date);
-                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                  </label>
-                );
-              })()}
+                    {/* Regente */}
+                    {(() => {
+                      const opts = musicians.filter((m: any) => (m.instrument || '').toLowerCase() === 'subcomandante da banda de música');
+                      return (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Regente</span>
+                          <div className="relative">
+                            <select value={expediente.regente}
+                              onChange={e => {
+                                const m = musicians.find((x: any) => x.id === e.target.value);
+                                if (m && !isMusicianAvailable(m, formData.date)) return;
+                                setExpediente(prev => ({ ...prev, regente: e.target.value }));
+                              }}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                              <option value="">— Selecione (Opcional) —</option>
+                              {opts.map((m: any) => {
+                                const available = isMusicianAvailable(m, formData.date);
+                                const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                                return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                              })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </label>
+                      );
+                    })()}
 
-              {/* Sargenteação */}
-              {(() => {
-                const opts = musicians.filter(isAdminFunction);
-                return (
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Sargenteação</span>
-                    <div className="relative">
-                      <select value={expediente.sargenteacao}
-                        onChange={e => {
-                          const m = musicians.find((x: any) => x.id === e.target.value);
-                          if (m && !isMusicianAvailable(m, formData.date)) return;
-                          setExpediente(prev => ({ ...prev, sargenteacao: e.target.value }));
-                        }}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                        <option value="">— Selecione —</option>
-                        {opts.map((m: any) => {
-                          const available = isMusicianAvailable(m, formData.date);
-                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                  </label>
-                );
-              })()}
+                    {/* Arquivo */}
+                    {(() => {
+                      const opts = musicians.filter(isAdminFunction);
+                      return (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Arquivo</span>
+                          <div className="relative">
+                            <select value={expediente.arquivo}
+                              onChange={e => {
+                                const m = musicians.find((x: any) => x.id === e.target.value);
+                                if (m && !isMusicianAvailable(m, formData.date)) return;
+                                setExpediente(prev => ({ ...prev, arquivo: e.target.value }));
+                              }}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                              <option value="">— Selecione —</option>
+                              {opts.map((m: any) => {
+                                const available = isMusicianAvailable(m, formData.date);
+                                const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                                return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                              })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </label>
+                      );
+                    })()}
 
-              {/* P4 / Finanças / Transporte */}
-              {(() => {
-                const opts = musicians.filter(isAdminFunction);
-                return (
-                  <label className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">P4 / Finanças / Transporte</span>
-                    <div className="relative">
-                      <select value={expediente.p4FinancasTransporte}
-                        onChange={e => {
-                          const m = musicians.find((x: any) => x.id === e.target.value);
-                          if (m && !isMusicianAvailable(m, formData.date)) return;
-                          setExpediente(prev => ({ ...prev, p4FinancasTransporte: e.target.value }));
-                        }}
-                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                        <option value="">— Selecione —</option>
-                        {opts.map((m: any) => {
-                          const available = isMusicianAvailable(m, formData.date);
-                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                          return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
-                        })}
-                      </select>
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                  </label>
-                );
-              })()}
+                    {/* Sargenteação */}
+                    {(() => {
+                      const opts = musicians.filter(isAdminFunction);
+                      return (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Sargenteação</span>
+                          <div className="relative">
+                            <select value={expediente.sargenteacao}
+                              onChange={e => {
+                                const m = musicians.find((x: any) => x.id === e.target.value);
+                                if (m && !isMusicianAvailable(m, formData.date)) return;
+                                setExpediente(prev => ({ ...prev, sargenteacao: e.target.value }));
+                              }}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                              <option value="">— Selecione —</option>
+                              {opts.map((m: any) => {
+                                const available = isMusicianAvailable(m, formData.date);
+                                const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                                return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                              })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </label>
+                      );
+                    })()}
 
-              {/* Administrativo — múltipla seleção */}
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Administrativo
-                  {expediente.administrativo.length > 0 && (
-                    <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.administrativo.length} sel.</span>
-                  )}
-                </span>
-                {expediente.administrativo.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {expediente.administrativo.map(id => (
-                      <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
-                        {getMusicianLabel(id)}
-                        <button type="button" onClick={() => toggleMulti('administrativo', id)} className="ml-0.5 hover:text-red-500 transition-colors">
-                          <span className="material-symbols-outlined text-[12px]">close</span>
-                        </button>
+                    {/* P4 / Finanças / Transporte */}
+                    {(() => {
+                      const opts = musicians.filter(isAdminFunction);
+                      return (
+                        <label className="flex flex-col gap-2">
+                          <span className="text-sm font-bold text-gray-700 dark:text-gray-300">P4 / Finanças / Transporte</span>
+                          <div className="relative">
+                            <select value={expediente.p4FinancasTransporte}
+                              onChange={e => {
+                                const m = musicians.find((x: any) => x.id === e.target.value);
+                                if (m && !isMusicianAvailable(m, formData.date)) return;
+                                setExpediente(prev => ({ ...prev, p4FinancasTransporte: e.target.value }));
+                              }}
+                              className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                              <option value="">— Selecione —</option>
+                              {opts.map((m: any) => {
+                                const available = isMusicianAvailable(m, formData.date);
+                                const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                                return <option key={m.id} value={m.id} disabled={!available}>{available ? label : `🔒 ${label} [${m.militaryStatus}]`}</option>;
+                              })}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </label>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Seleção Múltipla em Grid de 3 Colunas no Desktop */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-blue-50 dark:border-blue-900/20">
+                    {/* Administrativo — múltipla seleção */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                        Administrativo
+                        {expediente.administrativo.length > 0 && (
+                          <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.administrativo.length} sel.</span>
+                        )}
                       </span>
-                    ))}
-                  </div>
-                )}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
-                  {musicians.map((m: any) => {
-                    const available = isMusicianAvailable(m, formData.date);
-                    const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                    const checked = expediente.administrativo.includes(m.id);
-                    return (
-                      <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                        !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                        checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                      }`}>
-                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('administrativo', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
-                        <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                        {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
-                        <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+                      {expediente.administrativo.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {expediente.administrativo.map(id => (
+                            <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
+                              {getMusicianLabel(id)}
+                              <button type="button" onClick={() => toggleMulti('administrativo', id)} className="ml-0.5 hover:text-red-500 transition-colors">
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
+                        {musicians.map((m: any) => {
+                          const available = isMusicianAvailable(m, formData.date);
+                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                          const checked = expediente.administrativo.includes(m.id);
+                          return (
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                            }`}>
+                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('administrativo', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
+                              <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
+                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-              {/* Obra — múltipla seleção */}
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Obra
-                  {expediente.obra.length > 0 && (
-                    <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.obra.length} sel.</span>
-                  )}
-                </span>
-                {expediente.obra.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {expediente.obra.map(id => (
-                      <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
-                        {getMusicianLabel(id)}
-                        <button type="button" onClick={() => toggleMulti('obra', id)} className="ml-0.5 hover:text-red-500 transition-colors">
-                          <span className="material-symbols-outlined text-[12px]">close</span>
-                        </button>
+                    {/* Obra — múltipla seleção */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                        Obra
+                        {expediente.obra.length > 0 && (
+                          <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.obra.length} sel.</span>
+                        )}
                       </span>
-                    ))}
-                  </div>
-                )}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
-                  {musicians.map((m: any) => {
-                    const available = isMusicianAvailable(m, formData.date);
-                    const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                    const checked = expediente.obra.includes(m.id);
-                    return (
-                      <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                        !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                        checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                      }`}>
-                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('obra', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
-                        <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                        {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
-                        <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+                      {expediente.obra.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {expediente.obra.map(id => (
+                            <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
+                              {getMusicianLabel(id)}
+                              <button type="button" onClick={() => toggleMulti('obra', id)} className="ml-0.5 hover:text-red-500 transition-colors">
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
+                        {musicians.map((m: any) => {
+                          const available = isMusicianAvailable(m, formData.date);
+                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                          const checked = expediente.obra.includes(m.id);
+                          return (
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                            }`}>
+                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('obra', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
+                              <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
+                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-              {/* Permanência — múltipla seleção */}
-              <div className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Permanência
-                  {expediente.permanencia.length > 0 && (
-                    <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.permanencia.length} sel.</span>
-                  )}
-                </span>
-                {expediente.permanencia.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    {expediente.permanencia.map(id => (
-                      <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
-                        {getMusicianLabel(id)}
-                        <button type="button" onClick={() => toggleMulti('permanencia', id)} className="ml-0.5 hover:text-red-500 transition-colors">
-                          <span className="material-symbols-outlined text-[12px]">close</span>
-                        </button>
+                    {/* Permanência — múltipla seleção */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                        Permanência
+                        {expediente.permanencia.length > 0 && (
+                          <span className="ml-2 text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{expediente.permanencia.length} sel.</span>
+                        )}
                       </span>
-                    ))}
-                  </div>
-                )}
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
-                  {musicians.map((m: any) => {
-                    const available = isMusicianAvailable(m, formData.date);
-                    const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
-                    const checked = expediente.permanencia.includes(m.id);
-                    return (
-                      <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
-                        !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
-                        checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
-                      }`}>
-                        <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('permanencia', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
-                        <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                        {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
-                        <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Chefe do Serviço */}
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-3 shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[18px] text-amber-500">military_tech</span>
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Chefe do Serviço</span>
-              </div>
-              <div className="relative">
-                <select value={serviceChief}
-                  onChange={e => {
-                    const newId = e.target.value;
-                    setServiceChief(newId);
-                    if (newId) setSelectedMusicians(prev => prev.filter(id => id !== newId));
-                  }}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
-                  <option value="">— Selecione o Chefe do Serviço —</option>
-                  {musicians
-                    .filter((m: any) => isMusicianAvailable(m, formData.date))
-                    .map((m: any) => {
-                      const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name || 'Sem nome';
-                      return <option key={m.id} value={m.id}>{label}{m.instrument ? ` — ${m.instrument}` : ''}</option>;
-                    })}
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Nome do Evento</span>
-                <input 
-                  name="title" value={formData.title} onChange={handleChange}
-                  className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                />
-              </label>
-
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Local do Evento</span>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined text-[20px]">location_on</span>
-                  </div>
-                  <input 
-                    name="location" value={formData.location} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                  />
-                </div>
-              </label>
-              
-              <label className="flex flex-col gap-2">
-                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Uniforme Exigido</span>
-                <div className="relative">
-                  <select 
-                    name="uniform" value={formData.uniform} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
-                  >
-                    <option>Especial A1-A / A1-B</option>
-                    <option>Outros</option>
-                  </select>
-                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                    <span className="material-symbols-outlined">expand_more</span>
+                      {expediente.permanencia.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-1">
+                          {expediente.permanencia.map(id => (
+                            <span key={id} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary border border-primary/20 rounded-full px-2.5 py-0.5 font-medium">
+                              {getMusicianLabel(id)}
+                              <button type="button" onClick={() => toggleMulti('permanencia', id)} className="ml-0.5 hover:text-red-500 transition-colors">
+                                <span className="material-symbols-outlined text-[12px]">close</span>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 max-h-[160px] overflow-y-auto no-scrollbar divide-y divide-gray-100 dark:divide-gray-700">
+                        {musicians.map((m: any) => {
+                          const available = isMusicianAvailable(m, formData.date);
+                          const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name;
+                          const checked = expediente.permanencia.includes(m.id);
+                          return (
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                              !available ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800/40' :
+                              checked ? 'bg-primary/5 cursor-pointer' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 cursor-pointer'
+                            }`}>
+                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('permanencia', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
+                              <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
+                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </label>
 
-              {formData.uniform === 'Outros' && (
-                <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Uniforme</span>
-                  <input 
-                    name="customUniform" value={formData.customUniform} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                  />
-                </motion.label>
-              )}
-            </div>
+                {/* Bloco Detalhes do Evento */}
+                <div className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex flex-col gap-4 shadow-sm">
+                  {/* Chefe do Serviço */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-amber-500">military_tech</span>
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Chefe do Serviço</span>
+                    </div>
+                    <div className="relative">
+                      <select value={serviceChief}
+                        onChange={e => {
+                          const newId = e.target.value;
+                          setServiceChief(newId);
+                          if (newId) setSelectedMusicians(prev => prev.filter(id => id !== newId));
+                        }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all">
+                        <option value="">— Selecione o Chefe do Serviço —</option>
+                        {musicians
+                          .filter((m: any) => isMusicianAvailable(m, formData.date))
+                          .map((m: any) => {
+                            const label = m.war_name ? `${m.rank || ''} ${m.war_name}`.trim() : m.name || 'Sem nome';
+                            return <option key={m.id} value={m.id}>{label}{m.instrument ? ` — ${m.instrument}` : ''}</option>;
+                          })}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400"><span className="material-symbols-outlined">expand_more</span></div>
+                    </div>
+                  </div>
+
+                  {/* Informações Básicas em Grid no Desktop */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Nome do Evento</span>
+                      <input 
+                        name="title" value={formData.title} onChange={handleChange}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                      />
+                    </label>
+
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Local do Evento</span>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <span className="material-symbols-outlined text-[20px]">location_on</span>
+                        </div>
+                        <input 
+                          name="location" value={formData.location} onChange={handleChange}
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                        />
+                      </div>
+                    </label>
+                    
+                    <label className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Uniforme Exigido</span>
+                      <div className="relative">
+                        <select 
+                          name="uniform" value={formData.uniform} onChange={handleChange}
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none appearance-none transition-all"
+                        >
+                          <option>Especial A1-A / A1-B</option>
+                          <option>Outros</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                          <span className="material-symbols-outlined">expand_more</span>
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {formData.uniform === 'Outros' && (
+                    <motion.label initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Descreva o Uniforme</span>
+                      <input 
+                        name="customUniform" value={formData.customUniform} onChange={handleChange}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                      />
+                    </motion.label>
+                  )}
+                </div>
 
 
             {/* Bloco 3: Repertório */}

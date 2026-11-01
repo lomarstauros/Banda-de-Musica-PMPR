@@ -512,7 +512,11 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
   }
 };
 
-export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] = []) => {
+export const generateDailyScalesPDF = async (
+  scales: any[],
+  allProfiles: any[] = [],
+  options?: { action?: 'download' | 'view' }
+) => {
   try {
     if (typeof window === 'undefined' || !scales.length) return;
 
@@ -575,12 +579,22 @@ export const generateDailyScalesPDF = async (scales: any[], allProfiles: any[] =
 
     const dateStr = scales[0].date || 'sem_data';
     const filename = `Escalas_${dateStr}.pdf`;
-    downloadPDF(doc, filename);
+    if (options?.action === 'view') {
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+    } else {
+      downloadPDF(doc, filename);
+    }
 
   } catch (err) {
     console.error('ERRO PDF DIÁRIO:', err);
     alert('Erro ao gerar o PDF das escalas. Verifique o console para detalhes.');
   }
+};
+
+export const viewDailyScalesPDF = async (scales: any[], allProfiles: any[] = []) => {
+  return generateDailyScalesPDF(scales, allProfiles, { action: 'view' });
 };
 
 const downloadPDF = (doc: jsPDF, filename: string) => {

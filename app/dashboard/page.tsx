@@ -380,13 +380,6 @@ export default function DashboardPage() {
               </Link>
             )}
 
-            <Link href="/calendar" className="flex flex-col items-center gap-2 group shrink-0">
-              <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-indigo-400 group-hover:border-indigo-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition-all">
-                <span className="material-symbols-outlined text-[28px]">calendar_month</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Agenda</span>
-            </Link>
-
             <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/scales" : "/scales"} className="flex flex-col items-center gap-2 group shrink-0">
               <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-purple-400 group-hover:border-purple-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20 transition-all">
                 <span className="material-symbols-outlined text-[28px]">queue_music</span>
@@ -633,7 +626,7 @@ export default function DashboardPage() {
 
                       <Link href={`/scales/${currentFeaturedScale.id}`}>
                         <button className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95">
-                          <span>Ver a programação</span>
+                          <span>Abrir escala</span>
                           <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
                         </button>
                       </Link>

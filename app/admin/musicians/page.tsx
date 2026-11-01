@@ -143,52 +143,85 @@ export default function AdminMusiciansListPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredMusicians.map((musician) => {
               const currentStatus = getCurrentMilitaryStatus(musician);
+              const displayName = musician.war_name || musician.name || 'Militar';
+
               return (
-                <div key={musician.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group">
-                  <div className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-500 font-bold text-sm uppercase border border-gray-200 dark:border-gray-700">
-                    {musician.name?.split(' ').map((n: string) => n[0]).join('') || '??'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-white truncate">{musician.name}</h3>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                        musician.role === 'admin' || musician.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                        musician.role === 'Gestor' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
-                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                        {musician.role === 'musician' ? 'Músico' :
-                         musician.role === 'admin' ? 'Admin' :
-                         musician.role === 'manager' ? 'Gestor' :
-                         musician.role}
-                      </span>
-                      {currentStatus ? (
-                        <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                          {currentStatus}
-                        </span>
-                      ) : (
-                        <span className="flex-none text-[8px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                          ATIVO
-                        </span>
-                      )}
+                <div key={musician.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-start sm:items-center gap-3.5 shadow-sm hover:shadow-md transition-all group">
+                  {musician.photo_url ? (
+                    <div 
+                      className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 shrink-0 bg-cover bg-center border border-gray-200 dark:border-gray-700 shadow-sm"
+                      style={{ backgroundImage: `url(${musician.photo_url})` }}
+                    />
+                  ) : (
+                    <div className="size-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-xs uppercase border border-gray-200 dark:border-gray-700 shrink-0">
+                      {displayName.slice(0, 3)}
                     </div>
-                  <p className="text-xs text-gray-500 truncate">{musician.instrument}</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Link href={`/admin/musicians/${musician.id}/edit`}>
-                    <button className="p-2 text-gray-400 hover:text-primary transition-colors">
-                      <span className="material-symbols-outlined text-[20px]">edit</span>
+                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                      <h3 className="text-sm font-bold text-gray-900 dark:text-white break-words">
+                        {musician.rank && (
+                          <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 mr-1.5">
+                            {musician.rank}
+                          </span>
+                        )}
+                        <span className="text-gray-900 dark:text-white font-extrabold">
+                          {displayName}
+                        </span>
+                      </h3>
+
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          musician.role === 'admin' || musician.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                          musician.role === 'master' || musician.role === 'Master' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                          musician.role === 'Gestor' || musician.role === 'manager' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                          'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                        }`}>
+                          {musician.role === 'master' || musician.role === 'Master' ? 'Master' :
+                           musician.role === 'admin' || musician.role === 'Admin' ? 'Admin' :
+                           musician.role === 'manager' || musician.role === 'Gestor' ? 'Gestor' :
+                           'Efetivo'}
+                        </span>
+                        {currentStatus ? (
+                          <span className="text-[9px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            {currentStatus}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            ATIVO
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {musician.name && musician.war_name && musician.name !== musician.war_name && (
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate leading-tight">
+                        {musician.name}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5 truncate">
+                      {musician.instrument || 'Instrumento não definido'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0 self-center">
+                    <Link href={`/admin/musicians/${musician.id}/edit`}>
+                      <button className="p-2 text-gray-400 hover:text-primary transition-colors" title="Editar">
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
+                      </button>
+                    </Link>
+                    <button 
+                      onClick={() => handleDelete(musician.id, displayName)}
+                      className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                      title="Excluir"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">delete</span>
                     </button>
-                  </Link>
-                  <button 
-                    onClick={() => handleDelete(musician.id, musician.name)}
-                    className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">delete</span>
-                  </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
             {filteredMusicians.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                 <span className="material-symbols-outlined text-[48px] mb-2">person_off</span>

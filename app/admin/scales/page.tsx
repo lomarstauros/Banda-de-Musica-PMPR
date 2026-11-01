@@ -458,6 +458,7 @@ export default function AdminScalesListPage() {
             </div>
           </div>
         </main>
+        <BottomNav />
       </div>
     </div>
   );

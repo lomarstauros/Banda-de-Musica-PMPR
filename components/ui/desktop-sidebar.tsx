@@ -141,8 +141,12 @@ export function DesktopSidebar() {
       <div className="bg-[#121620]/95 dark:bg-[#121620]/95 backdrop-blur-2xl border border-white/10 dark:border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col h-full gap-5">
         {/* Brand / Logo */}
         <Link href="/dashboard" className="flex items-center gap-3 px-2 group">
-          <div className="size-11 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center p-2 shadow-lg shadow-blue-500/25 group-hover:scale-105 transition-transform">
-            <span className="material-symbols-outlined text-white text-[24px]">music_note</span>
+          <div className="size-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-1.5 shadow-lg shadow-black/20 group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+            <img 
+              src="/brasao_banda.png" 
+              alt="Brasão Banda de Música PMPR" 
+              className="w-full h-full object-contain drop-shadow" 
+            />
           </div>
           <div className="flex flex-col">
             <span className="text-base font-extrabold text-white tracking-tight leading-tight">Banda PMPR</span>

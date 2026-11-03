@@ -277,9 +277,9 @@ export default function DashboardPage() {
     <div className="bg-[#0b0e14] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
       
       {/* Mobile Top Header */}
-      <header className="lg:hidden flex items-center bg-[#121620]/95 backdrop-blur-md px-4 py-3 justify-between sticky top-0 z-50 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <header className="lg:hidden flex items-center bg-[#121620]/95 backdrop-blur-md px-4 py-3 justify-between sticky top-0 z-50 border-b border-white/5 gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="relative shrink-0">
             {displayPhoto ? (
               <div
                 className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-blue-500/30"
@@ -292,12 +292,12 @@ export default function DashboardPage() {
             )}
             <div className="absolute bottom-0 right-0 size-3 bg-emerald-500 border-2 border-[#121620] rounded-full"></div>
           </div>
-          <div className="flex flex-col">
-            <h2 className="text-white text-base font-bold leading-tight truncate max-w-[180px]">{displayName}</h2>
-            <span className="text-[11px] text-gray-400 font-medium truncate max-w-[180px]">{displayInstrument}</span>
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-white text-sm sm:text-base font-bold leading-tight truncate">{displayName}</h2>
+            <span className="text-[11px] text-gray-400 font-medium truncate">{displayInstrument}</span>
           </div>
         </div>
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-1.5 shrink-0">
           <Link href="/notifications" className="relative flex size-10 items-center justify-center rounded-full text-gray-300 hover:bg-white/5 transition-colors">
             <span className="material-symbols-outlined">notifications</span>
             {unreadCount > 0 && (
@@ -370,44 +370,44 @@ export default function DashboardPage() {
           </section>
 
           {/* Quick Action Circles / Shortcuts (Desktop & Mobile) */}
-          <section className="flex gap-4 overflow-x-auto no-scrollbar py-1">
+          <section className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
             {(profile?.role === 'admin' || profile?.role === 'master') && (
-              <Link href="/admin/scales/new" className="flex flex-col items-center gap-2 group shrink-0">
-                <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all">
-                  <span className="material-symbols-outlined text-[28px]">add</span>
+              <Link href="/admin/scales/new" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
+                <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all">
+                  <span className="material-symbols-outlined text-[24px] sm:text-[28px]">add</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Publicar</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Publicar</span>
               </Link>
             )}
 
-            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/scales" : "/scales"} className="flex flex-col items-center gap-2 group shrink-0">
-              <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-purple-400 group-hover:border-purple-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20 transition-all">
-                <span className="material-symbols-outlined text-[28px]">queue_music</span>
+            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/scales" : "/scales"} className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
+              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-purple-400 group-hover:border-purple-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20 transition-all">
+                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">queue_music</span>
               </div>
-              <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Escalas</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Escalas</span>
             </Link>
 
             {(profile?.role === 'admin' || profile?.role === 'master') && (
-              <Link href="/admin/musicians" className="flex flex-col items-center gap-2 group shrink-0">
-                <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-emerald-500/20 transition-all">
-                  <span className="material-symbols-outlined text-[28px]">groups</span>
+              <Link href="/admin/musicians" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
+                <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-emerald-500/20 transition-all">
+                  <span className="material-symbols-outlined text-[24px] sm:text-[28px]">groups</span>
                 </div>
-                <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Efetivo</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Efetivo</span>
               </Link>
             )}
 
-            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/swaps" : "/swaps"} className="flex flex-col items-center gap-2 group shrink-0">
-              <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-amber-400 group-hover:border-amber-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-amber-500/20 transition-all">
-                <span className="material-symbols-outlined text-[28px]">swap_horiz</span>
+            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/swaps" : "/swaps"} className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
+              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-amber-400 group-hover:border-amber-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-amber-500/20 transition-all">
+                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">swap_horiz</span>
               </div>
-              <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Permutas</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Permutas</span>
             </Link>
 
-            <Link href="/notices" className="flex flex-col items-center gap-2 group shrink-0">
-              <div className="size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-rose-500/20 transition-all">
-                <span className="material-symbols-outlined text-[28px]">campaign</span>
+            <Link href="/notices" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
+              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-rose-500/20 transition-all">
+                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">campaign</span>
               </div>
-              <span className="text-xs font-semibold text-gray-300 group-hover:text-white">Avisos</span>
+              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Avisos</span>
             </Link>
           </section>
 
@@ -449,21 +449,19 @@ export default function DashboardPage() {
             {/* COLUMN 1 (Left 7 Cols): Featured Next Scale */}
             <div className="lg:col-span-7 flex flex-col gap-4">
               
-              <div className="flex items-center justify-between px-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+              <div className="flex items-center justify-between px-1 gap-2">
+                <div className="flex items-center min-w-0">
+                  <span className="text-xs font-bold uppercase tracking-wider text-gray-400 truncate">
                     PRÓXIMA ESCALA {currentFeaturedScale ? `• ${getDateLabel(currentFeaturedScale.date)}` : ''}
                   </span>
-                  {nextScales.length > 1 && (
-                    <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
-                      {activeScaleIndex + 1} de {nextScales.length}
-                    </span>
-                  )}
                 </div>
 
                 {/* Navigation arrows for multiple scales */}
                 {nextScales.length > 1 && (
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] font-bold bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
+                      {activeScaleIndex + 1} de {nextScales.length}
+                    </span>
                     <button
                       onClick={() => setActiveScaleIndex(prev => Math.max(0, prev - 1))}
                       disabled={activeScaleIndex === 0}
@@ -512,46 +510,48 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 /* Card Principal da Escala Ativa (Átrio style) */
-                <div className="relative rounded-3xl bg-[#121620] border border-white/10 p-6 sm:p-7 shadow-2xl flex flex-col gap-6">
+                <div className="relative rounded-3xl bg-[#121620] border border-white/10 p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6">
                   
                   {/* Header do Card */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex flex-col min-w-0">
-                        <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
-                          {(() => {
-                            try {
-                              const dateObj = new Date(`${currentFeaturedScale.date}T12:00:00`);
-                              const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(dateObj);
-                              const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(dateObj);
-                              const month = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(dateObj);
-                              const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
-                              const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
-                              
-                              return (
-                                <>
-                                  <span className="whitespace-nowrap">{capWeekday}, {day}</span>{' '}
-                                  <span className="whitespace-nowrap text-gray-200">de {capMonth}</span>
-                                </>
-                              );
-                            } catch {
-                              return currentFeaturedScale.date;
-                            }
-                          })()}
-                        </h3>
-                      </div>
-                      <span className={`inline-flex items-center shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black border ${getFormatColors(currentFeaturedScale.format).bg} ${getFormatColors(currentFeaturedScale.format).text} ${getFormatColors(currentFeaturedScale.format).border}`}>
-                        {currentFeaturedScale.format || 'Evento'}
+                  <div className="flex flex-col gap-3">
+                    {/* Badge de formato do evento */}
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`inline-flex items-center max-w-full rounded-full px-3 py-1 text-[11px] font-black border ${getFormatColors(currentFeaturedScale.format).bg} ${getFormatColors(currentFeaturedScale.format).text} ${getFormatColors(currentFeaturedScale.format).border}`}>
+                        <span className="truncate">{currentFeaturedScale.format || 'Evento'}</span>
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-400 font-medium">
-                      <span className="text-white font-semibold truncate">{currentFeaturedScale.title}</span>
-                      <span>•</span>
-                      <span className="text-blue-400 font-bold whitespace-nowrap">
-                        {currentFeaturedScale.startTime || currentFeaturedScale.departureTime}
-                        {currentFeaturedScale.endTime ? ` às ${currentFeaturedScale.endTime}` : ''}
-                      </span>
+                    <div className="flex flex-col gap-1.5">
+                      <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                        {(() => {
+                          try {
+                            const dateObj = new Date(`${currentFeaturedScale.date}T12:00:00`);
+                            const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(dateObj);
+                            const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(dateObj);
+                            const month = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(dateObj);
+                            const capWeekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);
+                            const capMonth = month.charAt(0).toUpperCase() + month.slice(1);
+                            
+                            return (
+                              <>
+                                <span>{capWeekday}, {day}</span>{' '}
+                                <span className="text-gray-300">de {capMonth}</span>
+                              </>
+                            );
+                          } catch {
+                            return currentFeaturedScale.date;
+                          }
+                        })()}
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-400 font-medium">
+                        <span className="text-white font-semibold">{currentFeaturedScale.title}</span>
+                        <span className="text-gray-500">•</span>
+                        <span className="text-blue-400 font-bold whitespace-nowrap">
+                          {currentFeaturedScale.startTime || currentFeaturedScale.departureTime}
+                          {currentFeaturedScale.endTime ? ` às ${currentFeaturedScale.endTime}` : ''}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -607,14 +607,14 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Botões de Ação */}
-                    <div className="grid grid-cols-12 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-12 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
                           generateScalePDF(currentFeaturedScale);
                         }}
                         title="Baixar PDF Oficial"
-                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1.5 px-2.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-all font-bold text-xs shrink-0"
+                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1 px-2 sm:px-2.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-all font-bold text-xs shrink-0"
                       >
                         <span className="material-symbols-outlined text-[18px]">download</span>
                         <span>PDF</span>
@@ -623,7 +623,7 @@ export default function DashboardPage() {
                       <button
                         onClick={(e) => handleVerify(e, currentFeaturedScale)}
                         disabled={verifying === currentFeaturedScale.id}
-                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
+                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1 px-2 sm:px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
                           viewedScales[currentFeaturedScale.id]?.confirmed
                             ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/30'
                             : 'bg-white/5 border-white/10 text-gray-300 hover:border-blue-500 hover:text-white'
@@ -645,7 +645,7 @@ export default function DashboardPage() {
                       </button>
 
                       <Link href={`/scales/${currentFeaturedScale.id}`} className="col-span-5 sm:col-auto min-w-0">
-                        <button className="w-full flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95 truncate">
+                        <button className="w-full flex items-center justify-center gap-1 px-2 sm:px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95 truncate">
                           <span className="truncate">Abrir escala</span>
                           <span className="material-symbols-outlined text-[16px] shrink-0">arrow_forward</span>
                         </button>

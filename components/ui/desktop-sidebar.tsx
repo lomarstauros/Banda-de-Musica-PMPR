@@ -102,6 +102,12 @@ export function DesktopSidebar() {
             icon: 'event_busy',
             active: pathname.startsWith('/admin/unavailable'),
           },
+          {
+            label: 'Relatórios',
+            href: '/admin/reports',
+            icon: 'analytics',
+            active: pathname.startsWith('/admin/reports'),
+          },
         ]
       : [
           {

@@ -16,12 +16,38 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: '/brasao_banda.png',
-    requireInteraction: true // This keeps the notification until the user clicks it
-  };
+  
+  // Se o payload já contém o objeto 'notification', o FCM exibe nativamente a notificação no navegador.
+  // Só chamamos showNotification manualmente se for uma mensagem 'data-only' (sem payload.notification)
+  // para evitar que o usuário receba duas notificações idênticas simultâneas.
+  if (!payload.notification && payload.data) {
+    const notificationTitle = payload.data.title || 'Banda de Música PMPR';
+    const notificationOptions = {
+      body: payload.data.body || 'Você tem uma nova escala de serviço',
+      icon: '/brasao_banda.png',
+      badge: '/brasao_banda.png',
+      data: payload.data,
+      requireInteraction: true
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(urlToOpen) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
 });

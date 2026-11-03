@@ -602,29 +602,34 @@ export default function AdminNewScalePage() {
         }
       }
 
-      // 2. Salvar todos os documentos
+      // 2. Salvar todos os documentos e preparar notificações sem duplicidade
+      const batchPushedUserIds = new Set<string>();
+      let primaryScaleId = '';
+
       for (const d of docsToCreate) {
         const scaleRef = await addDoc(collection(db, "scales"), {
           ...d,
           createdAt: serverTimestamp()
         });
+        if (!primaryScaleId) primaryScaleId = scaleRef.id;
 
-        // Notificações
+        // Notificações internas no banco de dados para a escala
         const notifyIds = new Set<string>();
         if (d.serviceChief?.id) notifyIds.add(d.serviceChief.id);
-        if (d.musicians) d.musicians.forEach((m: any) => notifyIds.add(m.id));
+        if (d.musicians) d.musicians.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
         if (d.expediente) {
           const e = d.expediente;
           [e.regenteMaestroId, e.regenteId, e.arquivoId, e.sargenteacaoId, e.p4FinancasTransporteId].forEach(id => { if (id) notifyIds.add(id); });
-          e.administrativo?.forEach((m: any) => notifyIds.add(m.id));
-          e.obra?.forEach((m: any) => notifyIds.add(m.id));
-          e.permanencia?.forEach((m: any) => notifyIds.add(m.id));
+          e.administrativo?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+          e.obra?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+          e.permanencia?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
         }
 
         const uniqueIds = Array.from(notifyIds).filter(id => !!id);
         if (uniqueIds.length > 0) {
           const batch = writeBatch(db);
           uniqueIds.forEach(uid => {
+            batchPushedUserIds.add(uid);
             const nRef = doc(collection(db, 'notifications'));
             batch.set(nRef, {
               userId: uid,
@@ -636,13 +641,6 @@ export default function AdminNewScalePage() {
             });
           });
           await batch.commit();
-
-          // Push Mobile
-          fetch('/api/notifications/push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userIds: uniqueIds, title: 'Banda de Música PMPR', scaleId: scaleRef.id })
-          }).catch(e => console.warn("Push error", e));
         }
 
         // Auditoria
@@ -656,6 +654,20 @@ export default function AdminNewScalePage() {
             timestamp: serverTimestamp()
           });
         }
+      }
+
+      // Dispara apenas UMA notificação push para cada músico único envolvido no lote postado
+      const uniquePushUsers = Array.from(batchPushedUserIds);
+      if (uniquePushUsers.length > 0) {
+        fetch('/api/notifications/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            userIds: uniquePushUsers, 
+            title: 'Banda de Música PMPR', 
+            scaleId: primaryScaleId 
+          })
+        }).catch(e => console.warn("Push error", e));
       }
 
       setCreatedScales(docsToCreate);

@@ -471,18 +471,39 @@ export default function AdminEditScalePage() {
       const uniqueNotifiedIds = Array.from(allNotifiedIds).filter(id => !!id);
 
       if (uniqueNotifiedIds.length > 0) {
+        // Busca notificações existentes para evitar criar documentos duplicados
+        const existingNotifsQ = query(
+          collection(db, 'notifications'),
+          where('scaleId', '==', params.id as string)
+        );
+        const existingSnap = await getDocs(existingNotifsQ);
+        const existingByUser: Record<string, string> = {};
+        existingSnap.docs.forEach(d => {
+          const data = d.data();
+          if (data.userId && !data.read) {
+            existingByUser[data.userId] = d.id;
+          }
+        });
+
         const batchNotification = writeBatch(db);
         uniqueNotifiedIds.forEach((uid: any) => {
-          const notifRef = doc(collection(db, 'notifications'));
-          batchNotification.set(notifRef, {
-            userId: uid,
-            scaleId: params.id,
-            scaleTitle: formData.title,
-            scaleDate: formData.date,
-            read: false,
-            confirmedAt: null,
-            createdAt: serverTimestamp()
-          });
+          if (existingByUser[uid]) {
+            batchNotification.update(doc(db, 'notifications', existingByUser[uid]), {
+              scaleTitle: formData.title,
+              scaleDate: formData.date,
+            });
+          } else {
+            const notifRef = doc(collection(db, 'notifications'));
+            batchNotification.set(notifRef, {
+              userId: uid,
+              scaleId: params.id,
+              scaleTitle: formData.title,
+              scaleDate: formData.date,
+              read: false,
+              confirmedAt: null,
+              createdAt: serverTimestamp()
+            });
+          }
         });
         await batchNotification.commit();
 

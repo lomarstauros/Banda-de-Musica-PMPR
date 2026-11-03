@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { doc, onSnapshot, collection, query, where, getDocs, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDocs, updateDoc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
@@ -17,8 +17,7 @@ export default function ScaleDetailsPage() {
   const { user } = useFirebase();
   const [scale, setScale] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [myNotif, setMyNotif] = useState<any>(null);
-  const [confirming, setConfirming] = useState(false);
+  const [confirmedTime, setConfirmedTime] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
 
   // Repertório
@@ -50,39 +49,89 @@ export default function ScaleDetailsPage() {
     });
   }, [user]);
 
-  // Buscar notificação não lida deste usuário para esta escala
+  // Confirmação Automática de Visualização / Ciência ao abrir a escala
   useEffect(() => {
-    if (!user || !params.id) return;
-    const fetchNotif = async () => {
-      const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', user.uid),
-        where('scaleId', '==', params.id as string),
-        where('read', '==', false)
-      );
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        setMyNotif({ id: snap.docs[0].id, ...snap.docs[0].data() });
+    if (!user || !params.id || !scale) return;
+
+    let isMounted = true;
+    const autoConfirmView = async () => {
+      try {
+        const q = query(
+          collection(db, 'notifications'),
+          where('userId', '==', user.uid),
+          where('scaleId', '==', params.id as string)
+        );
+        const snap = await getDocs(q);
+
+        if (!snap.empty) {
+          const docItem = snap.docs[0];
+          const data = docItem.data();
+
+          if (!data.read) {
+            await updateDoc(doc(db, 'notifications', docItem.id), {
+              read: true,
+              confirmedAt: serverTimestamp(),
+              viewedAt: serverTimestamp(),
+            });
+            if (isMounted) {
+              setConfirmedTime(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+            }
+          } else if (data.confirmedAt || data.viewedAt) {
+            const ts = data.confirmedAt || data.viewedAt;
+            const dateObj = ts.toDate ? ts.toDate() : new Date(ts);
+            if (isMounted) {
+              setConfirmedTime(dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+            }
+          }
+        } else {
+          // Verifica se o usuário pertence a este serviço
+          const isMusicianInScale = 
+            scale.musicians?.some((m: any) => m.id === user.uid) ||
+            scale.serviceChief?.id === user.uid ||
+            (scale.expediente && (
+              scale.expediente.regenteMaestroId === user.uid ||
+              scale.expediente.regenteId === user.uid ||
+              scale.expediente.arquivoId === user.uid ||
+              scale.expediente.sargenteacaoId === user.uid ||
+              scale.expediente.p4FinancasTransporteId === user.uid ||
+              scale.expediente.administrativo?.some((m: any) => m.id === user.uid) ||
+              scale.expediente.obra?.some((m: any) => m.id === user.uid) ||
+              scale.expediente.permanencia?.some((m: any) => m.id === user.uid)
+            ));
+
+          if (isMusicianInScale) {
+            const notifRef = doc(collection(db, 'notifications'));
+            const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
+            const pData = profileSnap.data();
+
+            await setDoc(notifRef, {
+              userId: user.uid,
+              scaleId: params.id,
+              scaleTitle: scale.title || scale.format || 'Escala',
+              scaleDate: scale.date || '',
+              userName: pData?.war_name || pData?.name || 'Músico',
+              userRank: pData?.rank || '',
+              userInstrument: pData?.instrument || '',
+              type: 'scale_view',
+              read: true,
+              confirmedAt: serverTimestamp(),
+              viewedAt: serverTimestamp(),
+              createdAt: serverTimestamp(),
+            });
+
+            if (isMounted) {
+              setConfirmedTime(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Erro na confirmação automática ao abrir escala:", err);
       }
     };
-    fetchNotif();
-  }, [user, params.id]);
 
-  const handleConfirm = async () => {
-    if (!myNotif) return;
-    setConfirming(true);
-    try {
-      await updateDoc(doc(db, 'notifications', myNotif.id), {
-        read: true,
-        confirmedAt: serverTimestamp()
-      });
-      setMyNotif(null);
-    } catch (e) {
-      console.error('Erro ao confirmar:', e);
-    } finally {
-      setConfirming(false);
-    }
-  };
+    autoConfirmView();
+    return () => { isMounted = false; };
+  }, [user, params.id, scale]);
 
   const handleSaveRepertoire = async () => {
     if (!params.id) return;
@@ -155,39 +204,27 @@ export default function ScaleDetailsPage() {
 
         <main className="flex-1 p-4 flex flex-col gap-5 pb-24">
 
-          {/* Banner de confirmação de convocação */}
-          <AnimatePresence>
-            {myNotif && (
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-primary/10 border border-primary/30 rounded-2xl p-4 flex flex-col gap-3"
-              >
-                <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary text-[24px] mt-0.5">campaign</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">Você foi convocado para esta escala!</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Confirme que você visualizou esta convocação.</p>
-                  </div>
+          {/* Banner de ciência confirmada automaticamente ao abrir */}
+          {confirmedTime && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm"
+            >
+              <div className="flex items-center gap-3">
+                <div className="size-9 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined text-[22px]">verified</span>
                 </div>
-                <button
-                  onClick={handleConfirm}
-                  disabled={confirming}
-                  className="w-full h-11 rounded-xl bg-primary text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-70"
-                >
-                  {confirming ? (
-                    <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                      Confirmar Visualização
-                    </>
-                  )}
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <div className="flex flex-col">
+                  <p className="text-sm font-bold text-emerald-300">Ciência Confirmada Automaticamente</p>
+                  <p className="text-xs text-emerald-400/80">O comando foi notificado de que você abriu e verificou esta escala.</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-300/90 bg-emerald-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                {confirmedTime}
+              </span>
+            </motion.div>
+          )}
 
           {/* Badge de Chefe do Serviço ou Gestor com permissão de edição */}
           {canEditRepertoire && (

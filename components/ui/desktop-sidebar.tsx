@@ -96,7 +96,7 @@ export function DesktopSidebar() {
             label: 'Painel Gestor',
             href: '/admin/scales/new',
             icon: 'shield_person',
-            active: pathname.startsWith('/admin/scales/new') || pathname.startsWith('/admin/scales/import') || pathname.startsWith('/admin/swaps'),
+            active: pathname.startsWith('/admin/scales/new') || pathname.startsWith('/admin/scales/import') || pathname.startsWith('/admin/swaps') || pathname.startsWith('/admin/forecasts'),
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
           },
           {

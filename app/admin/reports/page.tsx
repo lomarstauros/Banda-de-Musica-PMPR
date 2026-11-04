@@ -135,7 +135,7 @@ export default function AdminReportsPage() {
     return scales.filter((s: any) => {
       if (!s.date || typeof s.date !== 'string') return false;
       if (!s.date.startsWith(currentMonthPrefix)) return false;
-      if (s.classification === 'folga') return false; // Folgas não contam como escala de serviço
+      if (s.classification === 'folga' || s.isForecast || s.status === 'forecast') return false; // Folgas e Previsões não contam como escala oficial executada
       if (selectedFormat !== 'todos') {
         const fmt = (s.format || '').toLowerCase();
         if (selectedFormat === 'apresentacoes' && !fmt.includes('apresentação') && !fmt.includes('concerto') && !fmt.includes('formatura')) return false;

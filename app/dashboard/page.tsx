@@ -74,6 +74,7 @@ export default function DashboardPage() {
           const allScales = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
 
           const visibleScales = allScales.filter((scale: any) => {
+            if (scale.isForecast) return false;
             if (hasFullVisibility) return true;
             return (scale.musicians || []).some((m: any) => m.id === user.uid);
           });

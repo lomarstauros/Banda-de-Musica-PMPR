@@ -142,14 +142,22 @@ export default function AdminScalesListPage() {
       const isSelected = day === selectedDate;
       const isToday = day === currentDay && currentMonth === now.getMonth() && currentYear === now.getFullYear();
       const dayEvents = getEventsForDay(day);
-      const hasEvent = dayEvents.length > 0;
+      const hasConfirmedScale = dayEvents.some(e => !e.isForecast);
+      const hasForecast = dayEvents.some(e => e.isForecast);
       paddedDays.push(
         <button key={i} onClick={() => setSelectedDate(day)} className="h-10 w-full flex items-center justify-center relative group">
           <div className="flex flex-col items-center">
             <span className={`flex size-8 items-center justify-center rounded-full text-sm font-medium transition-all ${isSelected ? 'text-white bg-primary shadow-lg shadow-primary/30 font-bold' : (isToday ? 'border-2 border-primary text-primary font-bold' : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800')}`}>
               {day}
             </span>
-            <span className={`size-1 rounded-full mt-[-2px] ${hasEvent ? (isSelected ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-500') : 'opacity-0'}`}></span>
+            <div className="flex items-center gap-0.5 mt-[-2px] h-1.5">
+              {hasConfirmedScale && (
+                <span className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
+              )}
+              {hasForecast && (
+                <span className="size-1.5 rounded-full bg-amber-500 ring-1 ring-amber-400/60" title="Previsão de Serviço" />
+              )}
+            </div>
           </div>
         </button>
       );
@@ -163,14 +171,22 @@ export default function AdminScalesListPage() {
       const isSelected = day === selectedDate;
       const isToday = day === currentDay && currentMonth === now.getMonth() && currentYear === now.getFullYear();
       const dayEvents = getEventsForDay(day);
-      const hasEvent = dayEvents.length > 0;
+      const hasConfirmedScale = dayEvents.some(e => !e.isForecast);
+      const hasForecast = dayEvents.some(e => e.isForecast);
       return (
         <button key={i} onClick={() => setSelectedDate(day)} className="h-10 w-full flex items-center justify-center relative group">
           <div className="flex flex-col items-center">
             <span className={`flex size-8 items-center justify-center rounded-full text-sm font-medium transition-all ${isSelected ? 'text-white bg-primary shadow-lg shadow-primary/30 font-bold' : (isToday ? 'border-2 border-primary text-primary font-bold' : 'text-slate-700 dark:text-slate-300 group-hover:bg-slate-100 dark:group-hover:bg-slate-800')}`}>
               {day}
             </span>
-            <span className={`size-1 rounded-full mt-[-2px] ${hasEvent ? (isSelected ? 'bg-primary' : 'bg-slate-400 dark:bg-slate-500') : 'opacity-0'}`}></span>
+            <div className="flex items-center gap-0.5 mt-[-2px] h-1.5">
+              {hasConfirmedScale && (
+                <span className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-primary'}`} />
+              )}
+              {hasForecast && (
+                <span className="size-1.5 rounded-full bg-amber-500 ring-1 ring-amber-400/60" title="Previsão de Serviço" />
+              )}
+            </div>
           </div>
         </button>
       );
@@ -269,9 +285,9 @@ export default function AdminScalesListPage() {
               <h3 className="text-slate-900 dark:text-white text-lg font-bold leading-tight">
                 {capitalizedWeekDayName}, {selectedDate} de {monthName.split(' ')[0]}
               </h3>
-              {selectedEvents.some(e => e.classification !== 'folga') && (
+              {selectedEvents.some(e => e.classification !== 'folga' && !e.isForecast) && (
                 <button 
-                  onClick={() => generateDailyScalesPDF(selectedEvents.filter(e => e.classification !== 'folga'))}
+                  onClick={() => generateDailyScalesPDF(selectedEvents.filter(e => e.classification !== 'folga' && !e.isForecast))}
                   title="Baixar todas as escalas do dia em PDF"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm active:scale-95 text-xs font-bold"
                 >
@@ -308,6 +324,102 @@ export default function AdminScalesListPage() {
                           <button onClick={() => handleDelete(scale.id, 'Folga')} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors" title="Excluir">
                             <span className="material-symbols-outlined text-[18px]">delete</span>
                           </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
+                // Card diferenciado para "Previsão de Serviço"
+                if (scale.isForecast) {
+                  return (
+                    <div key={scale.id} className="bg-amber-50/70 dark:bg-amber-950/20 rounded-2xl border-2 border-amber-400/60 dark:border-amber-500/40 p-4.5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm">
+                              <span className="material-symbols-outlined text-[14px]">calendar_clock</span>
+                              Previsão de Serviço
+                            </span>
+                            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">
+                              Em Planejamento
+                            </span>
+                          </div>
+                          <h3 className="text-base font-bold text-gray-900 dark:text-white mt-1.5">{scale.title}</h3>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-xs text-gray-500">{fmtDate(scale.date)}</span>
+                            {scale.musicalFormation && (
+                              <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold bg-primary/10 text-primary border border-primary/20">
+                                <span className="material-symbols-outlined text-[13px]">music_note</span>
+                                {scale.musicalFormation}
+                              </span>
+                            )}
+                            {scale.format && (
+                              <span className="text-xs text-gray-500">• {scale.format}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {isManager && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Link href={`/admin/forecasts`}>
+                              <button className="p-1.5 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg transition-colors" title="Gerenciar no Painel de Previsões">
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                              </button>
+                            </Link>
+                            <button onClick={() => handleDelete(scale.id, scale.title)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="Excluir Previsão">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="bg-white/80 dark:bg-gray-900/60 rounded-xl p-3 flex flex-col gap-1.5 text-xs text-gray-700 dark:text-gray-300 border border-amber-200/50 dark:border-amber-800/30">
+                        {scale.location && (
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">location_on</span>
+                            <span className="font-medium truncate">{scale.location}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">schedule</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {scale.startTime || '--:--'} às {scale.endTime || '--:--'}
+                            {scale.departureTime && <span className="text-gray-500 font-normal ml-1.5">(Saída BM: {scale.departureTime})</span>}
+                          </span>
+                        </div>
+                        {scale.uniform && (
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">checkroom</span>
+                            <span className="font-medium">Uniforme: {scale.uniform}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {scale.notes && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 italic px-1">
+                          "{scale.notes}"
+                        </p>
+                      )}
+
+                      {isManager ? (
+                        <div className="pt-2 border-t border-amber-200/50 dark:border-amber-800/30 flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-amber-800 dark:text-amber-300/90 font-medium">
+                            Ainda não escalado
+                          </span>
+                          <Link href={`/admin/scales/new?forecastId=${scale.id}`}>
+                            <button 
+                              className="flex items-center gap-1.5 px-4 h-9 rounded-xl bg-primary text-white text-xs font-bold shadow-md shadow-primary/20 hover:bg-blue-700 transition-all active:scale-95"
+                              title="Transformar esta previsão em escala oficial"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">post_add</span>
+                              Gerar Escala Desta Previsão
+                            </button>
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="text-[11px] text-amber-800 dark:text-amber-300/80 bg-amber-100/50 dark:bg-amber-900/20 px-3 py-1.5 rounded-lg border border-amber-200/40">
+                          Previsão de serviço para planejamento prévio. A escala oficial com os músicos será publicada pelo comando.
                         </div>
                       )}
                     </div>

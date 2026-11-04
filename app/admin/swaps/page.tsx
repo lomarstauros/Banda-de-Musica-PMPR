@@ -359,14 +359,15 @@ export default function AdminSwapsPage() {
           </div>
         </header>
 
-        {/* Quick nav */}
+        {/* Quick nav Gestor - Somente Nova Escala, Previsão de Serviço, Permuta */}
         <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
-          <Link href="/admin/scales/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 px-5 text-sm font-bold text-green-700 dark:text-green-400 hover:bg-green-200 transition-colors border border-green-200 dark:border-green-800 shadow-sm">Nova Escala</button></Link>
+          <Link href="/admin/scales/new">
+            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Nova Escala</button>
+          </Link>
+          <Link href="/admin/forecasts">
+            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-5 text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm">Previsão de Serviço</button>
+          </Link>
           <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Permuta</button>
-          <Link href="/admin/scales"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Histórico Escalas</button></Link>
-          <Link href="/admin/notices/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-5 text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-200 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm">Novo Aviso</button></Link>
-          <Link href="/admin/unavailable"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20 px-5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors border border-red-200 dark:border-red-900/50 shadow-sm">Afastamentos</button></Link>
-          <Link href="/admin/musicians"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Efetivo</button></Link>
         </div>
 
         <main className="flex-1 p-4 flex flex-col gap-6 pb-24">

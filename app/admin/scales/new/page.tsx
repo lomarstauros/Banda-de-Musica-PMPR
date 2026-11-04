@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc, getDoc, where } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, orderBy, limit, getDocs, writeBatch, doc, getDoc, where, deleteDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '@/lib/firebase';
 import { isMusicianAvailable } from '@/lib/military-status';
@@ -13,6 +13,7 @@ import PopoutWindow, { openPopoutWindow } from '@/components/scales/popout-windo
 import { sortByRankThenName } from '@/lib/sort-military';
 import { generateDailyScalesPDF, viewDailyScalesPDF } from '@/lib/pdf-generator';
 import { getWhatsAppBroadcastUrl, buildScaleWhatsAppMessage } from '@/lib/whatsapp';
+import { fmtDate } from '@/lib/format-date';
 
 export default function AdminNewScalePage() {
   const router = useRouter();
@@ -31,6 +32,49 @@ export default function AdminNewScalePage() {
   const [sharedDate, setSharedDate] = useState('');
   const [sharedClassification, setSharedClassification] = useState('completa');
   const [signerSelection, setSignerSelection] = useState<string>('');
+  const [originForecast, setOriginForecast] = useState<any>(null);
+
+  // Carregar dados de previsão caso a página seja aberta via ?forecastId=...
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const forecastId = params.get('forecastId');
+    if (!forecastId) return;
+
+    const loadForecast = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'scales', forecastId));
+        if (snap.exists()) {
+          const data = snap.data();
+          setOriginForecast({ id: snap.id, ...data });
+          if (data.date) setSharedDate(data.date);
+          
+          const formationNote = data.musicalFormation ? `Formação: ${data.musicalFormation}` : '';
+          const fullNotes = [formationNote, data.notes].filter(Boolean).join(' • ');
+
+          setExtraServices([{
+            id: Math.random().toString(36).substring(2, 9),
+            title: data.title || '',
+            departureTime: data.departureTime || '',
+            startTime: data.startTime || '',
+            endTime: data.endTime || '',
+            returnTime: '',
+            location: data.location || '',
+            uniform: data.uniform || 'Especial A1-A / A1-B',
+            customUniform: '',
+            format: data.format || 'Formatura Militar',
+            customFormat: '',
+            serviceChief: '',
+            repertoire: fullNotes,
+            selectedMusicians: []
+          }]);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar dados da previsão de serviço:", err);
+      }
+    };
+    loadForecast();
+  }, []);
 
   // Opções para o responsável por assinar a escala em PDF
   const signerOptions = useMemo(() => {
@@ -670,6 +714,15 @@ export default function AdminNewScalePage() {
         }).catch(e => console.warn("Push error", e));
       }
 
+      // Se esta escala foi gerada a partir de uma previsão de serviço, remove a previsão convertida
+      if (originForecast?.id) {
+        try {
+          await deleteDoc(doc(db, 'scales', originForecast.id));
+        } catch (delErr) {
+          console.error("Erro ao remover previsão convertida:", delErr);
+        }
+      }
+
       setCreatedScales(docsToCreate);
       setSuccess(true);
       setLoading(false);
@@ -836,17 +889,43 @@ export default function AdminNewScalePage() {
           <div className="size-10" /> {/* Spacer */}
         </header>
 
-        {/* Quick nav Gestor */}
+        {/* Quick nav Gestor - Somente Nova Escala, Previsão de Serviço, Permuta */}
         <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
           <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Nova Escala</button>
-          <Link href="/admin/swaps"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-5 text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm">Permuta</button></Link>
-          <Link href="/admin/scales"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Histórico Escalas</button></Link>
-          <Link href="/admin/notices/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-5 text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-200 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm">Novo Aviso</button></Link>
-          <Link href="/admin/unavailable"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20 px-5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors border border-red-200 dark:border-red-900/50 shadow-sm">Afastamentos</button></Link>
-          <Link href="/admin/musicians"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Efetivo</button></Link>
+          <Link href="/admin/forecasts">
+            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-5 text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm">Previsão de Serviço</button>
+          </Link>
+          <Link href="/admin/swaps">
+            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Permuta</button>
+          </Link>
         </div>
 
         <main className="flex-1 p-4 flex flex-col gap-6">
+          {originForecast && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-400 dark:border-amber-600/50 rounded-2xl p-4 flex items-center justify-between gap-3 text-amber-900 dark:text-amber-200 shadow-sm">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm">
+                  <span className="material-symbols-outlined text-[22px]">calendar_clock</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold truncate">
+                    Gerando Escala a partir da Previsão: <span className="underline">{originForecast.title}</span> ({fmtDate(originForecast.date)})
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    Os dados foram pré-preenchidos. Ao publicar a escala, a marcação de previsão será automaticamente convertida na escala definitiva.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOriginForecast(null)}
+                className="text-xs font-bold text-amber-800 hover:text-amber-950 dark:text-amber-300 dark:hover:text-amber-100 px-3 py-1.5 rounded-xl border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors shrink-0"
+              >
+                Desvincular
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Criar Escala de Serviço</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Selecione a data e organize a rotina administrativa e eventos.</p>

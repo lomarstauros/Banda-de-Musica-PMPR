@@ -93,9 +93,9 @@ export function DesktopSidebar() {
             active: pathname.startsWith('/admin/musicians'),
           },
           {
-            label: 'Permutas',
+            label: 'Painel Gestor',
             href: '/admin/swaps',
-            icon: 'swap_horiz',
+            icon: 'shield_person',
             active: pathname.startsWith('/admin/swaps'),
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
           },

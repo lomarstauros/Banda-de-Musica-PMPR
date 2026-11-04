@@ -119,9 +119,9 @@ export function MobileTopNav() {
             color: 'text-emerald-400',
           },
           {
-            label: 'Permutas',
+            label: 'Painel Gestor',
             href: '/admin/swaps',
-            icon: 'swap_horiz',
+            icon: 'shield_person',
             active: pathname.startsWith('/admin/swaps'),
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
             color: 'text-amber-400',

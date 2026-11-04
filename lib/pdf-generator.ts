@@ -374,7 +374,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     curY = (doc as any).lastAutoTable?.finalY ?? curY;
   }
 
-  // ── ASSINATURA DA AUTORIDADE RESPONSÁVEL (Ajustada à esquerda, totalmente abaixo de tudo) ─
+  // ── ASSINATURA DA AUTORIDADE RESPONSÁVEL (Ajustada à direita, totalmente abaixo de tudo) ─
   if (showSignatures) {
     let footerY = curY + 12;
     if (footerY > 255) { doc.addPage(); footerY = 25; }
@@ -429,10 +429,11 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       const wTitle = doc.getTextWidth(titleLine);
       const wDate = signDate ? doc.getTextWidth(signDate) : 0;
 
-      // Bloco alinhado à esquerda da folha, com os textos centralizados entre si dentro do bloco
+      // Bloco alinhado à direita da folha, com os textos centralizados entre si dentro do bloco
       const blockMaxWidth = Math.max(wRed, wName, wTitle, wDate);
-      const blockLeft = margin;
-      const blockCenterX = blockLeft + (blockMaxWidth / 2);
+      const blockRight = pageWidth - margin;
+      const blockLeft = blockRight - blockMaxWidth;
+      const blockCenterX = blockRight - (blockMaxWidth / 2);
 
       // Data centralizada no mesmo eixo de "Assinado eletronicamente"
       if (signDate) {
@@ -469,7 +470,7 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8);
       doc.setTextColor(0, 0, 0);
-      doc.text(signDate, margin, dateY);
+      doc.text(signDate, pageWidth - margin, dateY, { align: 'right' });
     }
     curY = footerY;
   }

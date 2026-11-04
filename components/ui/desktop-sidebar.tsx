@@ -7,6 +7,7 @@ import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/fire
 import { db } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { LogoutButton } from '@/components/ui/logout-button';
+import { canAccessReports } from '@/lib/permissions';
 
 export function DesktopSidebar() {
   const pathname = usePathname() || '';
@@ -14,6 +15,7 @@ export function DesktopSidebar() {
   const [userRole, setUserRole] = useState<'user' | 'admin' | 'master'>('user');
   const [userName, setUserName] = useState<string>('');
   const [userRank, setUserRank] = useState<string>('');
+  const [hasReportsAccess, setHasReportsAccess] = useState(false);
   const [pendingSwaps, setPendingSwaps] = useState(0);
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export function DesktopSidebar() {
             }
             setUserName(data.war_name || data.name || '');
             setUserRank(data.rank || '');
+            setHasReportsAccess(canAccessReports(data, user.email));
           }
         } catch (error) {
           console.error("Erro ao verificar papel na sidebar:", error);
@@ -102,12 +105,6 @@ export function DesktopSidebar() {
             icon: 'event_busy',
             active: pathname.startsWith('/admin/unavailable'),
           },
-          {
-            label: 'Relatórios',
-            href: '/admin/reports',
-            icon: 'analytics',
-            active: pathname.startsWith('/admin/reports'),
-          },
         ]
       : [
           {
@@ -118,6 +115,16 @@ export function DesktopSidebar() {
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
           },
         ]),
+    ...(hasReportsAccess
+      ? [
+          {
+            label: 'Relatórios',
+            href: '/admin/reports',
+            icon: 'analytics',
+            active: pathname.startsWith('/admin/reports'),
+          },
+        ]
+      : []),
     {
       label: 'Avisos',
       href: '/notices',

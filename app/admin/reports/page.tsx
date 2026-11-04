@@ -10,6 +10,7 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/ui/bottom-nav';
 import { getFormatColors } from '@/lib/scale-formats';
+import { canAccessReports } from '@/lib/permissions';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -41,7 +42,7 @@ export default function AdminReportsPage() {
   // Músico expandido para ver detalhes
   const [expandedMusicianId, setExpandedMusicianId] = useState<string | null>(null);
 
-  // Verificação de permissões de Gestor/Admin/Master
+  // Verificação de permissões: Exclusivo para Master, Sargenteante, Comandante e Subcomandante
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -49,18 +50,19 @@ export default function AdminReportsPage() {
       return;
     }
 
-    const checkRole = async () => {
+    const checkAccess = async () => {
       try {
         const snap = await getDoc(doc(db, 'profiles', user.uid));
-        const role = snap.data()?.role?.toLowerCase();
-        if (role !== 'admin' && role !== 'master' && role !== 'manager') {
+        const profileData = snap.data();
+        if (!canAccessReports(profileData, user.email)) {
           router.push('/dashboard');
         }
       } catch (err) {
-        console.error('Erro ao checar papel de gestor:', err);
+        console.error('Erro ao verificar permissão de relatórios:', err);
+        router.push('/dashboard');
       }
     };
-    checkRole();
+    checkAccess();
   }, [user, authLoading, router]);
 
   // Carregar Músicos (Efetivo)

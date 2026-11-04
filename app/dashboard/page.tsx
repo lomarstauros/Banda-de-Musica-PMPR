@@ -13,6 +13,7 @@ import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
 import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { getFormatColors } from '@/lib/scale-formats';
+import { canAccessReports } from '@/lib/permissions';
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -403,7 +404,7 @@ export default function DashboardPage() {
               <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Permutas</span>
             </Link>
 
-            {(profile?.role === 'admin' || profile?.role === 'master') && (
+            {canAccessReports(profile, user?.email) && (
               <Link href="/admin/reports" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
                 <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-cyan-400 group-hover:border-cyan-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-cyan-500/20 transition-all">
                   <span className="material-symbols-outlined text-[24px] sm:text-[28px]">analytics</span>

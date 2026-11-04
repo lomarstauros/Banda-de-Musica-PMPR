@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { collection, query, orderBy, onSnapshot, getDocs, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -484,8 +483,6 @@ export default function NoticesPage() {
             </div>
           </div>
         )}
-
-        <BottomNav />
       </div>
     </div>
   );

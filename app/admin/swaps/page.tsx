@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { doc, getDoc, collection, query, onSnapshot, updateDoc, orderBy, writeBatch, arrayRemove, arrayUnion, serverTimestamp, addDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
@@ -445,7 +444,6 @@ export default function AdminSwapsPage() {
             </>
           )}
         </main>
-        <BottomNav />
       </div>
     </div>
   );

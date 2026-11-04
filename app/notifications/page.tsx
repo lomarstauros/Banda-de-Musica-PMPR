@@ -7,7 +7,6 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { fmtDate } from '@/lib/format-date';
 
 export default function NotificationsPage() {
@@ -137,8 +136,6 @@ export default function NotificationsPage() {
             </>
           )}
         </main>
-
-        <BottomNav />
       </div>
 
       {/* Modal de confirmação */}

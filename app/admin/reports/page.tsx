@@ -8,7 +8,6 @@ import { db } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { getFormatColors } from '@/lib/scale-formats';
 import { canAccessReports } from '@/lib/permissions';
 
@@ -893,11 +892,8 @@ export default function AdminReportsPage() {
           )}
         </section>
 
-        <div className="h-16 lg:h-8"></div>
+        <div className="h-6"></div>
       </main>
-
-      {/* BottomNav persists on mobile and is hidden on desktop */}
-      <BottomNav />
     </div>
   );
 }

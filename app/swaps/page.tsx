@@ -7,7 +7,6 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, getDoc, writeBatch, addDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { fmtDate } from '@/lib/format-date';
 
@@ -328,8 +327,6 @@ export default function SwapsPage() {
             </AnimatePresence>
           )}
         </main>
-
-        <BottomNav />
       </div>
     </div>
   );

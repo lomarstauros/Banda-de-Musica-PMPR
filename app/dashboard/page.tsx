@@ -7,7 +7,6 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, onSnapshot, where, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { generateScalePDF } from '@/lib/pdf-generator';
 import { fmtDate } from '@/lib/format-date';
@@ -277,40 +276,6 @@ export default function DashboardPage() {
   return (
     <div className="bg-[#0b0e14] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
       
-      {/* Mobile Top Header */}
-      <header className="lg:hidden flex items-center bg-[#121620]/95 backdrop-blur-md px-4 py-3 justify-between sticky top-0 z-50 border-b border-white/5 gap-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="relative shrink-0">
-            {displayPhoto ? (
-              <div
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-blue-500/30"
-                style={{ backgroundImage: `url(${displayPhoto})` }}
-              ></div>
-            ) : (
-              <div className="bg-blue-600/20 text-blue-400 aspect-square rounded-full size-10 border-2 border-blue-500/30 flex items-center justify-center font-bold text-sm uppercase">
-                {profile?.war_name?.[0] || '?'}
-              </div>
-            )}
-            <div className="absolute bottom-0 right-0 size-3 bg-emerald-500 border-2 border-[#121620] rounded-full"></div>
-          </div>
-          <div className="flex flex-col min-w-0">
-            <h2 className="text-white text-sm sm:text-base font-bold leading-tight truncate">{displayName}</h2>
-            <span className="text-[11px] text-gray-400 font-medium truncate">{displayInstrument}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-1.5 shrink-0">
-          <Link href="/notifications" className="relative flex size-10 items-center justify-center rounded-full text-gray-300 hover:bg-white/5 transition-colors">
-            <span className="material-symbols-outlined">notifications</span>
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-bold text-white">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </Link>
-          <LogoutButton />
-        </div>
-      </header>
-
       {/* Main Workspace Content Area */}
       <main className="flex-1 flex flex-col gap-6 min-w-0 w-full px-4 sm:px-6 lg:px-0 py-4 sm:py-6">
         
@@ -368,57 +333,6 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
-          </section>
-
-          {/* Quick Action Circles / Shortcuts (Desktop & Mobile) */}
-          <section className="flex items-center gap-3 sm:gap-4 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-            {(profile?.role === 'admin' || profile?.role === 'master') && (
-              <Link href="/admin/scales/new" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-                <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-blue-400 group-hover:border-blue-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all">
-                  <span className="material-symbols-outlined text-[24px] sm:text-[28px]">add</span>
-                </div>
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Publicar</span>
-              </Link>
-            )}
-
-            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/scales" : "/scales"} className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-purple-400 group-hover:border-purple-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-purple-500/20 transition-all">
-                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">queue_music</span>
-              </div>
-              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Escalas</span>
-            </Link>
-
-            {(profile?.role === 'admin' || profile?.role === 'master') && (
-              <Link href="/admin/musicians" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-                <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-emerald-400 group-hover:border-emerald-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-emerald-500/20 transition-all">
-                  <span className="material-symbols-outlined text-[24px] sm:text-[28px]">groups</span>
-                </div>
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Efetivo</span>
-              </Link>
-            )}
-
-            <Link href={profile?.role === 'admin' || profile?.role === 'master' ? "/admin/swaps" : "/swaps"} className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-amber-400 group-hover:border-amber-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-amber-500/20 transition-all">
-                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">swap_horiz</span>
-              </div>
-              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Permutas</span>
-            </Link>
-
-            {canAccessReports(profile, user?.email) && (
-              <Link href="/admin/reports" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-                <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-cyan-400 group-hover:border-cyan-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-cyan-500/20 transition-all">
-                  <span className="material-symbols-outlined text-[24px] sm:text-[28px]">analytics</span>
-                </div>
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Relatórios</span>
-              </Link>
-            )}
-
-            <Link href="/notices" className="flex flex-col items-center gap-1.5 group shrink-0 min-w-[62px] sm:min-w-[72px]">
-              <div className="size-14 sm:size-16 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-rose-400 group-hover:border-rose-500 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-rose-500/20 transition-all">
-                <span className="material-symbols-outlined text-[24px] sm:text-[28px]">campaign</span>
-              </div>
-              <span className="text-[11px] sm:text-xs font-semibold text-gray-300 group-hover:text-white text-center">Avisos</span>
-            </Link>
           </section>
 
           {/* Active Leave Alert */}
@@ -810,11 +724,8 @@ export default function DashboardPage() {
 
           </div>
 
-          <div className="h-16 lg:h-8"></div>
+          <div className="h-6"></div>
         </main>
-
-      {/* BottomNav persists on mobile and is hidden on desktop */}
-      <BottomNav />
     </div>
   );
 }

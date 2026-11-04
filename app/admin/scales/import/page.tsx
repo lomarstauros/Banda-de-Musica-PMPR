@@ -8,7 +8,6 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { canAccessReports } from '@/lib/permissions';
 import {
@@ -760,10 +759,8 @@ export default function ImportScalePage() {
           </motion.div>
         )}
 
-        <div className="h-16 lg:h-8"></div>
+        <div className="h-6"></div>
       </main>
-
-      <BottomNav />
     </div>
   );
 }

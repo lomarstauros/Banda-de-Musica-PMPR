@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { BottomNav } from '@/components/ui/bottom-nav';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { motion } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
@@ -628,8 +627,7 @@ export default function ProfilePage() {
             </button>
             <p className="text-center text-xs text-slate-400 mt-4">Versão do App 1.2.0</p>
           </div>
-          <div className="h-20"></div>
-          <BottomNav />
+          <div className="h-6"></div>
         </div>
       </div>
     </div>

@@ -11,7 +11,6 @@ import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
-import { BottomNav } from '@/components/ui/bottom-nav';
 
 export default function AdminMusiciansListPage() {
   const [search, setSearch] = useState('');
@@ -231,8 +230,6 @@ export default function AdminMusiciansListPage() {
             )}
           </div>
         </main>
-
-        <BottomNav />
       </div>
     </div>
   );

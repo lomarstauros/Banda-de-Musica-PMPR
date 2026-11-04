@@ -22,13 +22,12 @@ import { LogoutButton } from '@/components/ui/logout-button';
 import { fmtDate } from '@/lib/format-date';
 
 const FORMATIONS = [
-  'Banda Completa (Sinfônica)',
-  'Banda Militar / Desfile',
-  'Big Band / Grupo de Ritmo',
-  'Quinteto de Metais',
-  'Quinteto de Palhetas',
-  'Grupo de Choro / MPB',
-  'Clarins / Fanfarra',
+  'Banda Completa',
+  'Big Band',
+  'Banda Show',
+  'Sessão A',
+  'Sessão B',
+  'Quarteto de Sax',
   'Outros'
 ];
 

@@ -226,6 +226,80 @@ export default function ScaleDetailsPage() {
             </motion.div>
           )}
 
+          {/* Destaque da Função / Posto Designado do Músico Conectado */}
+          {(() => {
+            const myMusician = scale.musicians?.find((m: any) => m.id === user?.uid);
+            const myRole = myMusician?.roleInScale || myMusician?.function;
+            if (!myRole) return null;
+            return (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-gradient-to-r from-blue-600/15 via-indigo-600/15 to-purple-600/15 border border-blue-500/40 rounded-2xl p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="size-11 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[26px]">assignment_ind</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                      Sua Função / Posto nesta Escala
+                    </span>
+                    <h4 className="text-base font-bold text-gray-900 dark:text-white mt-0.5 truncate">
+                      {myRole}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Verifique a documentação anexa e os horários acima.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+
+          {/* Documento Oficial Anexo (Escalas Externas ou com Documento) */}
+          {scale.attachedDocument && (
+            <section className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/60 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-red-500">picture_as_pdf</span>
+                  <h3 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                    Documento Oficial Anexo
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 uppercase">
+                  {scale.classification === 'externa' ? 'Escala Externa' : 'Documento Anexo'}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 bg-white dark:bg-slate-800/60 p-3 rounded-xl border border-gray-100 dark:border-white/5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="size-10 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">description</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                      {scale.attachedDocument.name || 'Documento Oficial'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {scale.attachedDocument.size ? `${(scale.attachedDocument.size / 1024).toFixed(1)} KB` : 'Documento'} • Enviado pelo comando
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={scale.attachedDocument.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary hover:bg-blue-600 text-white text-xs font-bold shrink-0 transition-colors shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[16px]">visibility</span>
+                  Visualizar
+                </a>
+              </div>
+            </section>
+          )}
+
           {/* Badge de Chefe do Serviço ou Gestor com permissão de edição */}
           {canEditRepertoire && (
             <motion.div
@@ -482,7 +556,14 @@ export default function ScaleDetailsPage() {
                         <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{person.war_name || person.name}</p>
                         <span className="text-[10px] font-bold text-gray-500 px-2 py-0.5 rounded ml-2 uppercase tracking-tight">{person.instrument}</span>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{person.rank} - PMPR</p>
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{person.rank} - PMPR</p>
+                        {(person.roleInScale || person.function) && (
+                          <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/40 px-2 py-0.5 rounded-md truncate max-w-[190px]">
+                            {person.roleInScale || person.function}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

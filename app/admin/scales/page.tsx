@@ -207,11 +207,24 @@ export default function AdminScalesListPage() {
           </Link>
           <h1 className="text-lg font-bold text-gray-900 dark:text-white flex-1 text-center">Escalas Publicadas</h1>
           {isManager ? (
-            <Link href="/admin/scales/new">
-              <button className="flex items-center justify-center p-2 rounded-full text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Nova Escala">
-                <span className="material-symbols-outlined">add</span>
-              </button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/admin/scales/import">
+                <button 
+                  className="flex items-center justify-center p-2 rounded-full text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors" 
+                  title="Importar / Escanear Documento de Escala"
+                >
+                  <span className="material-symbols-outlined text-[22px]">document_scanner</span>
+                </button>
+              </Link>
+              <Link href="/admin/scales/new">
+                <button 
+                  className="flex items-center justify-center p-2 rounded-full text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" 
+                  title="Nova Escala"
+                >
+                  <span className="material-symbols-outlined text-[22px]">add</span>
+                </button>
+              </Link>
+            </div>
           ) : (
             <div className="size-9" />
           )}

@@ -842,6 +842,31 @@ export default function AdminNewScalePage() {
             <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Selecione a data e organize a rotina administrativa e eventos.</p>
           </div>
 
+          {/* Atalho para Escaneamento e Importação de Escala Externa */}
+          <Link href="/admin/scales/import">
+            <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-500/30 hover:border-indigo-500/60 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-sm hover:shadow-md transition-all group cursor-pointer">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="size-11 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                  <span className="material-symbols-outlined text-[26px]">document_scanner</span>
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate">Importar Escala de Documento / PDF</p>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded-full shrink-0">
+                      Automático
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
+                    Faça upload de PDF ou texto de escala externa para varrer e marcar os músicos automaticamente com suas funções.
+                  </p>
+                </div>
+              </div>
+              <span className="material-symbols-outlined text-gray-400 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all text-[22px] shrink-0">
+                arrow_forward
+              </span>
+            </div>
+          </Link>
+
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-xl border border-red-100 text-sm font-semibold">
               {error}

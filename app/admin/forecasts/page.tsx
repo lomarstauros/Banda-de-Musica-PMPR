@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/components/providers/firebase-provider';
@@ -48,6 +49,7 @@ const UNIFORMS = [
 ];
 
 export default function AdminForecastsPage() {
+  const router = useRouter();
   const { user } = useFirebase();
   const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; role?: string } | null>(null);
   const [forecasts, setForecasts] = useState<any[]>([]);
@@ -79,7 +81,19 @@ export default function AdminForecastsPage() {
       try {
         const docRef = doc(db, 'profiles', user.uid);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) setProfile(docSnap.data() as any);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          const role = data.role?.toLowerCase();
+          const isAllowed = role === 'admin' || role === 'master' || role === 'manager' || user.email === 'heliomardejesus87@gmail.com';
+          if (!isAllowed) {
+            router.replace('/admin/scales');
+            return;
+          }
+          setProfile(data as any);
+        } else {
+          router.replace('/admin/scales');
+          return;
+        }
       } catch (e) {
         console.error("Erro ao carregar perfil do gestor:", e);
       }

@@ -209,7 +209,7 @@ export default function AdminScalesListPage() {
   const weekDayName = selectedDayDate.toLocaleDateString('pt-BR', { weekday: 'long' });
   const capitalizedWeekDayName = weekDayName.charAt(0).toUpperCase() + weekDayName.slice(1);
 
-  const isManager = userRole === 'admin' || userRole === 'master';
+  const isManager = userRole === 'admin' || userRole === 'master' || user?.email === 'heliomardejesus87@gmail.com';
 
   return (
     <div className="bg-transparent font-sans flex flex-col items-center lg:items-stretch w-full">

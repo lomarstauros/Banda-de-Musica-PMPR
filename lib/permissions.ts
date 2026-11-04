@@ -9,7 +9,14 @@ export interface ProfilePermissionsData {
 
 /**
  * Verifica se o usuário tem permissão para acessar a aba e a página de Relatórios.
- * Permitido exclusivamente para: Master, Sargenteante, Comandante e Subcomandante.
+ * Permitido exclusivamente para:
+ * - Master
+ * - Gestor (Admin / Manager)
+ * - Sargenteante (Sargenteação)
+ * - Comandante
+ * - Subcomandante
+ * 
+ * Para qualquer outro usuário comum (músico), retorna false.
  */
 export function canAccessReports(profile?: ProfilePermissionsData | null, email?: string | null): boolean {
   if (!profile && !email) return false;
@@ -25,7 +32,16 @@ export function canAccessReports(profile?: ProfilePermissionsData | null, email?
     return true;
   }
 
-  // 2. Comandante
+  // 2. Gestor (Admin / Manager / Gestor)
+  const isGestor =
+    role === 'admin' ||
+    role === 'manager' ||
+    role === 'gestor' ||
+    cargo.includes('gestor') ||
+    func.includes('gestor');
+  if (isGestor) return true;
+
+  // 3. Comandante
   const isComandante =
     role === 'comandante' ||
     (inst.includes('comandante') && !inst.includes('sub')) ||
@@ -33,7 +49,7 @@ export function canAccessReports(profile?: ProfilePermissionsData | null, email?
     (func.includes('comandante') && !func.includes('sub'));
   if (isComandante) return true;
 
-  // 3. Subcomandante
+  // 4. Subcomandante
   const isSubcomandante =
     role === 'subcomandante' ||
     inst.includes('subcomandante') ||
@@ -41,7 +57,7 @@ export function canAccessReports(profile?: ProfilePermissionsData | null, email?
     func.includes('subcomandante');
   if (isSubcomandante) return true;
 
-  // 4. Sargenteante
+  // 5. Sargenteante
   const isSargenteante =
     role === 'sargenteante' ||
     inst.includes('sargenteante') ||
@@ -51,6 +67,7 @@ export function canAccessReports(profile?: ProfilePermissionsData | null, email?
     func.includes('sargenteante');
   if (isSargenteante) return true;
 
+  // Usuário comum não tem acesso
   return false;
 }
 

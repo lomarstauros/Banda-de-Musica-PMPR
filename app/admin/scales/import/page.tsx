@@ -28,6 +28,7 @@ export default function ImportScalePage() {
 
   // Estados de arquivo e texto
   const [file, setFile] = useState<File | null>(null);
+  const [readingFile, setReadingFile] = useState(false);
   const [documentText, setDocumentText] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [attachedDocData, setAttachedDocData] = useState<{ name: string; url: string; size: string; type: string } | null>(null);
@@ -94,40 +95,9 @@ export default function ImportScalePage() {
     return () => unsub();
   }, []);
 
-  // Manipulador de seleção de arquivo
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = e.target.files?.[0];
-    if (!selected) return;
-    setFile(selected);
-    setErrorMsg(null);
-    setScanned(false);
-
-    try {
-      if (selected.type === 'application/pdf' || selected.name.toLowerCase().endsWith('.pdf')) {
-        const buffer = await selected.arrayBuffer();
-        const extracted = await extractTextFromPdfBuffer(buffer);
-        if (extracted && extracted.trim().length > 10) {
-          setDocumentText(extracted);
-        } else {
-          setDocumentText('');
-          setErrorMsg('O PDF parece ser uma imagem digitalizada ou protegido contra cópia. Se o texto não for extraído automaticamente, cole o conteúdo abaixo.');
-        }
-      } else if (selected.type.startsWith('text/') || selected.name.endsWith('.txt') || selected.name.endsWith('.csv')) {
-        const text = await selected.text();
-        setDocumentText(text);
-      } else {
-        // Imagem ou outro formato
-        setDocumentText('');
-      }
-    } catch (err: any) {
-      console.error('Erro ao ler arquivo:', err);
-      setErrorMsg('Não foi possível extrair o texto diretamente do arquivo. Você pode colar o texto da escala no campo abaixo.');
-    }
-  };
-
-  // Executa a varredura e cruzamento do efetivo
-  const handleScanDocument = async () => {
-    if (!documentText.trim()) {
+  // Processa texto extraído ou colado, preenchendo metadados e localizando militares
+  const processTextAndScan = (textToProcess: string, fileName?: string) => {
+    if (!textToProcess || !textToProcess.trim()) {
       setErrorMsg('Insira ou cole o texto do documento da escala para realizar a varredura do efetivo.');
       return;
     }
@@ -137,10 +107,10 @@ export default function ImportScalePage() {
 
     try {
       // 1. Extrai metadados (Data, Horário, Local, Uniforme, Título)
-      const meta = scanScaleMetadata(documentText);
+      const meta = scanScaleMetadata(textToProcess);
       setScaleData(prev => ({
         ...prev,
-        title: meta.title || prev.title || 'Escala de Serviço Externa',
+        title: meta.title || prev.title || (fileName ? fileName.replace(/\.[^/.]+$/, "") : 'Escala de Serviço Externa'),
         date: meta.date || prev.date || new Date().toISOString().split('T')[0],
         startTime: meta.startTime || prev.startTime || '08:00',
         endTime: meta.endTime || prev.endTime || '',
@@ -150,12 +120,14 @@ export default function ImportScalePage() {
       }));
 
       // 2. Localiza todos os militares cadastrados no texto e suas funções
-      const found = scanMusiciansFromText(documentText, musicians);
+      const found = scanMusiciansFromText(textToProcess, musicians);
       setMatchedMusicians(found);
       setScanned(true);
 
       if (found.length === 0) {
-        setErrorMsg('Varredura concluída: Nenhum militar cadastrado no app foi identificado automaticamente no texto. Você pode adicionar os militares manualmente abaixo.');
+        setErrorMsg('Varredura concluída: Nenhum militar cadastrado no app foi identificado automaticamente no texto. Verifique se os nomes coincidem com o cadastro ou adicione-os manualmente abaixo.');
+      } else {
+        setErrorMsg(null);
       }
     } catch (err: any) {
       console.error("Erro na varredura:", err);
@@ -163,6 +135,45 @@ export default function ImportScalePage() {
     } finally {
       setScanning(false);
     }
+  };
+
+  // Manipulador de seleção de arquivo
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (!selected) return;
+    setFile(selected);
+    setErrorMsg(null);
+    setScanned(false);
+    setReadingFile(true);
+
+    try {
+      let extracted = '';
+      if (selected.type === 'application/pdf' || selected.name.toLowerCase().endsWith('.pdf')) {
+        const buffer = await selected.arrayBuffer();
+        extracted = await extractTextFromPdfBuffer(buffer);
+      } else if (selected.type.startsWith('text/') || selected.name.endsWith('.txt') || selected.name.endsWith('.csv')) {
+        extracted = await selected.text();
+      }
+
+      if (extracted && extracted.trim().length > 10) {
+        setDocumentText(extracted);
+        // Executa a varredura automática imediatamente com o efetivo
+        processTextAndScan(extracted, selected.name);
+      } else {
+        setDocumentText('');
+        setErrorMsg('O PDF parece não conter camada de texto pesquisável (pode ser um documento digitalizado como imagem/foto). Você pode copiar e colar o texto ou relação de militares no campo abaixo.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao ler arquivo:', err);
+      setErrorMsg('Não foi possível extrair o texto automaticamente do arquivo. Você pode colar o conteúdo no campo abaixo.');
+    } finally {
+      setReadingFile(false);
+    }
+  };
+
+  // Executa a varredura e cruzamento do efetivo a partir do texto do campo
+  const handleScanDocument = () => {
+    processTextAndScan(documentText, file?.name);
   };
 
   // Alterna seleção de um militar
@@ -404,7 +415,13 @@ export default function ImportScalePage() {
             <div className="size-14 rounded-2xl bg-blue-600/10 text-blue-400 border border-blue-500/20 flex items-center justify-center mb-3 group-hover:scale-110 group-hover:bg-blue-600/20 transition-all">
               <span className="material-symbols-outlined text-[32px]">upload_file</span>
             </div>
-            {file ? (
+            {readingFile ? (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <div className="size-8 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin"></div>
+                <span className="text-sm font-bold text-indigo-400">Extraindo texto do documento...</span>
+                <span className="text-xs text-gray-500">Decodificando camadas e localizando militares</span>
+              </div>
+            ) : file ? (
               <div className="flex flex-col items-center gap-1">
                 <span className="text-sm font-bold text-white flex items-center gap-2">
                   <span className="material-symbols-outlined text-emerald-400 text-[18px]">check_circle</span>

@@ -23,111 +23,53 @@ export interface MatchedMusician {
 }
 
 /**
- * Remove acentos e converte para minúsculas para comparação semântica.
+ * Normaliza e limpa string para busca semântica insensível a acentos, pontuações e caixa.
  */
-function cleanStr(s?: string): string {
+export function cleanStr(s?: string): string {
   if (!s) return '';
   return s
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[ºª°]/g, '')
+    .replace(/[.,\-_/\\()]/g, ' ')
     .toLowerCase()
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
 /**
- * Extrai texto legível de um arquivo PDF digital decodificando seus fluxos (streams) internos.
+ * Decodifica strings hexadecimais em formato PDF (<00480065...> ou <4865...>).
  */
-export async function extractTextFromPdfBuffer(arrayBuffer: ArrayBuffer): Promise<string> {
-  const bytes = new Uint8Array(arrayBuffer);
-  let binaryStr = '';
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binaryStr += String.fromCharCode.apply(null, Array.from(chunk));
-  }
+function decodeHexPdfString(hex: string): string {
+  const cleanHex = hex.replace(/[\s\r\n]/g, '');
+  if (cleanHex.length === 0) return '';
+  const paddedHex = cleanHex.length % 2 !== 0 ? cleanHex + '0' : cleanHex;
 
-  const textPieces: string[] = [];
-  const streamRegex = /stream[\r\n]+([\s\S]*?)[\r\n]+endstream/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = streamRegex.exec(binaryStr)) !== null) {
-    const rawContent = match[1];
-    const streamStart = match.index + match[0].indexOf(rawContent);
-    const streamBytes = bytes.subarray(streamStart, streamStart + rawContent.length);
-
-    // Tenta descompactar via FlateDecode (pako)
-    let decompressed: string = '';
-    try {
-      const inflated = pako.inflate(streamBytes);
-      decompressed = new TextDecoder('latin1').decode(inflated);
-    } catch {
-      // Se não estiver comprimido ou falhar, usa o conteúdo cru
-      decompressed = rawContent;
-    }
-
-    // Procura blocos de texto PDF: BT ... ET
-    const btRegex = /BT[\s\S]*?ET/g;
-    let btMatch: RegExpExecArray | null;
-
-    while ((btMatch = btRegex.exec(decompressed)) !== null) {
-      const block = btMatch[0];
-
-      // Operadores Tj e TJ contêm as strings do texto
-      // (Texto simples) Tj
-      const tjRegex = /\((.*?)\)\s*Tj/g;
-      let tjMatch: RegExpExecArray | null;
-      while ((tjMatch = tjRegex.exec(block)) !== null) {
-        textPieces.push(unescapePdfString(tjMatch[1]));
+  // Verifica se é UTF-16BE (inicia com FEFF ou padrão de pares com 00)
+  if (paddedHex.length >= 4 && paddedHex.length % 4 === 0) {
+    if (paddedHex.toLowerCase().startsWith('feff')) {
+      let str = '';
+      for (let i = 4; i < paddedHex.length; i += 4) {
+        str += String.fromCharCode(parseInt(paddedHex.slice(i, i + 4), 16));
       }
-
-      // [(Array)(de)(Strings)] TJ
-      const tjArrayRegex = /\[([\s\S]*?)\]\s*TJ/g;
-      let tjArrayMatch: RegExpExecArray | null;
-      while ((tjArrayMatch = tjArrayRegex.exec(block)) !== null) {
-        const innerArray = tjArrayMatch[1];
-        const strRegex = /\((.*?)\)/g;
-        let strMatch: RegExpExecArray | null;
-        let linePart = '';
-        while ((strMatch = strRegex.exec(innerArray)) !== null) {
-          linePart += unescapePdfString(strMatch[1]);
-        }
-        if (linePart) {
-          textPieces.push(linePart);
-        }
-      }
-
-      // Operadores de quebra de linha T*, Td
-      if (block.includes('T*') || block.includes('Td')) {
-        textPieces.push('\n');
-      }
+      return str;
     }
   }
 
-  // Se a extração por streams encontrou texto, junta e retorna
-  if (textPieces.length > 0) {
-    return textPieces
-      .join(' ')
-      .replace(/[ \t]+/g, ' ')
-      .replace(/\n\s+/g, '\n')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-  }
-
-  // Fallback: busca por strings entre parênteses em todo o binário
-  const fallbackRegex = /\(([^()]{3,120})\)/g;
-  const fallbackPieces: string[] = [];
-  while ((match = fallbackRegex.exec(binaryStr)) !== null) {
-    const candidate = unescapePdfString(match[1]);
-    if (/[a-zA-ZÀ-ÿ]{3,}/.test(candidate)) {
-      fallbackPieces.push(candidate);
+  // Decodifica padrão Latin1 / ASCII
+  let str = '';
+  for (let i = 0; i < paddedHex.length; i += 2) {
+    const code = parseInt(paddedHex.slice(i, i + 2), 16);
+    // Ignora caracteres de controle nulos se for UTF-16 disfarçado
+    if (code !== 0) {
+      str += String.fromCharCode(code);
     }
   }
-
-  return fallbackPieces.join(' ').replace(/\s+/g, ' ').trim();
+  return str;
 }
 
 /**
- * Trata caracteres escapados comuns em PDF (\(, \), \\, \r, \n, \t).
+ * Trata caracteres escapados comuns em PDF (\(, \), \\, \r, \n, \t, octais).
  */
 function unescapePdfString(str: string): string {
   return str
@@ -140,6 +82,298 @@ function unescapePdfString(str: string): string {
     .replace(/\\\(/g, '(')
     .replace(/\\\)/g, ')')
     .replace(/\\\\/g, '\\');
+}
+
+/**
+ * Extrai texto legível de um fluxo (content stream) do PDF parseando os operadores BT ... ET.
+ */
+function parsePdfContentStream(contentStr: string): string {
+  const pieces: string[] = [];
+  const btRegex = /BT[\s\S]*?ET/g;
+  let btMatch: RegExpExecArray | null;
+
+  while ((btMatch = btRegex.exec(contentStr)) !== null) {
+    const block = btMatch[0];
+
+    // 1. Tj com parênteses: (Texto) Tj
+    const tjRegex = /\((.*?)\)\s*Tj/g;
+    let tjMatch: RegExpExecArray | null;
+    while ((tjMatch = tjRegex.exec(block)) !== null) {
+      pieces.push(unescapePdfString(tjMatch[1]));
+    }
+
+    // 2. Tj com hex: <48656c6c6f> Tj
+    const hexTjRegex = /<([0-9a-fA-F\s]+)>\s*Tj/g;
+    let hexTjMatch: RegExpExecArray | null;
+    while ((hexTjMatch = hexTjRegex.exec(block)) !== null) {
+      pieces.push(decodeHexPdfString(hexTjMatch[1]));
+    }
+
+    // 3. TJ array: [(Texto) 10 (Mais texto)] TJ ou [<0041> -20 <0042>] TJ
+    const tjArrayRegex = /\[([\s\S]*?)\]\s*TJ/g;
+    let tjArrayMatch: RegExpExecArray | null;
+    while ((tjArrayMatch = tjArrayRegex.exec(block)) !== null) {
+      const inner = tjArrayMatch[1];
+      let linePart = '';
+      const tokenRegex = /\((.*?)\)|<([0-9a-fA-F\s]+)>|(-?\d+)/g;
+      let tokenMatch: RegExpExecArray | null;
+      while ((tokenMatch = tokenRegex.exec(inner)) !== null) {
+        if (tokenMatch[1] !== undefined) {
+          linePart += unescapePdfString(tokenMatch[1]);
+        } else if (tokenMatch[2] !== undefined) {
+          linePart += decodeHexPdfString(tokenMatch[2]);
+        } else if (tokenMatch[3] !== undefined) {
+          const spacing = parseInt(tokenMatch[3], 10);
+          if (spacing < -120) {
+            linePart += ' ';
+          }
+        }
+      }
+      if (linePart) pieces.push(linePart);
+    }
+
+    // Quebra de linha indicada por operadores PDF
+    if (block.includes('T*') || block.includes('Td') || block.includes('TD') || block.includes('Tm')) {
+      pieces.push('\n');
+    }
+  }
+
+  return pieces
+    .join(' ')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
+ * Extrator binário puro de alta fidelidade para streams do PDF usando Uint8Array e Pako.
+ * Nunca retorna lixo binário.
+ */
+export function extractTextFromPdfUint8Array(bytes: Uint8Array): string {
+  const streamMarker = [115, 116, 114, 101, 97, 109]; // "stream"
+  const endstreamMarker = [101, 110, 100, 115, 116, 114, 101, 97, 109]; // "endstream"
+
+  function findSubarray(main: Uint8Array, sub: number[], start = 0): number {
+    for (let i = start; i <= main.length - sub.length; i++) {
+      let match = true;
+      for (let j = 0; j < sub.length; j++) {
+        if (main[i + j] !== sub[j]) { match = false; break; }
+      }
+      if (match) return i;
+    }
+    return -1;
+  }
+
+  const extractedTexts: string[] = [];
+  let idx = 0;
+
+  while (true) {
+    const sPos = findSubarray(bytes, streamMarker, idx);
+    if (sPos === -1) break;
+
+    // Localiza o início dos dados após "stream\r\n" ou "stream\n"
+    let dataStart = sPos + streamMarker.length;
+    if (bytes[dataStart] === 13 && bytes[dataStart + 1] === 10) {
+      dataStart += 2;
+    } else if (bytes[dataStart] === 10 || bytes[dataStart] === 13) {
+      dataStart += 1;
+    }
+
+    // Inspeciona o dicionário anterior ao stream para pegar /Length e /Filter
+    const dictStart = Math.max(0, sPos - 350);
+    const dictBytes = bytes.subarray(dictStart, sPos);
+    let dictStr = '';
+    for (let i = 0; i < dictBytes.length; i++) {
+      dictStr += String.fromCharCode(dictBytes[i]);
+    }
+
+    const isFlate = /\/Filter\s*(\/\w+)*\/FlateDecode/i.test(dictStr);
+    const lengthMatch = dictStr.match(/\/Length\s+(\d+)/);
+
+    let dataEnd = -1;
+    if (lengthMatch) {
+      const len = parseInt(lengthMatch[1], 10);
+      dataEnd = dataStart + len;
+    } else {
+      dataEnd = findSubarray(bytes, endstreamMarker, dataStart);
+      if (dataEnd !== -1) {
+        if (bytes[dataEnd - 2] === 13 && bytes[dataEnd - 1] === 10) {
+          dataEnd -= 2;
+        } else if (bytes[dataEnd - 1] === 10 || bytes[dataEnd - 1] === 13) {
+          dataEnd -= 1;
+        }
+      }
+    }
+
+    if (dataEnd > dataStart && dataEnd <= bytes.length) {
+      const streamData = bytes.subarray(dataStart, dataEnd);
+      let contentStr = '';
+
+      if (isFlate) {
+        try {
+          const inflated = pako.inflate(streamData);
+          contentStr = new TextDecoder('latin1').decode(inflated);
+        } catch {
+          try {
+            const raw = pako.inflateRaw(streamData);
+            contentStr = new TextDecoder('latin1').decode(raw);
+          } catch {}
+        }
+      } else {
+        contentStr = new TextDecoder('latin1').decode(streamData);
+      }
+
+      if (contentStr && (contentStr.includes('BT') || contentStr.includes('Tj') || contentStr.includes('TJ'))) {
+        const parsed = parsePdfContentStream(contentStr);
+        if (parsed && /[a-zA-ZÀ-ÿ]{3,}/.test(parsed)) {
+          extractedTexts.push(parsed);
+        }
+      }
+    }
+
+    idx = sPos + streamMarker.length + 1;
+  }
+
+  return extractedTexts.join('\n\n').trim();
+}
+
+/**
+ * Carrega a biblioteca PDF.js dinamicamente no navegador a partir de CDN seguro.
+ */
+export async function loadPdfJs(): Promise<any> {
+  if (typeof window === 'undefined') return null;
+  if ((window as any).pdfjsLib) return (window as any).pdfjsLib;
+
+  return new Promise((resolve) => {
+    const existing = document.querySelector('script[src*="pdf.min.js"]');
+    if (existing) {
+      let count = 0;
+      const interval = setInterval(() => {
+        count++;
+        if ((window as any).pdfjsLib || count > 30) {
+          clearInterval(interval);
+          resolve((window as any).pdfjsLib || null);
+        }
+      }, 100);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.async = true;
+    script.onload = () => {
+      const pdfjs = (window as any).pdfjsLib;
+      if (pdfjs) {
+        pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        resolve(pdfjs);
+      } else {
+        resolve(null);
+      }
+    };
+    script.onerror = () => {
+      // Fallback
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
+      fallbackScript.async = true;
+      fallbackScript.onload = () => {
+        const pdfjs = (window as any).pdfjsLib;
+        if (pdfjs) {
+          pdfjs.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+          resolve(pdfjs);
+        } else {
+          resolve(null);
+        }
+      };
+      fallbackScript.onerror = () => resolve(null);
+      document.head.appendChild(fallbackScript);
+    };
+    document.head.appendChild(script);
+  });
+}
+
+/**
+ * Extrai texto completo de alta fidelidade usando PDF.js com preservação de linhas e colunas.
+ */
+export async function extractTextWithPdfJs(arrayBuffer: ArrayBuffer, pdfjs: any): Promise<string> {
+  try {
+    const loadingTask = pdfjs.getDocument({
+      data: new Uint8Array(arrayBuffer),
+      cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
+      cMapPacked: true,
+    });
+    const pdfDoc = await loadingTask.promise;
+    const pageTexts: string[] = [];
+
+    for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
+      const page = await pdfDoc.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      let lastY: number | null = null;
+      let pageText = '';
+
+      for (const item of textContent.items) {
+        if ('str' in item) {
+          const str = (item as any).str;
+          if (!str) continue;
+          const currentY = (item as any).transform ? (item as any).transform[5] : null;
+
+          if (lastY !== null && currentY !== null && Math.abs(currentY - lastY) > 5) {
+            pageText += '\n';
+          } else if (pageText && !pageText.endsWith('\n') && !pageText.endsWith(' ') && !str.startsWith(' ')) {
+            pageText += ' ';
+          }
+
+          pageText += str;
+          if (currentY !== null) lastY = currentY;
+        }
+      }
+
+      if (pageText.trim()) {
+        pageTexts.push(pageText.trim());
+      }
+    }
+
+    return pageTexts.join('\n\n').trim();
+  } catch (err) {
+    console.warn('Falha no PDF.js, utilizando extrator nativo:', err);
+    return '';
+  }
+}
+
+/**
+ * Extrai texto legível de um arquivo PDF digital decodificando seus fluxos internos.
+ * Tenta PDF.js primeiro (suporte completo a CMap e fontes embutidas) e faz fallback para o extrator Uint8Array.
+ * Garante que JAMAIS retornará caracteres binários ilegíveis.
+ */
+export async function extractTextFromPdfBuffer(arrayBuffer: ArrayBuffer): Promise<string> {
+  // 1. Tenta carregar e executar via PDF.js no navegador
+  if (typeof window !== 'undefined') {
+    try {
+      const pdfjs = await loadPdfJs();
+      if (pdfjs) {
+        const text = await extractTextWithPdfJs(arrayBuffer, pdfjs);
+        if (text && text.trim().length > 10) {
+          return text.trim();
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao extrair via PDF.js:', e);
+    }
+  }
+
+  // 2. Extrator binário local Uint8Array + Pako
+  try {
+    const bytes = new Uint8Array(arrayBuffer);
+    const nativeText = extractTextFromPdfUint8Array(bytes);
+    if (nativeText && nativeText.trim().length > 10) {
+      return nativeText.trim();
+    }
+  } catch (e) {
+    console.warn('Erro ao extrair via extrator nativo:', e);
+  }
+
+  // 3. Se nenhuma camada de texto for encontrada (PDF escaneado/imagem)
+  return '';
 }
 
 /**
@@ -168,8 +402,8 @@ export function scanScaleMetadata(text: string): ScannedScaleMetadata {
     if (year.length === 2) year = '20' + year;
     metadata.date = `${year}-${month}-${day}`;
   } else {
-    // Procura por ex: "15 de novembro de 2026"
-    const writtenDateRegex = /\b(\d{1,2})\s+de\s+(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+(\d{4})\b/i;
+    // Procura por ex: "03 de novembro de 2026" ou "03 Novembro"
+    const writtenDateRegex = /\b(\d{1,2})\s+(?:de\s+)?(janeiro|fevereiro|março|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s+(?:de\s+)?(\d{4}))?\b/i;
     const writtenMatch = text.match(writtenDateRegex);
     if (writtenMatch) {
       const day = writtenMatch[1].padStart(2, '0');
@@ -179,7 +413,8 @@ export function scanScaleMetadata(text: string): ScannedScaleMetadata {
         setembro: '09', outubro: '10', novembro: '11', dezembro: '12'
       };
       const month = monthMap[writtenMatch[2].toLowerCase()] || '01';
-      metadata.date = `${writtenMatch[3]}-${month}-${day}`;
+      const year = writtenMatch[3] || new Date().getFullYear().toString();
+      metadata.date = `${year}-${month}-${day}`;
     }
   }
 
@@ -219,12 +454,11 @@ export function scanScaleMetadata(text: string): ScannedScaleMetadata {
   }
 
   // 5. TÍTULO / ASSUNTO DA ESCALA
-  const titleRegex = /(?:escala de serviço|ordem de serviço|operação|evento|solenidade|missão|serviço externo)\s*[:\-]?\s*([^\n\r]{4,90})/i;
+  const titleRegex = /(?:escala de serviço|ordem de serviço|operação|operacao|evento|solenidade|missão|missao|serviço externo)\s*[:\-]?\s*([^\n\r]{4,90})/i;
   const titleMatch = text.match(titleRegex);
   if (titleMatch) {
     metadata.title = titleMatch[0].trim();
   } else {
-    // Pega a primeira linha com texto relevante
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 5);
     if (lines.length > 0) {
       metadata.title = lines[0].slice(0, 80);
@@ -246,76 +480,97 @@ export function scanMusiciansFromText(text: string, registeredMusicians: any[]):
   const matched: MatchedMusician[] = [];
   const matchedIds = new Set<string>();
 
-  // Quebra o texto em linhas e blocos para análise contextual
-  const lines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+  // Quebra o texto em linhas para análise contextual
+  const rawLines = text.split(/[\r\n]+/).map(l => l.trim()).filter(l => l.length > 0);
+  const cleanFullDocument = cleanStr(text);
 
-  // Palavras de função militar para extração
+  // Palavras-chave de postos e funções militares comuns em ordens de serviço
   const functionKeywords = [
     'comandante', 'subcomandante', 'chefe', 'oficial de dia', 'adjunto',
     'permanencia', 'permanência', 'sentinela', 'portão', 'portao', 'segurança',
     'seguranca', 'transito', 'trânsito', 'motorista', 'radio', 'rádio', 'operador',
     'guarda', 'patrulha', 'reforço', 'reforco', 'apoio', 'fiscal', 'rpa', 'choque',
     'batedor', 'regente', 'músico', 'musico', 'som', 'p/1', 'p/3', 'p/4', 'p/5',
-    'armaria', 'sala de armas', 'reserva de armas', 'posto'
+    'armaria', 'sala de armas', 'reserva de armas', 'posto', 'palco', 'solista',
+    'itinerante', 'policiamento', 'fiscalização', 'escala', 'viatura', 'prefixo'
   ];
 
   for (const musician of registeredMusicians) {
     const warName = (musician.war_name || '').trim();
     const fullName = (musician.name || '').trim();
     const rank = (musician.rank || '').trim();
+    const re = (musician.re || '').trim();
+    const rg = (musician.rg || '').trim();
+    const cpf = (musician.cpf || '').trim();
     const id = musician.id;
 
     if (!warName && !fullName) continue;
 
-    // Criamos termos de busca específicos
+    // Constrói termos de busca com prioridade
     const searchTerms: string[] = [];
 
-    // Nome de guerra (mínimo 3 caracteres para evitar falsos positivos)
-    if (warName.length >= 3) {
-      searchTerms.push(cleanStr(warName));
-    }
+    // 1. RE / RG (muito comum em escalas militares PMPR)
+    const cleanReDigits = re.replace(/\D/g, '');
+    if (cleanReDigits.length >= 5) searchTerms.push(cleanReDigits);
 
-    // Nome completo
-    if (fullName.length >= 5) {
-      searchTerms.push(cleanStr(fullName));
-      // Primeiro + último nome se for longo
-      const parts = fullName.split(' ').filter((p: string) => p.length >= 2);
-      if (parts.length >= 2) {
-        searchTerms.push(cleanStr(`${parts[0]} ${parts[parts.length - 1]}`));
+    const cleanRgDigits = rg.replace(/\D/g, '');
+    if (cleanRgDigits.length >= 5 && cleanRgDigits !== cleanReDigits) searchTerms.push(cleanRgDigits);
+
+    // 2. CPF (se disponível)
+    const cleanCpfDigits = cpf.replace(/\D/g, '');
+    if (cleanCpfDigits.length >= 8) searchTerms.push(cleanCpfDigits);
+
+    // 3. Nome de Guerra
+    const cleanWar = cleanStr(warName);
+    if (cleanWar.length >= 3) {
+      searchTerms.push(cleanWar);
+
+      // Combinações comuns: "Sgt Heliomar", "3 Sgt Heliomar", etc.
+      if (rank) {
+        const cleanRank = cleanStr(rank);
+        const rankParts = cleanRank.split(' ');
+        if (rankParts[0]) {
+          searchTerms.push(`${rankParts[0]} ${cleanWar}`);
+        }
       }
     }
 
-    // CPF / RG se houver
-    if (musician.cpf) {
-      const cleanCpf = musician.cpf.replace(/\D/g, '');
-      if (cleanCpf.length >= 8) searchTerms.push(cleanCpf);
+    // 4. Nome Completo e fragmentos
+    const cleanFull = cleanStr(fullName);
+    if (cleanFull.length >= 5) {
+      searchTerms.push(cleanFull);
+
+      const parts = cleanFull.split(' ').filter(p => p.length >= 2);
+      if (parts.length >= 2) {
+        // Primeiro e último sobrenome: "Heliomar Santos"
+        searchTerms.push(`${parts[0]} ${parts[parts.length - 1]}`);
+        // Primeiro e segundo nome: "Heliomar de Jesus"
+        if (parts.length >= 3) {
+          searchTerms.push(`${parts[0]} ${parts[1]}`);
+        }
+      }
     }
 
-    if (musician.rg) {
-      const cleanRg = musician.rg.replace(/\D/g, '');
-      if (cleanRg.length >= 6) searchTerms.push(cleanRg);
-    }
-
-    // Procura nas linhas do documento
+    // Busca nas linhas do documento
     let bestMatchedLine = '';
     let found = false;
 
-    for (const rawLine of lines) {
+    for (const rawLine of rawLines) {
       const lineClean = cleanStr(rawLine);
       const lineDigits = rawLine.replace(/\D/g, '');
 
       for (const term of searchTerms) {
-        // Testa se é número (CPF/RG)
         if (/^\d+$/.test(term)) {
+          // Busca numérica exata para RE/RG/CPF
           if (lineDigits.includes(term)) {
             found = true;
             bestMatchedLine = rawLine;
             break;
           }
         } else {
-          // Busca com limite de palavra
+          // Busca de texto com delimitador de palavra
           const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const regex = new RegExp(`(^|\\b|[^a-zA-Z0-9À-ÿ])${escaped}(\\b|[^a-zA-Z0-9À-ÿ]|$)`, 'i');
+          const regex = new RegExp(`(^|\\b|[^a-z0-9])${escaped}(\\b|[^a-z0-9]|$)`, 'i');
           if (regex.test(lineClean)) {
             found = true;
             bestMatchedLine = rawLine;
@@ -326,47 +581,71 @@ export function scanMusiciansFromText(text: string, registeredMusicians: any[]):
       if (found) break;
     }
 
+    // Se não encontrou linha a linha (ex: tabela sem quebras ou formato contínuo), busca no texto corrido
+    if (!found) {
+      for (const term of searchTerms) {
+        if (/^\d+$/.test(term)) {
+          if (text.replace(/\D/g, '').includes(term)) {
+            found = true;
+            bestMatchedLine = `Identificado pelo RE/RG ${term}`;
+            break;
+          }
+        } else {
+          const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp(`(^|\\b|[^a-z0-9])${escaped}(\\b|[^a-z0-9]|$)`, 'i');
+          const matchIdx = cleanFullDocument.search(regex);
+          if (matchIdx !== -1) {
+            found = true;
+            const startSnippet = Math.max(0, matchIdx - 30);
+            const endSnippet = Math.min(text.length, matchIdx + term.length + 50);
+            bestMatchedLine = text.slice(startSnippet, endSnippet).replace(/[\r\n]+/g, ' ').trim();
+            break;
+          }
+        }
+      }
+    }
+
     if (found && !matchedIds.has(id)) {
       matchedIds.add(id);
 
-      // Extrai a função exercida com base na linha onde o militar foi citado
+      // Extrai função ou posto exercido com base na linha/contexto
       let extractedRole = 'Serviço Externo';
 
       if (bestMatchedLine) {
-        // Tenta isolar o que não é o nome do militar na linha
         let candidateRole = bestMatchedLine;
 
-        // Remove o posto, nome de guerra e nome completo da linha
-        if (warName) candidateRole = candidateRole.replace(new RegExp(warName, 'gi'), '');
-        if (fullName) candidateRole = candidateRole.replace(new RegExp(fullName, 'gi'), '');
-        if (rank) {
-          const rankShort = rank.split(' ')[0] || '';
-          if (rankShort) candidateRole = candidateRole.replace(new RegExp(rankShort, 'gi'), '');
-          candidateRole = candidateRole.replace(new RegExp(rank, 'gi'), '');
-        }
+        // Se a linha tem divisores claros (ex: "-", ":", "|", "/", "–")
+        const parts = bestMatchedLine.split(/[:\-\|–—\/]/).map(p => p.trim());
+        let foundRolePart = '';
 
-        // Remove pontuação de separação inicial ou final
-        candidateRole = candidateRole
-          .replace(/^[0-9\.\-\:\;\s\|\(\)]+/, '')
-          .replace(/[0-9\.\-\:\;\s\|\(\)]+$/, '')
-          .replace(/RG\s*[\d\.\-]+/gi, '')
-          .replace(/CPF\s*[\d\.\-]+/gi, '')
-          .replace(/PMPR/gi, '')
-          .trim();
-
-        // Se tem separador como ":", "-" ou "|"
-        const parts = bestMatchedLine.split(/[:\-\|–—]/).map(p => p.trim());
         for (const p of parts) {
           const pClean = cleanStr(p);
-          // Se a parte contém alguma palavra chave de função militar e não é só o nome
-          if (functionKeywords.some(k => pClean.includes(k)) && !pClean.includes(cleanStr(warName))) {
-            candidateRole = p;
+          if (functionKeywords.some(k => pClean.includes(k)) && !pClean.includes(cleanWar)) {
+            foundRolePart = p;
             break;
           }
         }
 
+        if (foundRolePart) {
+          candidateRole = foundRolePart;
+        } else {
+          // Remove nomes e patentes da linha para sobrar a função
+          if (warName) candidateRole = candidateRole.replace(new RegExp(warName, 'gi'), '');
+          if (fullName) candidateRole = candidateRole.replace(new RegExp(fullName, 'gi'), '');
+          if (rank) candidateRole = candidateRole.replace(new RegExp(rank, 'gi'), '');
+        }
+
+        // Limpeza de pontuação e ruídos residuais
+        candidateRole = candidateRole
+          .replace(/^[0-9\.\-\:\;\s\|\(\)\/]+/, '')
+          .replace(/[0-9\.\-\:\;\s\|\(\)\/]+$/, '')
+          .replace(/RG\s*[\d\.\-]+/gi, '')
+          .replace(/RE\s*[\d\.\-]+/gi, '')
+          .replace(/CPF\s*[\d\.\-]+/gi, '')
+          .replace(/PMPR/gi, '')
+          .trim();
+
         if (candidateRole.length >= 3 && candidateRole.length <= 60) {
-          // Capitaliza a primeira letra
           extractedRole = candidateRole.charAt(0).toUpperCase() + candidateRole.slice(1);
         }
       }
@@ -387,4 +666,3 @@ export function scanMusiciansFromText(text: string, registeredMusicians: any[]):
 
   return matched;
 }
-

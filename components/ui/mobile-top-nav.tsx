@@ -106,7 +106,7 @@ export function MobileTopNav() {
       label: 'Escalas',
       href: '/admin/scales',
       icon: 'format_list_bulleted',
-      active: pathname.startsWith('/admin/scales') || (pathname.startsWith('/scales') && !pathname.startsWith('/swaps')),
+      active: (pathname === '/admin/scales' || pathname.startsWith('/scales') || pathname.startsWith('/admin/scales/')) && !pathname.startsWith('/admin/scales/new') && !pathname.startsWith('/admin/scales/import') && !pathname.startsWith('/swaps'),
       color: 'text-purple-400',
     },
     ...(userRole === 'admin' || userRole === 'master'

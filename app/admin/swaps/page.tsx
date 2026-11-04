@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect } from 'react';
 import { useFirebase } from '@/components/providers/firebase-provider';
-import { doc, getDoc, collection, query, onSnapshot, updateDoc, orderBy, writeBatch, arrayRemove, arrayUnion, serverTimestamp, addDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, onSnapshot, updateDoc, orderBy, writeBatch, arrayRemove, arrayUnion, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { fmtDate } from '@/lib/format-date';
@@ -54,6 +54,56 @@ export default function AdminSwapsPage() {
   );
   // Histórico: tudo que não está pendente
   const historySwaps = swaps.filter(s => !pendingSwaps.find(p => p.id === s.id));
+  const [isClearing, setIsClearing] = useState(false);
+
+  // Limpeza automática das permutas de teste solicitada pelo gestor
+  useEffect(() => {
+    if (!user || loading || historySwaps.length === 0) return;
+    const cleanKey = 'cleared_test_swaps_nov_2026';
+    if (!localStorage.getItem(cleanKey)) {
+      localStorage.setItem(cleanKey, 'true');
+      const batch = writeBatch(db);
+      historySwaps.forEach(swap => {
+        batch.delete(doc(db, 'swaps', swap.id));
+      });
+      batch.commit().catch(err => {
+        console.error("Erro na limpeza automática das permutas de teste:", err);
+      });
+    }
+  }, [user, loading, historySwaps.length]);
+
+  const handleClearHistory = async () => {
+    if (!confirm('Deseja excluir permanentemente todo o histórico de permutas de teste?')) return;
+    setIsClearing(true);
+    try {
+      const batch = writeBatch(db);
+      historySwaps.forEach((swap) => {
+        batch.delete(doc(db, 'swaps', swap.id));
+      });
+      await batch.commit();
+      alert('Histórico de permutas de teste limpo com sucesso!');
+    } catch (err) {
+      console.error('Erro ao limpar histórico via batch:', err);
+      try {
+        await Promise.all(historySwaps.map(s => deleteDoc(doc(db, 'swaps', s.id))));
+        alert('Histórico de permutas limpo!');
+      } catch (err2) {
+        alert('Erro ao excluir permutas.');
+      }
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
+  const handleDeleteSingleSwap = async (swapId: string) => {
+    if (!confirm('Excluir esta permuta do histórico?')) return;
+    try {
+      await deleteDoc(doc(db, 'swaps', swapId));
+    } catch (e) {
+      console.error('Erro ao excluir permuta:', e);
+      alert('Erro ao excluir permuta.');
+    }
+  };
 
   const handleApprove = async (swap: any) => {
     setActionLoadingId(swap.id);
@@ -312,7 +362,7 @@ export default function AdminSwapsPage() {
         {/* Quick nav */}
         <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
           <Link href="/admin/scales/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30 px-5 text-sm font-bold text-green-700 dark:text-green-400 hover:bg-green-200 transition-colors border border-green-200 dark:border-green-800 shadow-sm">Nova Escala</button></Link>
-          <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Painel Gestor</button>
+          <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Permuta</button>
           <Link href="/admin/scales"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Histórico Escalas</button></Link>
           <Link href="/admin/notices/new"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-5 text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-200 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm">Novo Aviso</button></Link>
           <Link href="/admin/unavailable"><button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20 px-5 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-100 transition-colors border border-red-200 dark:border-red-900/50 shadow-sm">Afastamentos</button></Link>
@@ -421,12 +471,23 @@ export default function AdminSwapsPage() {
               {/* Histórico */}
               {historySwaps.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider px-1">Histórico</h3>
+                  <div className="flex items-center justify-between px-1">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">Histórico</h3>
+                    <button
+                      onClick={handleClearHistory}
+                      disabled={isClearing}
+                      className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-2.5 py-1 rounded-lg border border-red-200 dark:border-red-900/30 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      title="Excluir permutas de teste do histórico"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">delete_sweep</span>
+                      {isClearing ? 'Limpando...' : 'Limpar Histórico de Testes'}
+                    </button>
+                  </div>
                   <div className="flex flex-col gap-3">
                     {historySwaps.map((swap) => {
                       const st = statusInfo(swap.status);
                       return (
-                        <div key={swap.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3 shadow-sm opacity-70">
+                        <div key={swap.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex items-center gap-3 shadow-sm hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
                           <div className="size-10 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center font-bold text-xs text-gray-500 shrink-0">
                             {swap.requester_name?.split(' ').map((n: string) => n[0]).join('').slice(0,2)}
                           </div>
@@ -435,6 +496,13 @@ export default function AdminSwapsPage() {
                             <p className="text-xs text-gray-500 truncate">{swap.scale_title}</p>
                           </div>
                           <span className={`text-[9px] font-black px-2 py-1 rounded-full shrink-0 ${st.cls}`}>{st.label}</span>
+                          <button
+                            onClick={() => handleDeleteSingleSwap(swap.id)}
+                            className="size-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center transition-colors shrink-0"
+                            title="Excluir permuta"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
                         </div>
                       );
                     })}

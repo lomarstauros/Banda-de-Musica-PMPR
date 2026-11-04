@@ -120,9 +120,9 @@ export function MobileTopNav() {
           },
           {
             label: 'Painel Gestor',
-            href: '/admin/swaps',
+            href: '/admin/scales/new',
             icon: 'shield_person',
-            active: pathname.startsWith('/admin/swaps'),
+            active: pathname.startsWith('/admin/scales/new') || pathname.startsWith('/admin/scales/import') || pathname.startsWith('/admin/swaps'),
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
             color: 'text-amber-400',
           },

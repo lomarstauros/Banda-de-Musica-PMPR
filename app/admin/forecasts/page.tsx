@@ -21,6 +21,8 @@ import {
 import { db } from '@/lib/firebase';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { fmtDate } from '@/lib/format-date';
+import { generateForecastsPDF, viewForecastsPDF } from '@/lib/pdf-generator';
+import { buildForecastsWhatsAppMessage, getWhatsAppBroadcastUrl } from '@/lib/whatsapp';
 
 const FORMATIONS = [
   'Banda Completa',
@@ -51,7 +53,7 @@ const UNIFORMS = [
 export default function AdminForecastsPage() {
   const router = useRouter();
   const { user } = useFirebase();
-  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; role?: string } | null>(null);
+  const [profile, setProfile] = useState<{ war_name?: string; rank?: string; photo_url?: string; role?: string; name?: string } | null>(null);
   const [forecasts, setForecasts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,6 +77,14 @@ export default function AdminForecastsPage() {
 
   // Tab filter (Futuras x Passadas)
   const [filterTab, setFilterTab] = useState<'future' | 'past'>('future');
+
+  // Estados para Ações de Exportação e Comunicação
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [showNoticeModal, setShowNoticeModal] = useState(false);
+  const [noticePublishing, setNoticePublishing] = useState(false);
+  const [noticeSuccess, setNoticeSuccess] = useState(false);
+  const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -252,6 +262,90 @@ export default function AdminForecastsPage() {
   const futureForecasts = forecasts.filter(f => f.date >= todayStr);
   const pastForecasts = forecasts.filter(f => f.date < todayStr).reverse();
   const displayedForecasts = filterTab === 'future' ? futureForecasts : pastForecasts;
+
+  const handleGeneratePDF = async (action: 'download' | 'view') => {
+    const targetForecasts = displayedForecasts.length > 0 ? displayedForecasts : futureForecasts;
+    if (targetForecasts.length === 0) {
+      alert('Não há previsões de serviços cadastradas para gerar o PDF.');
+      return;
+    }
+    setPdfGenerating(true);
+    try {
+      const signerName = profile ? `${profile.rank || ''} ${profile.war_name || profile.name || ''}`.trim() : 'Comando da Banda de Música';
+      const signerRole = 'Sargenteação / Maestro Chefe da Banda de Música da PMPR';
+      await generateForecastsPDF(targetForecasts, { action, signerName, signerRole });
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const currentWhatsAppMessage = buildForecastsWhatsAppMessage(displayedForecasts.length > 0 ? displayedForecasts : futureForecasts);
+
+  const handleCopyWhatsApp = () => {
+    navigator.clipboard.writeText(currentWhatsAppMessage);
+    setCopiedWhatsApp(true);
+    setTimeout(() => setCopiedWhatsApp(false), 2000);
+  };
+
+  const handleSendWhatsApp = () => {
+    const url = getWhatsAppBroadcastUrl(currentWhatsAppMessage);
+    window.open(url, '_blank');
+  };
+
+  const handlePublishNotice = async () => {
+    const targetForecasts = displayedForecasts.length > 0 ? displayedForecasts : futureForecasts;
+    if (targetForecasts.length === 0) {
+      alert('Não há previsões para publicar como aviso.');
+      return;
+    }
+    setNoticePublishing(true);
+    try {
+      const authorName = profile ? `${profile.rank || ''} ${profile.war_name || profile.name || 'Sargenteante'}`.trim() : 'Sargenteação da Banda PMPR';
+      const noticeTitle = `Previsão de Serviços da Banda de Música (${targetForecasts.length} serviço${targetForecasts.length > 1 ? 's' : ''} previsto${targetForecasts.length > 1 ? 's' : ''})`;
+      
+      let noticeBody = `Quadro atualizado com as previsões de serviços e solenidades da Banda de Música da PMPR:\n\n`;
+      targetForecasts.forEach((f, idx) => {
+        let dateFormatted = f.date;
+        if (f.date && f.date.includes('-')) {
+          const parts = f.date.split('-');
+          if (parts.length === 3) dateFormatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+        noticeBody += `📌 ${idx + 1}. ${(f.title || 'Previsão de Serviço').toUpperCase()}\n`;
+        noticeBody += `• Data: ${dateFormatted}\n`;
+        if (f.startTime) noticeBody += `• Horário: ${f.startTime}${f.endTime ? ` às ${f.endTime}` : ''}${f.departureTime ? ` (Saída BM: ${f.departureTime})` : ''}\n`;
+        if (f.location) noticeBody += `• Local: ${f.location}\n`;
+        noticeBody += `• Formação Musical: ${f.musicalFormation || f.formation || 'Banda Completa'}\n`;
+        if (f.protocolNumber) noticeBody += `• Número de Protocolo: ${f.protocolNumber}\n`;
+        if (f.uniform) noticeBody += `• Fardamento: ${f.uniform}\n`;
+        if (f.notes) noticeBody += `• Observações: ${f.notes}\n`;
+        noticeBody += `\n`;
+      });
+      noticeBody += `⚠️ Atenção: As previsões acima possuem caráter de planejamento e estão sujeitas a confirmação na publicação da escala definitiva.`;
+
+      await addDoc(collection(db, 'notices'), {
+        title: noticeTitle,
+        type: 'escala',
+        message: noticeBody,
+        author: authorName,
+        createdAt: serverTimestamp(),
+        requireConfirmation: false,
+        targetMode: 'todos',
+        targetMusicianIds: [],
+        file: null
+      });
+
+      setNoticeSuccess(true);
+      setTimeout(() => {
+        setNoticeSuccess(false);
+        setShowNoticeModal(false);
+      }, 2000);
+    } catch (err) {
+      console.error('Erro ao publicar aviso:', err);
+      alert('Erro ao publicar o aviso no mural. Tente novamente.');
+    } finally {
+      setNoticePublishing(false);
+    }
+  };
 
   const displayName = profile ? `${profile.rank || ''} ${profile.war_name || ''}`.trim() || 'Gestor' : 'Carregando...';
   const displayPhoto = profile?.photo_url || null;
@@ -552,6 +646,74 @@ export default function AdminForecastsPage() {
             </form>
           </section>
 
+          {/* Barra de Ações: PDF em Tabela, WhatsApp e Avisos no App */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-blue-600/10 to-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-3xl p-4 lg:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-500 dark:text-amber-400 flex items-center justify-center shrink-0 shadow-inner">
+                <span className="material-symbols-outlined text-[24px]">send_time_extension</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  Relatório & Comunicação das Previsões
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    Sargenteação
+                  </span>
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Gere o PDF em tabela com o quadro de previsões ou envie comunicados por WhatsApp e pelo Mural do App.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Botão Baixar PDF */}
+              <button
+                onClick={() => handleGeneratePDF('download')}
+                disabled={pdfGenerating || displayedForecasts.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md shadow-red-600/20 transition-all active:scale-95 disabled:opacity-50"
+                title="Baixar PDF com as previsões em tabela com data, título, horário, formação e protocolo"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  {pdfGenerating ? 'progress_activity' : 'picture_as_pdf'}
+                </span>
+                <span>Baixar PDF</span>
+              </button>
+
+              {/* Botão Visualizar PDF */}
+              <button
+                onClick={() => handleGeneratePDF('view')}
+                disabled={pdfGenerating || displayedForecasts.length === 0}
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                title="Visualizar PDF em nova aba"
+              >
+                <span className="material-symbols-outlined text-[18px]">visibility</span>
+                <span>Visualizar</span>
+              </button>
+
+              {/* Botão WhatsApp */}
+              <button
+                onClick={() => setShowWhatsAppModal(true)}
+                disabled={displayedForecasts.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold shadow-md shadow-[#25D366]/20 transition-all active:scale-95 disabled:opacity-50"
+                title="Compartilhar lista de previsões via WhatsApp"
+              >
+                <span className="material-symbols-outlined text-[18px]">chat</span>
+                <span>WhatsApp</span>
+              </button>
+
+              {/* Botão Publicar em Avisos no App */}
+              <button
+                onClick={() => setShowNoticeModal(true)}
+                disabled={displayedForecasts.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-primary hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+                title="Publicar estas previsões no mural de avisos do aplicativo"
+              >
+                <span className="material-symbols-outlined text-[18px]">campaign</span>
+                <span>Avisos no App</span>
+              </button>
+            </div>
+          </div>
+
           {/* Listagem de Previsões */}
           <section className="flex flex-col gap-4">
             <div className="flex items-center justify-between px-1">
@@ -712,6 +874,150 @@ export default function AdminForecastsPage() {
               </div>
             )}
           </section>
+
+          {/* Modal Compartilhar WhatsApp */}
+          <AnimatePresence>
+            {showWhatsAppModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white dark:bg-[#1a202c] border border-gray-200 dark:border-white/10 rounded-3xl p-5 w-full max-w-lg shadow-2xl flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                    <div className="flex items-center gap-2 text-[#25D366]">
+                      <span className="material-symbols-outlined text-[24px]">chat</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                        Compartilhar Previsões no WhatsApp
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setShowWhatsAppModal(false)}
+                      className="size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Confira a mensagem formatada que será enviada para o grupo do WhatsApp da Banda PMPR:
+                  </p>
+
+                  <div className="bg-gray-50 dark:bg-black/30 border border-gray-200 dark:border-white/5 rounded-2xl p-3 max-h-60 overflow-y-auto font-mono text-[11px] whitespace-pre-wrap text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {currentWhatsAppMessage}
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      onClick={handleCopyWhatsApp}
+                      className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">
+                        {copiedWhatsApp ? 'check' : 'content_copy'}
+                      </span>
+                      {copiedWhatsApp ? 'Copiado!' : 'Copiar Texto'}
+                    </button>
+
+                    <button
+                      onClick={handleSendWhatsApp}
+                      className="px-5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#25D366]/20 transition-all active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                      Abrir no WhatsApp
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {/* Modal Publicar em Avisos no App */}
+          <AnimatePresence>
+            {showNoticeModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white dark:bg-[#1a202c] border border-gray-200 dark:border-white/10 rounded-3xl p-5 w-full max-w-lg shadow-2xl flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-3">
+                    <div className="flex items-center gap-2 text-primary">
+                      <span className="material-symbols-outlined text-[24px]">campaign</span>
+                      <h3 className="font-bold text-gray-900 dark:text-white text-sm">
+                        Publicar Previsões no Mural de Avisos
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => !noticePublishing && setShowNoticeModal(false)}
+                      className="size-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-white"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                  </div>
+
+                  {noticeSuccess ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-center gap-2">
+                      <div className="size-12 rounded-full bg-green-500/20 text-green-500 flex items-center justify-center mb-1">
+                        <span className="material-symbols-outlined text-[28px]">check_circle</span>
+                      </div>
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white">Aviso Publicado com Sucesso!</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Os músicos já podem visualizar o quadro de previsões no Mural de Avisos do aplicativo.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Esta ação irá publicar um comunicado no Mural de Avisos do App informando a todos os músicos sobre o quadro atualizado com as <strong className="text-gray-700 dark:text-gray-200">{displayedForecasts.length} previsões de serviços</strong>.
+                      </p>
+
+                      <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+                        <span className="material-symbols-outlined text-[18px] text-amber-500 shrink-0 mt-0.5">info</span>
+                        <div>
+                          <strong>Nota de Planejamento:</strong>
+                          <p className="text-[11px] opacity-90 mt-0.5">
+                            O aviso incluirá as datas, títulos, horários, formações musicais e números de protocolos para conhecimento prévio do efetivo.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2">
+                        <button
+                          type="button"
+                          disabled={noticePublishing}
+                          onClick={() => setShowNoticeModal(false)}
+                          className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 text-xs font-bold transition-colors disabled:opacity-50"
+                        >
+                          Cancelar
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={noticePublishing}
+                          onClick={handlePublishNotice}
+                          className="px-5 py-2 rounded-xl bg-primary hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {noticePublishing ? (
+                            <>
+                              <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                              Publicando...
+                            </>
+                          ) : (
+                            <>
+                              <span className="material-symbols-outlined text-[16px]">publish</span>
+                              Publicar no Mural Agora
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
 
         </main>
       </div>

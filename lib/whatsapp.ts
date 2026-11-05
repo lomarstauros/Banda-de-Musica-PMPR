@@ -134,3 +134,55 @@ export function buildScaleWhatsAppMessage(scales: any[], dateStr: string): strin
 
   return msg.trim();
 }
+
+/**
+ * Constrói a mensagem formatada para WhatsApp com o Quadro de Previsões de Serviços
+ */
+export function buildForecastsWhatsAppMessage(forecasts: any[]): string {
+  if (!forecasts || forecasts.length === 0) {
+    return `🎵 *BANDA DE MÚSICA DA PMPR*\n📋 *QUADRO DE PREVISÕES DE SERVIÇO*\n\nNenhuma previsão de serviço cadastrada no momento.`;
+  }
+
+  const sorted = [...forecasts].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+  let msg = `🎵 *BANDA DE MÚSICA DA PMPR*\n`;
+  msg += `📋 *QUADRO DE PREVISÕES DE SERVIÇO*\n`;
+  msg += `📅 *Atualizado em:* ${new Date().toLocaleDateString('pt-BR')}\n`;
+  msg += `─────────────────────────\n\n`;
+
+  sorted.forEach((f, idx) => {
+    let dateStr = f.date || 'Data a definir';
+    if (dateStr.includes('-')) {
+      const parts = dateStr.split('-');
+      if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    const title = f.title ? f.title.toUpperCase() : `PREVISÃO ${idx + 1}`;
+    msg += `📌 *${idx + 1}. ${title}*\n`;
+    msg += `🗓️ *Data:* ${dateStr}\n`;
+    if (f.startTime) {
+      msg += `⏰ *Horário:* ${f.startTime}${f.endTime ? ` às ${f.endTime}` : ''}${f.departureTime ? ` (Saída BM: ${f.departureTime})` : ''}\n`;
+    }
+    if (f.location) {
+      msg += `📍 *Local:* ${f.location}\n`;
+    }
+    msg += `🎷 *Formação Musical:* ${f.musicalFormation || f.formation || 'Banda Completa'}\n`;
+    if (f.protocolNumber) {
+      msg += `🏷️ *Protocolo:* ${f.protocolNumber}\n`;
+    }
+    if (f.uniform) {
+      msg += `👔 *Fardamento:* ${f.uniform}\n`;
+    }
+    if (f.notes) {
+      msg += `📝 *Obs:* ${f.notes}\n`;
+    }
+    msg += `\n`;
+  });
+
+  msg += `─────────────────────────\n`;
+  msg += `⚠️ *Atenção:* As previsões acima possuem caráter informativo de planejamento e estão sujeitas a confirmação na publicação da escala definitiva.\n`;
+  msg += `📱 Acesse o aplicativo da Banda PMPR para mais detalhes.`;
+
+  return msg.trim();
+}
+

@@ -598,6 +598,255 @@ export const viewDailyScalesPDF = async (scales: any[], allProfiles: any[] = [])
   return generateDailyScalesPDF(scales, allProfiles, { action: 'view' });
 };
 
+/**
+ * Gera PDF do Quadro de Previsões de Serviço em formato de tabela
+ */
+export const generateForecastsPDF = async (
+  forecasts: any[],
+  options?: { 
+    action?: 'download' | 'view'; 
+    signerName?: string; 
+    signerRole?: string;
+  }
+) => {
+  try {
+    if (!forecasts || forecasts.length === 0) {
+      alert('Não há previsões de serviços para gerar o PDF.');
+      return;
+    }
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let curY = 15;
+
+    // ── LOGOS & CABEÇALHO ----------------------------------------------------
+    try {
+      const drawLogoFit = (img: string, boxX: number, boxY: number, box: number, alias: string) => {
+        const props = doc.getImageProperties(img);
+        const ratio = props.width / props.height;
+        const w = ratio >= 1 ? box : box * ratio;
+        const h = ratio >= 1 ? box / ratio : box;
+        doc.addImage(img, 'PNG', boxX + (box - w) / 2, boxY + (box - h) / 2, w, h, alias, 'FAST');
+      };
+      if (PMPR_LOGO) drawLogoFit(PMPR_LOGO, margin, curY - 3, 22, 'pmpr_logo_forecast');
+      if (BANDA_LOGO) drawLogoFit(BANDA_LOGO, pageWidth - margin - 22, curY - 3, 22, 'banda_logo_forecast');
+    } catch (e) {
+      console.warn('Erro ao carregar logotipos:', e);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text('ESTADO DO PARANÁ', pageWidth / 2, curY, { align: 'center' });
+    doc.text('POLÍCIA MILITAR', pageWidth / 2, curY + 4.5, { align: 'center' });
+    doc.text('COMANDO GERAL', pageWidth / 2, curY + 9, { align: 'center' });
+    doc.text('CENTRO DE COMUNICAÇÃO SOCIAL', pageWidth / 2, curY + 13.5, { align: 'center' });
+    doc.text('BANDA DE MÚSICA', pageWidth / 2, curY + 18, { align: 'center' });
+    curY += 26;
+
+    // ── TÍTULO DO DOCUMENTO --------------------------------------------------
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('QUADRO DE PREVISÃO DE SERVIÇOS', pageWidth / 2, curY, { align: 'center' });
+    curY += 5;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Planejamento prévio de serviços, solenidades e apresentações musicais', pageWidth / 2, curY, { align: 'center' });
+    curY += 8;
+
+    // Ordenar previsões por data crescente
+    const sortedForecasts = [...forecasts].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+    // Montar linhas da tabela
+    const daysWeek = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
+    const tableData = sortedForecasts.map((f) => {
+      // Data
+      let dateText = f.date || 'A definir';
+      if (f.date && f.date.includes('-')) {
+        try {
+          const d = new Date(f.date + 'T12:00:00');
+          if (!isNaN(d.getTime())) {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            dateText = `${day}/${month}/${year}\n(${daysWeek[d.getDay()]})`;
+          }
+        } catch { /* fallback */ }
+      }
+
+      // Horário
+      let timeText = '';
+      if (f.startTime) {
+        timeText = `${f.startTime}${f.endTime ? ` às ${f.endTime}` : ''}`;
+      } else {
+        timeText = '--:--';
+      }
+      if (f.departureTime) {
+        timeText += `\nSaída: ${f.departureTime}`;
+      }
+
+      // Evento / Local
+      let eventText = (f.title || 'Previsão de Serviço').toUpperCase();
+      if (f.location) {
+        eventText += `\nLocal: ${f.location}`;
+      }
+      if (f.uniform) {
+        eventText += `\nFardamento: ${f.uniform}`;
+      }
+      if (f.notes) {
+        eventText += `\nObs: ${f.notes}`;
+      }
+
+      // Formação Musical
+      const formationText = f.musicalFormation || f.formation || 'Banda Completa';
+
+      // Protocolo
+      const protocolText = f.protocolNumber && f.protocolNumber.trim() ? f.protocolNumber.trim() : '-';
+
+      return [
+        dateText,
+        timeText,
+        eventText,
+        formationText,
+        protocolText
+      ];
+    });
+
+    // ── TABELA DE PREVISÕES -------------------------------------------------
+    autoTable(doc, {
+      startY: curY,
+      head: [['DATA', 'HORÁRIO', 'TÍTULO / EVENTO', 'FORMAÇÃO MUSICAL', 'PROTOCOLO']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [19, 91, 236], // Azul Institucional PMPR
+        textColor: 255,
+        fontStyle: 'bold',
+        fontSize: 8,
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2.5,
+      },
+      bodyStyles: {
+        fontSize: 7.5,
+        textColor: [30, 41, 59],
+        valign: 'middle',
+        cellPadding: 2.5,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { cellWidth: 26, halign: 'center', fontStyle: 'bold' },
+        1: { cellWidth: 28, halign: 'center' },
+        2: { cellWidth: 62, halign: 'left' },
+        3: { cellWidth: 36, halign: 'center', fontStyle: 'bold' },
+        4: { cellWidth: 28, halign: 'center', fontStyle: 'bold' },
+      },
+      margin: { left: margin, right: margin, bottom: 25 },
+      didDrawPage: () => {
+        const pageNum = doc.getNumberOfPages();
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(140, 140, 140);
+        doc.text(
+          `Página ${pageNum} — Banda de Música da PMPR — Documento emitido em ${new Date().toLocaleDateString('pt-BR')}`,
+          pageWidth / 2,
+          pageHeight - 8,
+          { align: 'center' }
+        );
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : curY + 60;
+    let sigY = finalY + 12;
+
+    // Quebra de página se não couber o bloco de assinatura
+    if (sigY > pageHeight - 40) {
+      doc.addPage();
+      sigY = 25;
+    }
+
+    // ── ASSINATURA / DATA (Alinhado à Direita, textos centralizados entre si) ─
+    const signDate = formatCurrentSignatureDate();
+    const signerHeader = 'Assinado eletronicamente';
+    const signerName = options?.signerName || 'Comando da Banda de Música';
+    const signerRole = options?.signerRole || 'Banda de Música da PMPR';
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bolditalic');
+    const wRed = doc.getTextWidth(signerHeader);
+
+    doc.setFont('helvetica', 'bold');
+    const wName = doc.getTextWidth(signerName);
+
+    doc.setFont('helvetica', 'normal');
+    const wTitle = doc.getTextWidth(signerRole);
+    const wDate = signDate ? doc.getTextWidth(signDate) : 0;
+
+    const blockMaxWidth = Math.max(wRed, wName, wTitle, wDate, 65);
+    const blockRight = pageWidth - margin;
+    const blockCenterX = blockRight - (blockMaxWidth / 2);
+
+    if (signDate) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(0, 0, 0);
+      doc.text(signDate, blockCenterX, sigY, { align: 'center' });
+      sigY += 5;
+    }
+
+    doc.setFont('helvetica', 'bolditalic');
+    doc.setFontSize(8);
+    doc.setTextColor(220, 38, 38);
+    doc.text(signerHeader, blockCenterX, sigY, { align: 'center' });
+    sigY += 4;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(0, 0, 0);
+    doc.text(signerName, blockCenterX, sigY, { align: 'center' });
+    sigY += 3.5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(signerRole, blockCenterX, sigY, { align: 'center' });
+
+    // Output
+    const filename = `Previsao_de_Servicos_${new Date().toISOString().split('T')[0]}.pdf`;
+    if (options?.action === 'view') {
+      const pdfBlob = doc.output('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      window.open(url, '_blank');
+    } else {
+      downloadPDF(doc, filename);
+    }
+
+  } catch (err) {
+    console.error('ERRO AO GERAR PDF DE PREVISÕES:', err);
+    alert('Erro ao gerar o PDF do quadro de previsões. Verifique o console para detalhes.');
+  }
+};
+
+export const viewForecastsPDF = async (
+  forecasts: any[],
+  options?: { signerName?: string; signerRole?: string }
+) => {
+  return generateForecastsPDF(forecasts, { ...options, action: 'view' });
+};
+
+
 const downloadPDF = (doc: jsPDF, filename: string) => {
   const pdfBlob = doc.output('blob');
   const url = URL.createObjectURL(pdfBlob);

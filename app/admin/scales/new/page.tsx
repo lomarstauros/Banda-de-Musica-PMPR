@@ -49,8 +49,9 @@ export default function AdminNewScalePage() {
           setOriginForecast({ id: snap.id, ...data });
           if (data.date) setSharedDate(data.date);
           
+          const protocolNote = data.protocolNumber ? `Protocolo: ${data.protocolNumber}` : '';
           const formationNote = data.musicalFormation ? `Formação: ${data.musicalFormation}` : '';
-          const fullNotes = [formationNote, data.notes].filter(Boolean).join(' • ');
+          const fullNotes = [protocolNote, formationNote, data.notes].filter(Boolean).join(' • ');
 
           setExtraServices([{
             id: Math.random().toString(36).substring(2, 9),
@@ -910,6 +911,11 @@ export default function AdminNewScalePage() {
                 <div className="min-w-0">
                   <p className="text-sm font-bold truncate">
                     Gerando Escala a partir da Previsão: <span className="underline">{originForecast.title}</span> ({fmtDate(originForecast.date)})
+                    {originForecast.protocolNumber && (
+                      <span className="ml-2 font-mono text-xs bg-amber-200/70 dark:bg-amber-900/50 px-2 py-0.5 rounded-md text-amber-950 dark:text-amber-200">
+                        Prot: {originForecast.protocolNumber}
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
                     Os dados foram pré-preenchidos. Ao publicar a escala, a marcação de previsão será automaticamente convertida na escala definitiva.

@@ -60,6 +60,7 @@ export default function AdminForecastsPage() {
   // Form states
   const [date, setDate] = useState('');
   const [title, setTitle] = useState('');
+  const [protocolNumber, setProtocolNumber] = useState('');
   const [location, setLocation] = useState('');
   const [formation, setFormation] = useState(FORMATIONS[0]);
   const [customFormation, setCustomFormation] = useState('');
@@ -132,6 +133,7 @@ export default function AdminForecastsPage() {
     setEditingId(null);
     setDate('');
     setTitle('');
+    setProtocolNumber('');
     setLocation('');
     setFormation(FORMATIONS[0]);
     setCustomFormation('');
@@ -149,6 +151,7 @@ export default function AdminForecastsPage() {
     setEditingId(f.id);
     setDate(f.date || '');
     setTitle(f.title || '');
+    setProtocolNumber(f.protocolNumber || '');
     setLocation(f.location || '');
     if (FORMATIONS.includes(f.musicalFormation)) {
       setFormation(f.musicalFormation);
@@ -201,6 +204,7 @@ export default function AdminForecastsPage() {
         status: 'forecast',
         date,
         title: title.trim(),
+        protocolNumber: protocolNumber.trim(),
         location: location.trim(),
         musicalFormation: selectedFormation.trim(),
         format: selectedFormat.trim(),
@@ -353,6 +357,20 @@ export default function AdminForecastsPage() {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none"
+                  />
+                </div>
+
+                {/* Número do Protocolo */}
+                <div>
+                  <label className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider block mb-1">
+                    Número do Protocolo
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: 21.456.789-0 ou SID"
+                    value={protocolNumber}
+                    onChange={(e) => setProtocolNumber(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/60 text-sm font-medium text-gray-900 dark:text-white focus:ring-2 focus:ring-primary/20 outline-none"
                   />
                 </div>
 
@@ -622,6 +640,15 @@ export default function AdminForecastsPage() {
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">location_on</span>
                             <span className="truncate font-medium">{f.location}</span>
+                          </div>
+                        )}
+
+                        {f.protocolNumber && (
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">tag</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              Protocolo: <span className="font-mono text-primary dark:text-blue-400 font-bold">{f.protocolNumber}</span>
+                            </span>
                           </div>
                         )}
 

@@ -381,6 +381,14 @@ export default function AdminScalesListPage() {
                             <span className="font-medium truncate">{scale.location}</span>
                           </div>
                         )}
+                        {scale.protocolNumber && (
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">tag</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              Protocolo: <span className="font-mono text-primary dark:text-blue-400 font-bold">{scale.protocolNumber}</span>
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-amber-500 text-[18px] shrink-0">schedule</span>
                           <span className="font-semibold text-gray-900 dark:text-white">

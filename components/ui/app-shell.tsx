@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { DesktopSidebar } from '@/components/ui/desktop-sidebar';
 import { MobileTopNav } from '@/components/ui/mobile-top-nav';
+import { ReturnsAlertModal } from '@/components/ui/returns-alert-modal';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -33,6 +34,9 @@ export function AppShell({ children }: AppShellProps) {
       <div className="flex-1 flex flex-col min-w-0 w-full">
         {/* Navegação superior mobile com ícones redondos */}
         <MobileTopNav />
+
+        {/* Modal de Aviso de Retornos de Afastamento (1º Login do Dia do Gestor) */}
+        <ReturnsAlertModal />
 
         {children}
       </div>

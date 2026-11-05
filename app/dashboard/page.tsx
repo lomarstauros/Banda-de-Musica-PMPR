@@ -379,9 +379,17 @@ export default function DashboardPage() {
           {/* Admin Notification for Leaves Ending Today */}
           {returningTomorrow.length > 0 && (
             <section className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex flex-col gap-3 shadow-md">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-400">warning</span>
-                <h4 className="text-amber-400 font-bold text-sm">Retornos Previstos para Amanhã</h4>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-400">warning</span>
+                  <h4 className="text-amber-400 font-bold text-sm">Retornos Previstos para Amanhã</h4>
+                </div>
+                <Link href="/admin/unavailable?tab=upcoming">
+                  <button className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-1">
+                    Ver Próximos Retornos
+                    <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+                  </button>
+                </Link>
               </div>
               <div className="flex flex-col gap-2">
                 {returningTomorrow.map((m: any) => (

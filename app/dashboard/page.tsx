@@ -36,6 +36,7 @@ export default function DashboardPage() {
   const [viewedScales, setViewedScales] = useState<Record<string, { confirmed: boolean; notifId: string | null }>>({});
   const [verifying, setVerifying] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [isInactive, setIsInactive] = useState(false);
 
   // Estados da interface desktop estilo Átrio
   const [activeScaleIndex, setActiveScaleIndex] = useState(0);
@@ -55,10 +56,17 @@ export default function DashboardPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const profileData = docSnap.data();
-          if (profileData.status === 'pending' && profileData.role?.toLowerCase() !== 'master') {
-            setIsPending(true);
-            setLoadingScales(false);
-            return;
+          if (profileData.role?.toLowerCase() !== 'master') {
+            if (profileData.status === 'pending') {
+              setIsPending(true);
+              setLoadingScales(false);
+              return;
+            }
+            if (profileData.status === 'inactive' || profileData.active === false) {
+              setIsInactive(true);
+              setLoadingScales(false);
+              return;
+            }
           }
           setProfile(profileData);
 
@@ -256,6 +264,23 @@ export default function DashboardPage() {
     if (dateStr === tomorrowStr) return 'AMANHÃ';
     return fmtDate(dateStr);
   };
+
+  if (isInactive) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-6 text-center font-sans">
+        <div className="bg-white dark:bg-[#1A202C] p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 max-w-sm flex flex-col items-center">
+          <div className="size-20 rounded-full border-4 border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-500 dark:text-red-400 mb-4 ring-8 ring-red-50 dark:ring-red-900/5">
+            <span className="material-symbols-outlined text-[40px]">person_off</span>
+          </div>
+          <h2 className="text-[#111318] dark:text-white text-xl font-bold mb-2">Acesso Inativo</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            O seu acesso ao aplicativo da Banda de Música da PMPR está temporariamente inativo ou foi bloqueado. Para reativação, procure a Sargenteação ou o Comando da Banda.
+          </p>
+          <LogoutButton />
+        </div>
+      </div>
+    );
+  }
 
   if (isPending) {
     return (

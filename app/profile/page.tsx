@@ -48,6 +48,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [isInactive, setIsInactive] = useState(false);
   const { user, logout, loading: authLoading } = useFirebase();
 
   // Password change state
@@ -87,10 +88,17 @@ export default function ProfilePage() {
 
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.status === 'pending' && data.role?.toLowerCase() !== 'master') {
-            setIsPending(true);
-            setLoading(false);
-            return;
+          if (data.role?.toLowerCase() !== 'master') {
+            if (data.status === 'pending') {
+              setIsPending(true);
+              setLoading(false);
+              return;
+            }
+            if (data.status === 'inactive' || data.active === false) {
+              setIsInactive(true);
+              setLoading(false);
+              return;
+            }
           }
           setFormData({
             name: data.name || '',
@@ -248,6 +256,23 @@ export default function ProfilePage() {
     return (
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isInactive) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-6 text-center font-sans">
+        <div className="bg-white dark:bg-[#1A202C] p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 max-w-sm flex flex-col items-center">
+          <div className="size-20 rounded-full border-4 border-red-100 dark:border-red-900/30 bg-red-50 dark:bg-red-900/10 flex items-center justify-center text-red-500 dark:text-red-400 mb-4 ring-8 ring-red-50 dark:ring-red-900/5">
+            <span className="material-symbols-outlined text-[40px]">person_off</span>
+          </div>
+          <h2 className="text-[#111318] dark:text-white text-xl font-bold mb-2">Acesso Inativo</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            O seu acesso ao aplicativo da Banda de Música da PMPR está temporariamente inativo ou foi desativado. Para reativação, procure a Sargenteação ou o Comando da Banda.
+          </p>
+          <LogoutButton />
+        </div>
       </div>
     );
   }

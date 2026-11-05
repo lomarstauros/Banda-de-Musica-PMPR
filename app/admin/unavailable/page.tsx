@@ -40,7 +40,7 @@ function UnavailableMusiciansContent() {
           // Verifica o leave principal
           if (p.militaryStatus && p.militaryStatus !== 'Ativo') {
             let isPast = false;
-            if (p.statusEndDate) {
+            if (p.statusEndDate && !p.statusIndefinite) {
               const end = new Date(p.statusEndDate + 'T23:59:59');
               if (today > end) isPast = true;
             }
@@ -48,7 +48,9 @@ function UnavailableMusiciansContent() {
               userPastLeaves.push({
                 status: p.militaryStatus,
                 startDate: p.statusStartDate,
-                endDate: p.statusEndDate
+                endDate: p.statusEndDate,
+                statusIndefinite: false,
+                adidoTo: p.adidoTo
               });
             } else {
               hasCurrentLeave = true;
@@ -101,8 +103,8 @@ function UnavailableMusiciansContent() {
     setExpandedId(prev => prev === id ? null : id);
   };
 
-  const getReturnDate = (endDateStr: string) => {
-    if (!endDateStr) return 'Não definida';
+  const getReturnDate = (endDateStr?: string, isIndefinite?: boolean) => {
+    if (isIndefinite || !endDateStr) return 'Tempo Indeterminado';
     const date = new Date(endDateStr + 'T12:00:00');
     date.setDate(date.getDate() + 1);
     return date.toLocaleDateString('pt-BR');
@@ -111,24 +113,25 @@ function UnavailableMusiciansContent() {
   // ─── Lista ordenada de Próximos Retornos (do mais próximo ao mais distante) ──
   const upcomingReturns = useMemo(() => {
     return [...currentMusicians].sort((a, b) => {
+      const isIndefA = !!a.statusIndefinite || !a.statusEndDate;
+      const isIndefB = !!b.statusIndefinite || !b.statusEndDate;
+      if (isIndefA && !isIndefB) return 1; // Indeterminado vai para o fim
+      if (!isIndefA && isIndefB) return -1;
       const endA = a.statusEndDate || '';
       const endB = b.statusEndDate || '';
-      if (!endA && !endB) return 0;
-      if (!endA) return 1; // Sem data de término vai para o fim da lista
-      if (!endB) return -1;
       // Ordem cronológica crescente: retorno mais próximo primeiro
       return endA.localeCompare(endB);
     });
   }, [currentMusicians]);
 
   // Informações detalhadas do retorno (data exata, dia da semana, badge de contagem)
-  const getReturnDetails = (endDateStr?: string) => {
-    if (!endDateStr) {
+  const getReturnDetails = (endDateStr?: string, isIndefinite?: boolean) => {
+    if (isIndefinite || !endDateStr) {
       return {
-        formattedDate: 'Data indeterminada',
+        formattedDate: 'Tempo Indeterminado',
         dayOfWeek: '',
-        countdown: 'Sem previsão',
-        badgeColor: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+        countdown: 'Indeterminado',
+        badgeColor: 'bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/30',
         diffDays: 9999,
         isToday: false,
         isTomorrow: false
@@ -296,7 +299,7 @@ function UnavailableMusiciansContent() {
             ) : (
               <div className="flex flex-col gap-3">
                 {upcomingReturns.map((m) => {
-                  const ret = getReturnDetails(m.statusEndDate);
+                  const ret = getReturnDetails(m.statusEndDate, m.statusIndefinite);
                   return (
                     <div 
                       key={m.id} 
@@ -326,6 +329,14 @@ function UnavailableMusiciansContent() {
                               <span className="font-bold text-red-500 uppercase tracking-wide">
                                 {m.militaryStatus}
                               </span>
+                              {m.militaryStatus === 'Adido' && m.adidoTo && (
+                                <>
+                                  <span>•</span>
+                                  <span className="font-semibold text-amber-600 dark:text-amber-400">
+                                    Adido a: {m.adidoTo}
+                                  </span>
+                                </>
+                              )}
                               {m.instrument && (
                                 <>
                                   <span>•</span>
@@ -364,7 +375,7 @@ function UnavailableMusiciansContent() {
                         <div className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1.5 sm:text-right">
                           <span>Término do afastamento:</span>
                           <strong className="text-gray-900 dark:text-gray-200 font-mono">
-                            {m.statusEndDate ? fmtDate(m.statusEndDate) : 'Não informado'}
+                            {m.statusIndefinite ? 'Tempo Indeterminado' : (m.statusEndDate ? fmtDate(m.statusEndDate) : 'Não informado')}
                           </strong>
                         </div>
                       </div>
@@ -411,7 +422,14 @@ function UnavailableMusiciansContent() {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-gray-900 dark:text-white">{m.rank} {m.war_name || m.name}</p>
-                            <p className="text-xs font-bold text-red-500 uppercase tracking-wide">{m.militaryStatus}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-bold text-red-500 uppercase tracking-wide">{m.militaryStatus}</p>
+                              {m.militaryStatus === 'Adido' && m.adidoTo && (
+                                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                                  ({m.adidoTo})
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <span className={`material-symbols-outlined text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
@@ -428,6 +446,21 @@ function UnavailableMusiciansContent() {
                             className="px-4 pb-4 pt-1"
                           >
                             <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex flex-col gap-3 border border-gray-100 dark:border-gray-700">
+                              {m.militaryStatus === 'Adido' && m.adidoTo && (
+                                <>
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="text-[10px] font-bold text-gray-400 uppercase">Destino / Adido a</span>
+                                      <span className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[16px] text-amber-500">domain</span>
+                                        {m.adidoTo}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="h-px w-full bg-gray-200 dark:bg-gray-700"></div>
+                                </>
+                              )}
+
                               <div className="flex justify-between items-center">
                                 <div className="flex flex-col gap-0.5">
                                   <span className="text-[10px] font-bold text-gray-400 uppercase">Início do Afastamento</span>
@@ -445,7 +478,7 @@ function UnavailableMusiciansContent() {
                                   <span className="text-[10px] font-bold text-gray-400 uppercase">Retorno Previsto (Disponível)</span>
                                   <span className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[16px] text-green-500">event_available</span>
-                                    {getReturnDate(m.statusEndDate)}
+                                    {getReturnDate(m.statusEndDate, m.statusIndefinite)}
                                   </span>
                                 </div>
                               </div>
@@ -515,6 +548,11 @@ function UnavailableMusiciansContent() {
                                   <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-[16px] text-gray-400">history</span>
                                     <span className="text-sm font-bold text-gray-900 dark:text-white uppercase">{leave.status}</span>
+                                    {leave.status === 'Adido' && leave.adidoTo && (
+                                      <span className="text-xs font-normal text-amber-600 dark:text-amber-400">
+                                        ({leave.adidoTo})
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="grid grid-cols-2 gap-2 mt-1">
                                     <div className="flex flex-col">
@@ -526,7 +564,7 @@ function UnavailableMusiciansContent() {
                                     <div className="flex flex-col">
                                       <span className="text-[10px] font-bold text-gray-400 uppercase">Fim</span>
                                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                        {leave.endDate ? fmtDate(leave.endDate) : 'N/A'}
+                                        {leave.statusIndefinite ? 'Tempo Indeterminado' : (leave.endDate ? fmtDate(leave.endDate) : 'N/A')}
                                       </span>
                                     </div>
                                   </div>

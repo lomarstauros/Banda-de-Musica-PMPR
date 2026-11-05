@@ -52,6 +52,8 @@ export default function AdminNewMusicianPage() {
     militaryStatus: 'Ativo',
     statusStartDate: '',
     statusEndDate: '',
+    statusIndefinite: false,
+    adidoTo: '',
     institutional_email: '',
   });
 
@@ -129,12 +131,20 @@ export default function AdminNewMusicianPage() {
       );
 
       const initialLeaveHistory = [];
-      if (formData.militaryStatus !== 'Ativo' && formData.statusStartDate && formData.statusEndDate) {
-        initialLeaveHistory.push({
-          status: formData.militaryStatus,
-          startDate: formData.statusStartDate,
-          endDate: formData.statusEndDate
-        });
+      if (formData.militaryStatus !== 'Ativo') {
+        const isIndefinite = !!formData.statusIndefinite;
+        const endDateVal = isIndefinite ? '' : formData.statusEndDate;
+        const adidoVal = formData.militaryStatus === 'Adido' ? (formData.adidoTo || '').trim() : '';
+
+        if (formData.statusStartDate || isIndefinite) {
+          initialLeaveHistory.push({
+            status: formData.militaryStatus,
+            startDate: formData.statusStartDate,
+            endDate: endDateVal,
+            statusIndefinite: isIndefinite,
+            adidoTo: adidoVal
+          });
+        }
       }
 
       await Promise.race([
@@ -145,6 +155,10 @@ export default function AdminNewMusicianPage() {
           rank: normalizeSpaces(formData.rank),
           institutional_email: formData.institutional_email,
           uid: finalUid,
+          statusStartDate: formData.militaryStatus === 'Ativo' ? '' : formData.statusStartDate,
+          statusEndDate: (formData.militaryStatus === 'Ativo' || formData.statusIndefinite) ? '' : formData.statusEndDate,
+          statusIndefinite: formData.militaryStatus !== 'Ativo' && !!formData.statusIndefinite,
+          adidoTo: formData.militaryStatus === 'Adido' ? (formData.adidoTo || '').trim() : '',
           createdAt: serverTimestamp(),
           forcePasswordReset: true,
           leaveHistory: initialLeaveHistory,
@@ -378,11 +392,23 @@ export default function AdminNewMusicianPage() {
             <label className={labelCls}>
               <span className={labelTextCls}>Situação do Militar</span>
               <div className="relative">
-                <select className={selectCls} value={formData.militaryStatus} onChange={(e) => setFormData({ ...formData, militaryStatus: e.target.value })}>
+                <select 
+                  className={selectCls} 
+                  value={formData.militaryStatus} 
+                  onChange={(e) => {
+                    const newStatus = e.target.value;
+                    setFormData({ 
+                      ...formData, 
+                      militaryStatus: newStatus,
+                      ...(newStatus === 'Ativo' ? { statusStartDate: '', statusEndDate: '', statusIndefinite: false, adidoTo: '' } : {})
+                    });
+                  }}
+                >
                   <option value="Ativo">Ativo</option>
                   <option value="Férias">Férias</option>
                   <option value="Licença">Licença</option>
                   <option value="Atestado">Atestado</option>
+                  <option value="Adido">Adido</option>
                   <option value="Outros">Outros</option>
                 </select>
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
@@ -391,26 +417,80 @@ export default function AdminNewMusicianPage() {
               </div>
             </label>
 
+            {/* Campo específico quando for Adido: Para quem o militar está adido */}
+            {formData.militaryStatus === 'Adido' && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-1">
+                <label className={labelCls}>
+                  <span className={labelTextCls}>Adido a quem / Órgão de Destino</span>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder="Ex: Casa Militar da Governadoria, Gabinete do Cmd-Geral..."
+                      value={formData.adidoTo}
+                      onChange={(e) => setFormData({ ...formData, adidoTo: e.target.value })}
+                    />
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                      <span className="material-symbols-outlined text-[18px]">domain</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-gray-400 mt-0.5">
+                    Informe a autoridade, unidade ou órgão para o qual o militar está adido.
+                  </span>
+                </label>
+              </motion.div>
+            )}
+
             {formData.militaryStatus !== 'Ativo' && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="grid grid-cols-2 gap-3">
-                <label className={labelCls}>
-                  <span className={labelTextCls}>Início do Período</span>
-                  <input
-                    type="date"
-                    className={inputCls}
-                    value={formData.statusStartDate}
-                    onChange={(e) => setFormData({ ...formData, statusStartDate: e.target.value })}
-                  />
-                </label>
-                <label className={labelCls}>
-                  <span className={labelTextCls}>Fim do Período</span>
-                  <input
-                    type="date"
-                    className={inputCls}
-                    value={formData.statusEndDate}
-                    onChange={(e) => setFormData({ ...formData, statusEndDate: e.target.value })}
-                  />
-                </label>
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-3">
+                
+                {/* Opção de Tempo Indeterminado */}
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-gray-800 dark:text-gray-200">Por Tempo Indeterminado</span>
+                    <span className="text-[10px] text-gray-500">Sem data final de retorno estipulada</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={formData.statusIndefinite}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        statusIndefinite: e.target.checked,
+                        ...(e.target.checked ? { statusEndDate: '' } : {})
+                      })}
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className={labelCls}>
+                    <span className={labelTextCls}>Início do Período</span>
+                    <input
+                      type="date"
+                      className={inputCls}
+                      value={formData.statusStartDate}
+                      onChange={(e) => setFormData({ ...formData, statusStartDate: e.target.value })}
+                    />
+                  </label>
+                  <label className={labelCls}>
+                    <span className={labelTextCls}>Fim do Período</span>
+                    {formData.statusIndefinite ? (
+                      <div className={`${inputCls} flex items-center text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/30 cursor-not-allowed`}>
+                        Tempo Indeterminado
+                      </div>
+                    ) : (
+                      <input
+                        type="date"
+                        className={inputCls}
+                        value={formData.statusEndDate}
+                        onChange={(e) => setFormData({ ...formData, statusEndDate: e.target.value })}
+                      />
+                    )}
+                  </label>
+                </div>
               </motion.div>
             )}
           </div>

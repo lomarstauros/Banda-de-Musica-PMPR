@@ -6,6 +6,8 @@ export interface MusicianProfile {
   militaryStatus?: string;
   statusStartDate?: string;
   statusEndDate?: string;
+  statusIndefinite?: boolean;
+  adidoTo?: string;
   [key: string]: any;
 }
 
@@ -15,11 +17,8 @@ export interface MusicianProfile {
  */
 export const isMusicianAvailable = (musician: MusicianProfile, targetDate: string | Date | null | undefined): boolean => {
   if (!musician.militaryStatus || musician.militaryStatus === 'Ativo') return true;
-  if (!musician.statusStartDate || !musician.statusEndDate || !targetDate) return true;
+  if (!targetDate) return true;
 
-  const start = new Date(musician.statusStartDate + 'T00:00:00');
-  const end = new Date(musician.statusEndDate + 'T23:59:59');
-  
   let scaleDate: Date;
   if (typeof targetDate === 'string') {
     scaleDate = new Date(targetDate + 'T12:00:00');
@@ -27,6 +26,22 @@ export const isMusicianAvailable = (musician: MusicianProfile, targetDate: strin
     scaleDate = new Date(targetDate);
   }
 
+  // Se o afastamento for por tempo indeterminado ou sem data de término
+  if (musician.statusIndefinite || !musician.statusEndDate) {
+    if (musician.statusStartDate) {
+      const start = new Date(musician.statusStartDate + 'T00:00:00');
+      // Antes da data inicial de afastamento ainda está disponível
+      return scaleDate < start;
+    }
+    // Sem data de início ou já iniciada: indisponível por tempo indeterminado
+    return false;
+  }
+
+  if (!musician.statusStartDate) return false;
+
+  const start = new Date(musician.statusStartDate + 'T00:00:00');
+  const end = new Date(musician.statusEndDate + 'T23:59:59');
+  
   // Verifica se a data da escala cai dentro do intervalo de afastamento
   const isBlocked = scaleDate >= start && scaleDate <= end;
   return !isBlocked;
@@ -34,20 +49,32 @@ export const isMusicianAvailable = (musician: MusicianProfile, targetDate: strin
 
 /**
  * Retorna se o militar está em afastamento HOJE.
- * Retorna o nome da situação (ex: "Férias") ou null se estiver Ativo.
+ * Retorna o nome da situação (ex: "Férias" ou "Adido (Casa Militar)") ou null se estiver Ativo.
  */
 export const getCurrentMilitaryStatus = (musician: MusicianProfile): string | null => {
   if (!musician.militaryStatus || musician.militaryStatus === 'Ativo') return null;
   
-  // Se não houver datas, assume que o status é permanente/indefinido
-  if (!musician.statusStartDate || !musician.statusEndDate) return musician.militaryStatus;
+  const statusDisplay = musician.militaryStatus === 'Adido' && musician.adidoTo 
+    ? `Adido (${musician.adidoTo})` 
+    : musician.militaryStatus;
+
+  // Se for por tempo indeterminado ou sem data de término
+  if (musician.statusIndefinite || !musician.statusEndDate) {
+    if (musician.statusStartDate) {
+      const today = new Date();
+      const start = new Date(musician.statusStartDate + 'T00:00:00');
+      if (today >= start) return statusDisplay;
+      return null;
+    }
+    return statusDisplay;
+  }
 
   const today = new Date();
   const start = new Date(musician.statusStartDate + 'T00:00:00');
   const end = new Date(musician.statusEndDate + 'T23:59:59');
 
   if (today >= start && today <= end) {
-    return musician.militaryStatus;
+    return statusDisplay;
   }
 
   return null;

@@ -66,7 +66,7 @@ export function ReturnsAlertModal() {
 
         const list = snap.docs
           .map(d => ({ id: d.id, ...d.data() } as any))
-          .filter(p => p.statusEndDate === localTodayStr);
+          .filter(p => !p.statusIndefinite && p.statusEndDate === localTodayStr);
 
         if (list.length > 0) {
           setReturningUsers(list);
@@ -167,6 +167,11 @@ export function ReturnsAlertModal() {
                       <span className="font-semibold text-red-500 uppercase">
                         {m.militaryStatus}
                       </span>
+                      {m.militaryStatus === 'Adido' && m.adidoTo && (
+                        <span className="font-medium text-amber-600 dark:text-amber-400">
+                          ({m.adidoTo})
+                        </span>
+                      )}
                       {m.instrument && (
                         <>
                           <span>•</span>

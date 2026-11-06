@@ -489,9 +489,42 @@ export default function DashboardPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
               ) : !currentFeaturedScale ? (
-                <div className="bg-[#121620] rounded-3xl p-10 flex flex-col items-center justify-center text-center gap-3 border border-dashed border-white/10">
-                  <span className="material-symbols-outlined text-5xl text-gray-600">calendar_today</span>
-                  <p className="text-sm text-gray-400 font-medium">Nenhuma escala prevista para você no momento.</p>
+                <div className="relative overflow-hidden bg-gradient-to-br from-[#121824] via-[#101520] to-[#0d111a] rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center text-center gap-5 border border-white/10 shadow-2xl">
+                  {/* Fundo decorativo sutil */}
+                  <div className="absolute -right-8 -bottom-8 opacity-[0.03] pointer-events-none">
+                    <span className="material-symbols-outlined text-[200px] text-blue-400">event_note</span>
+                  </div>
+
+                  <div className="size-16 sm:size-20 rounded-3xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 shadow-inner">
+                    <span className="material-symbols-outlined text-[36px] sm:text-[44px]">event_available</span>
+                  </div>
+
+                  <div className="flex flex-col gap-2 max-w-lg z-10">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-blue-400">
+                      Escalação de Serviço
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
+                      Não há escalas programadas para você, <span className="text-blue-400">{displayName}</span>.
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-400 leading-relaxed">
+                      No momento você não possui nenhuma escala completa escalada. Por favor, <strong className="text-white">verifique as previsões de escalas</strong> para acompanhar os próximos compromissos e serviços agendados para a Banda de Música.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center gap-3 mt-1 w-full sm:w-auto z-10">
+                    <Link href="/admin/forecasts" className="w-full sm:w-auto">
+                      <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-lg shadow-blue-600/30 transition-all active:scale-95">
+                        <span className="material-symbols-outlined text-[18px]">calendar_clock</span>
+                        <span>Verificar Previsões de Escalas</span>
+                      </button>
+                    </Link>
+                    <Link href="/admin/scales" className="w-full sm:w-auto">
+                      <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-semibold text-xs sm:text-sm border border-white/10 transition-all">
+                        <span className="material-symbols-outlined text-[18px]">calendar_month</span>
+                        <span>Ver Escalas Gerais</span>
+                      </button>
+                    </Link>
+                  </div>
                 </div>
               ) : currentFeaturedScale.classification === 'folga' ? (
                 /* Card de Folga */
@@ -710,8 +743,19 @@ export default function DashboardPage() {
               {/* Stacked Cards List */}
               <div className="flex flex-col gap-3">
                 {filteredNextScales.length === 0 ? (
-                  <div className="bg-[#121620] rounded-2xl p-6 text-center text-gray-500 text-xs border border-white/5 font-medium">
-                    {listFilter === 'pendentes' ? 'Nenhuma escala com pendência de ciência.' : 'Nenhum outro serviço agendado.'}
+                  <div className="bg-[#121620] rounded-2xl p-6 text-center text-gray-400 text-xs border border-white/5 font-medium flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-gray-600 text-[26px]">event_busy</span>
+                    <span>
+                      {listFilter === 'pendentes'
+                        ? 'Nenhuma escala com pendência de ciência.'
+                        : `Não há escalas programadas para você, ${firstName}. Verifique as previsões de escalas.`}
+                    </span>
+                    {listFilter !== 'pendentes' && (
+                      <Link href="/admin/forecasts" className="text-blue-400 hover:text-blue-300 font-bold text-xs flex items-center gap-1 mt-1">
+                        <span className="material-symbols-outlined text-[14px]">calendar_clock</span>
+                        <span>Ver Previsões de Escalas</span>
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   filteredNextScales.slice(0, 5).map((scale: any) => {

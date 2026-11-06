@@ -94,19 +94,10 @@ export default function AdminForecastsPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const role = data.role?.toLowerCase();
-          const isAllowed = role === 'admin' || role === 'master' || role === 'manager' || user.email === 'heliomardejesus87@gmail.com';
-          if (!isAllowed) {
-            router.replace('/admin/scales');
-            return;
-          }
           setProfile(data as any);
-        } else {
-          router.replace('/admin/scales');
-          return;
         }
       } catch (e) {
-        console.error("Erro ao carregar perfil do gestor:", e);
+        console.error("Erro ao carregar perfil:", e);
       }
     };
     fetchProfile();
@@ -258,6 +249,9 @@ export default function AdminForecastsPage() {
     }
   };
 
+  const userRole = (profile?.role || '').toLowerCase();
+  const isManager = userRole === 'admin' || userRole === 'master' || userRole === 'manager' || userRole === 'sargenteante' || user?.email === 'heliomardejesus87@gmail.com';
+
   const todayStr = getTodayYMD();
   const futureForecasts = forecasts.filter(f => normalizeDateToYMD(f.date) >= todayStr);
   const pastForecasts = forecasts.filter(f => normalizeDateToYMD(f.date) < todayStr).reverse();
@@ -392,23 +386,24 @@ export default function AdminForecastsPage() {
 
         <main className="flex-1 p-4 lg:p-6 flex flex-col gap-6 pb-24">
           
-          {/* Card de Cadastro / Edição da Previsão */}
-          <section className="bg-white dark:bg-gray-900 rounded-3xl border border-amber-500/20 shadow-md p-5 lg:p-6 relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600" />
-            
-            <div className="flex flex-col gap-1 mb-5">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-500 text-[24px]">calendar_clock</span>
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                  {editingId ? 'Editar Previsão de Serviço' : 'Cadastrar Previsão de Serviço'}
-                </h2>
+          {/* Card de Cadastro / Edição da Previsão (Gestor / Master) */}
+          {isManager ? (
+            <section className="bg-white dark:bg-gray-900 rounded-3xl border border-amber-500/20 shadow-md p-5 lg:p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600" />
+              
+              <div className="flex flex-col gap-1 mb-5">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-amber-500 text-[24px]">calendar_clock</span>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {editingId ? 'Editar Previsão de Serviço' : 'Cadastrar Previsão de Serviço'}
+                  </h2>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  Cadastre informações prévias de compromissos futuros. Essas previsões ficam destacadas na aba Escalas de todo o efetivo para planejamento, sem gerar a escala final.
+                </p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-                Cadastre informações prévias de compromissos futuros. Essas previsões ficam destacadas na aba Escalas de todo o efetivo para planejamento, sem gerar a escala final.
-              </p>
-            </div>
 
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 
                 {/* Data */}
@@ -645,6 +640,21 @@ export default function AdminForecastsPage() {
               </div>
             </form>
           </section>
+        ) : (
+          <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/20 rounded-3xl p-5 flex items-start gap-3.5 shadow-sm">
+            <div className="size-11 rounded-2xl bg-amber-500/20 text-amber-500 flex items-center justify-center shrink-0 shadow-inner">
+              <span className="material-symbols-outlined text-[24px]">calendar_clock</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                Quadro de Previsões de Serviços
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                Consulte abaixo os compromissos futuros previstos para a Banda de Música da PMPR. As escalas com os nomes definitivos dos militares escalados serão publicadas oficialmente pelo Comando e pela Sargenteação.
+              </p>
+            </div>
+          </div>
+        )}
 
           {/* Barra de Ações: PDF em Tabela, WhatsApp e Avisos no App */}
           <div className="bg-gradient-to-r from-amber-500/10 via-blue-600/10 to-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-3xl p-4 lg:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-sm">
@@ -839,35 +849,47 @@ export default function AdminForecastsPage() {
                     </div>
 
                     {/* Barra de Ações do Card */}
-                    <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleEdit(f)}
-                          className="size-9 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-                          title="Editar previsão"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(f.id, f.title)}
-                          className="size-9 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
-                          title="Excluir previsão"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
+                    {isManager ? (
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEdit(f)}
+                            className="size-9 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+                            title="Editar previsão"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(f.id, f.title)}
+                            className="size-9 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                            title="Excluir previsão"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                          </button>
+                        </div>
 
-                      {/* Botão Principal: Gerar Escala a partir desta previsão */}
-                      <Link href={`/admin/scales/new?forecastId=${f.id}`}>
-                        <button 
-                          className="flex items-center gap-1.5 px-4 h-9 rounded-xl bg-primary text-white text-xs font-bold shadow-md shadow-primary/20 hover:bg-blue-700 transition-all active:scale-95"
-                          title="Aproveitar as informações desta previsão para gerar a escala oficial de serviço com os músicos"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">post_add</span>
-                          Gerar Escala
-                        </button>
-                      </Link>
-                    </div>
+                        {/* Botão Principal: Gerar Escala a partir desta previsão */}
+                        <Link href={`/admin/scales/new?forecastId=${f.id}`}>
+                          <button 
+                            className="flex items-center gap-1.5 px-4 h-9 rounded-xl bg-primary text-white text-xs font-bold shadow-md shadow-primary/20 hover:bg-blue-700 transition-all active:scale-95"
+                            title="Aproveitar as informações desta previsão para gerar a escala oficial de serviço com os músicos"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">post_add</span>
+                            Gerar Escala
+                          </button>
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-2">
+                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">event_available</span>
+                          Previsão em Planejamento
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          Aguardando escala definitiva
+                        </span>
+                      </div>
+                    )}
 
                   </motion.div>
                 ))}

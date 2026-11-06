@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { fmtDate } from '@/lib/format-date';
+import { fmtDate, getTodayYMD, normalizeDateToYMD } from '@/lib/format-date';
 
 export function ReturnsAlertModal() {
   const router = useRouter();
@@ -22,12 +22,13 @@ export function ReturnsAlertModal() {
       try {
         // 1. Data de Hoje e de Amanhã
         const today = new Date();
-        const tzOff = today.getTimezoneOffset() * 60000;
-        const localTodayStr = new Date(today.getTime() - tzOff).toISOString().split('T')[0];
+        const localTodayStr = getTodayYMD();
 
-        const tomorrow = new Date(today.getTime() + 86400000);
-        const tomorrowTzOff = tomorrow.getTimezoneOffset() * 60000;
-        const localTomorrowStr = new Date(tomorrow.getTime() - tomorrowTzOff).toISOString().split('T')[0];
+        const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        const yTomorrow = tomorrow.getFullYear();
+        const mTomorrow = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const dTomorrow = String(tomorrow.getDate()).padStart(2, '0');
+        const localTomorrowStr = `${yTomorrow}-${mTomorrow}-${dTomorrow}`;
 
         // Format tomorrow date: DD/MM/AAAA (Dia da semana)
         const daysWeek = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
@@ -66,7 +67,7 @@ export function ReturnsAlertModal() {
 
         const list = snap.docs
           .map(d => ({ id: d.id, ...d.data() } as any))
-          .filter(p => !p.statusIndefinite && p.statusEndDate === localTodayStr);
+          .filter(p => !p.statusIndefinite && normalizeDateToYMD(p.statusEndDate) === localTodayStr);
 
         if (list.length > 0) {
           setReturningUsers(list);
@@ -82,9 +83,7 @@ export function ReturnsAlertModal() {
 
   const handleDismiss = () => {
     try {
-      const today = new Date();
-      const tzOff = today.getTimezoneOffset() * 60000;
-      const localTodayStr = new Date(today.getTime() - tzOff).toISOString().split('T')[0];
+      const localTodayStr = getTodayYMD();
       if (user?.uid) {
         localStorage.setItem(`dismissed_returns_popup_${user.uid}_${localTodayStr}`, 'true');
       }

@@ -20,7 +20,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { LogoutButton } from '@/components/ui/logout-button';
-import { fmtDate } from '@/lib/format-date';
+import { fmtDate, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
 import { generateForecastsPDF, viewForecastsPDF } from '@/lib/pdf-generator';
 import { buildForecastsWhatsAppMessage, getWhatsAppBroadcastUrl } from '@/lib/whatsapp';
 
@@ -258,9 +258,9 @@ export default function AdminForecastsPage() {
     }
   };
 
-  const todayStr = (new Date()).toISOString().split('T')[0];
-  const futureForecasts = forecasts.filter(f => f.date >= todayStr);
-  const pastForecasts = forecasts.filter(f => f.date < todayStr).reverse();
+  const todayStr = getTodayYMD();
+  const futureForecasts = forecasts.filter(f => normalizeDateToYMD(f.date) >= todayStr);
+  const pastForecasts = forecasts.filter(f => normalizeDateToYMD(f.date) < todayStr).reverse();
   const displayedForecasts = filterTab === 'future' ? futureForecasts : pastForecasts;
 
   const handleGeneratePDF = async (action: 'download' | 'view') => {

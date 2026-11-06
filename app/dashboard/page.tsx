@@ -9,7 +9,7 @@ import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { generateScalePDF } from '@/lib/pdf-generator';
-import { fmtDate } from '@/lib/format-date';
+import { fmtDate, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
 import { getCurrentMilitaryStatus } from '@/lib/military-status';
 import { getFormatColors } from '@/lib/scale-formats';
 import { canAccessReports } from '@/lib/permissions';
@@ -71,15 +71,31 @@ export default function DashboardPage() {
           setProfile(profileData);
 
           // 2. Fetch Scales
+          const userRole = (profileData.role || '').toLowerCase();
           const userInstrument = (profileData.instrument || '').trim().toLowerCase();
-          const FULL_VISIBILITY_ROLES = ['administrativo', 'regente', 'comando'];
-          const hasFullVisibility = FULL_VISIBILITY_ROLES.includes(userInstrument);
+          const FULL_VISIBILITY_ROLES = ['administrativo', 'regente', 'comando', 'sargenteante'];
+          const isManagerOrAdmin = 
+            userRole === 'admin' || 
+            userRole === 'master' || 
+            userRole === 'manager' || 
+            userRole === 'sargenteante' || 
+            userRole === 'comando' || 
+            user.email === 'heliomardejesus87@gmail.com';
+
+          const hasFullVisibility = isManagerOrAdmin || FULL_VISIBILITY_ROLES.includes(userInstrument);
 
           const scalesRef = collection(db, 'scales');
-          const q = query(scalesRef, orderBy('date', 'desc'), limit(50));
-          const querySnapshot = await getDocs(q);
+          const querySnapshot = await getDocs(scalesRef);
 
-          const allScales = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+          const allScales = querySnapshot.docs.map(d => {
+            const data = d.data();
+            const normDate = normalizeDateToYMD(data.date);
+            return {
+              id: d.id,
+              ...data,
+              date: normDate || data.date,
+            };
+          }) as any[];
 
           const visibleScales = allScales.filter((scale: any) => {
             if (scale.isForecast) return false;
@@ -87,15 +103,43 @@ export default function DashboardPage() {
             return (scale.musicians || []).some((m: any) => m.id === user.uid);
           });
 
-          const today = new Date();
-          const tzOffset = today.getTimezoneOffset() * 60000;
-          const todayStr = (new Date(Date.now() - tzOffset)).toISOString().split('T')[0];
+          const todayStr = getTodayYMD();
 
-          const futureScales = visibleScales.filter(s => s.date >= todayStr).sort((a, b) => a.date.localeCompare(b.date));
-          const pastScales = visibleScales.filter(s => s.date < todayStr).sort((a, b) => b.date.localeCompare(a.date));
+          // Próximas escalas: data >= data atual (hoje em diante), ordenadas do mais próximo ao mais distante
+          const futureScales = visibleScales
+            .filter(s => {
+              const sDate = normalizeDateToYMD(s.date);
+              return sDate && sDate >= todayStr;
+            })
+            .sort((a, b) => {
+              const dateA = normalizeDateToYMD(a.date);
+              const dateB = normalizeDateToYMD(b.date);
+              const dateComp = dateA.localeCompare(dateB);
+              if (dateComp !== 0) return dateComp;
+              const timeA = a.startTime || a.departureTime || '00:00';
+              const timeB = b.startTime || b.departureTime || '00:00';
+              return timeA.localeCompare(timeB);
+            });
+
+          // Escalas anteriores: data < data atual, ordenadas da mais recente para a mais antiga
+          const pastScales = visibleScales
+            .filter(s => {
+              const sDate = normalizeDateToYMD(s.date);
+              return !sDate || sDate < todayStr;
+            })
+            .sort((a, b) => {
+              const dateA = normalizeDateToYMD(a.date);
+              const dateB = normalizeDateToYMD(b.date);
+              const dateComp = dateB.localeCompare(dateA);
+              if (dateComp !== 0) return dateComp;
+              const timeA = a.startTime || a.departureTime || '00:00';
+              const timeB = b.startTime || b.departureTime || '00:00';
+              return timeB.localeCompare(timeA);
+            });
 
           setNextScales(futureScales);
           setHistoryScales(pastScales);
+          setActiveScaleIndex(0);
 
           // 3. Admin Notification for Leaves Ending Tomorrow
           if (profileData.role === 'admin' || profileData.role === 'master') {
@@ -103,12 +147,11 @@ export default function DashboardPage() {
               const qProfiles = query(collection(db, 'profiles'), where('militaryStatus', '!=', 'Ativo'));
               const profilesSnap = await getDocs(qProfiles);
               
-              const tzOff = today.getTimezoneOffset() * 60000;
-              const localTodayStr = (new Date(today.getTime() - tzOff)).toISOString().split('T')[0];
+              const localTodayStr = getTodayYMD();
 
               const returning = profilesSnap.docs
                 .map(d => ({ id: d.id, ...d.data() }))
-                .filter((p: any) => p.statusEndDate === localTodayStr);
+                .filter((p: any) => !p.statusIndefinite && p.statusEndDate === localTodayStr);
                 
               setReturningTomorrow(returning);
             } catch (err) {
@@ -233,7 +276,8 @@ export default function DashboardPage() {
   // Formatação de data em badge (DOM 01/11)
   const formatBadgeDate = (dateStr: string) => {
     try {
-      const d = new Date(`${dateStr}T12:00:00`);
+      const norm = normalizeDateToYMD(dateStr);
+      const d = new Date(`${norm}T12:00:00`);
       const dayOfWeek = d.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
       const day = String(d.getDate()).padStart(2, '0');
       const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -254,15 +298,15 @@ export default function DashboardPage() {
   // Retorna se uma data é hoje ou amanhã
   const getDateLabel = (dateStr?: string) => {
     if (!dateStr) return '';
-    const today = new Date();
-    const tzOff = today.getTimezoneOffset() * 60000;
-    const todayStr = (new Date(today.getTime() - tzOff)).toISOString().split('T')[0];
-    const tomorrow = new Date(today.getTime() + 86400000 - tzOff);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    const norm = normalizeDateToYMD(dateStr);
+    const todayStr = getTodayYMD();
+    const now = new Date();
+    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
 
-    if (dateStr === todayStr) return 'HOJE';
-    if (dateStr === tomorrowStr) return 'AMANHÃ';
-    return fmtDate(dateStr);
+    if (norm === todayStr) return 'HOJE';
+    if (norm === tomorrowStr) return 'AMANHÃ';
+    return fmtDate(norm);
   };
 
   if (isInactive) {
@@ -483,7 +527,8 @@ export default function DashboardPage() {
                       <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-snug">
                         {(() => {
                           try {
-                            const dateObj = new Date(`${currentFeaturedScale.date}T12:00:00`);
+                            const normDate = normalizeDateToYMD(currentFeaturedScale.date);
+                            const dateObj = new Date(`${normDate}T12:00:00`);
                             const weekday = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(dateObj);
                             const day = new Intl.DateTimeFormat('pt-BR', { day: '2-digit' }).format(dateObj);
                             const month = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(dateObj);
@@ -497,7 +542,7 @@ export default function DashboardPage() {
                               </>
                             );
                           } catch {
-                            return currentFeaturedScale.date;
+                            return fmtDate(currentFeaturedScale.date);
                           }
                         })()}
                       </h3>

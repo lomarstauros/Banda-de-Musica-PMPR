@@ -192,25 +192,59 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     }
   } else {
     // ── BARRA SEPARADORA PARA NOVOS SERVIÇOS --------------------------------
-    if (scale.classification === 'provisoria') {
-      doc.setFillColor(220, 38, 38); // Red background for provisional
-    } else {
-      doc.setFillColor(19, 91, 236); // Cor Primária #135bec
-    }
-    doc.rect(margin, curY - 10, pageWidth - 2 * margin, 8, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
     const prefix = scale.classification === 'provisoria' ? '[PROVISÓRIA] ' : '';
     const serviceTitle = (scale.title || 'SERVIÇO').toUpperCase();
     const serviceTime = scale.startTime ? ` às ${scale.startTime}` : '';
-    doc.text(`PRÓXIMO SERVIÇO: ${prefix}${serviceTitle}${serviceTime}`, pageWidth / 2, curY - 4.5, { align: 'center' });
+    const bannerText = `PRÓXIMO SERVIÇO: ${prefix}${serviceTitle}${serviceTime}`;
+
+    const maxTextWidth = (pageWidth - 2 * margin) - 8; // 4mm de respiro lateral
+    doc.setFont('helvetica', 'bold');
+    
+    // Auto-ajuste de tamanho de fonte para caber perfeitamente na caixa
+    let fontSize = 9.5;
+    doc.setFontSize(fontSize);
+    let lines = doc.splitTextToSize(bannerText, maxTextWidth);
+
+    if (lines.length > 1) {
+      doc.setFontSize(8.5);
+      const testLines = doc.splitTextToSize(bannerText, maxTextWidth);
+      if (testLines.length <= 2) {
+        fontSize = 8.5;
+        lines = testLines;
+      } else {
+        fontSize = 7.5;
+        doc.setFontSize(fontSize);
+        lines = doc.splitTextToSize(bannerText, maxTextWidth);
+      }
+    }
+
+    const lineHeight = fontSize * 0.42; // Altura aproximada da linha em mm
+    const paddingY = 2.5; // Respiro vertical interno
+    const boxHeight = Math.max(8, (lines.length * lineHeight) + (paddingY * 2));
+    const boxY = curY - 9;
+
+    if (scale.classification === 'provisoria') {
+      doc.setFillColor(220, 38, 38); // Fundo vermelho para escala provisória
+    } else {
+      doc.setFillColor(19, 91, 236); // Cor Primária #135bec
+    }
+    doc.rect(margin, boxY, pageWidth - 2 * margin, boxHeight, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(fontSize);
+
+    // Centraliza o bloco de texto vertical e horizontalmente dentro da caixa
+    const totalTextHeight = lines.length * lineHeight;
+    const firstLineY = boxY + ((boxHeight - totalTextHeight) / 2) + (lineHeight * 0.78);
+    lines.forEach((lineText: string, idx: number) => {
+      doc.text(lineText, pageWidth / 2, firstLineY + (idx * lineHeight), { align: 'center' });
+    });
     
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
     doc.setDrawColor(0);
-    curY += 2; // Pequeno ajuste de respiro após a barra
+    curY = boxY + boxHeight + 4; // Garante que a tabela comece perfeitamente abaixo da faixa
   }
 
   // ── REFERÊNCIA -----------------------------------------------------------

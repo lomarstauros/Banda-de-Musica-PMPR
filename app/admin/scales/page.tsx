@@ -258,47 +258,6 @@ export default function AdminScalesListPage() {
 
   const isManager = userRole === 'admin' || userRole === 'master' || user?.email === 'heliomardejesus87@gmail.com';
 
-  // Todas as previsões cadastradas no sistema
-  const allForecasts = useMemo(() => {
-    return scales
-      .filter((s: any) => !!s.isForecast)
-      .sort((a: any, b: any) => {
-        const da = normalizeDateToYMD(a.date);
-        const db = normalizeDateToYMD(b.date);
-        return da.localeCompare(db);
-      });
-  }, [scales]);
-
-  const todayYMD = getTodayYMD();
-
-  const futureForecasts = useMemo(() => {
-    return allForecasts.filter((f: any) => normalizeDateToYMD(f.date) >= todayYMD);
-  }, [allForecasts, todayYMD]);
-
-  const pastForecasts = useMemo(() => {
-    return allForecasts.filter((f: any) => normalizeDateToYMD(f.date) < todayYMD);
-  }, [allForecasts, todayYMD]);
-
-  const filteredForecasts = useMemo(() => {
-    let list = allForecasts;
-    if (forecastTab === 'future') list = futureForecasts;
-    else if (forecastTab === 'past') list = pastForecasts;
-
-    if (!forecastSearch.trim()) return list;
-
-    const term = String(forecastSearch || '').toLowerCase().trim();
-    return list.filter((f: any) => 
-      String(f?.title || '').toLowerCase().includes(term) ||
-      String(f?.location || '').toLowerCase().includes(term) ||
-      String(f?.protocolNumber || '').toLowerCase().includes(term) ||
-      String(f?.formation || f?.musicalFormation || f?.customFormation || '').toLowerCase().includes(term) ||
-      String(f?.format || f?.customFormat || '').toLowerCase().includes(term) ||
-      String(f?.uniform || f?.customUniform || '').toLowerCase().includes(term) ||
-      String(f?.notes || '').toLowerCase().includes(term) ||
-      String(fmtDate(f?.date) || '').toLowerCase().includes(term)
-    );
-  }, [allForecasts, futureForecasts, pastForecasts, forecastTab, forecastSearch]);
-
   const handleJumpToForecastDate = (forecastDate: string) => {
     const ymd = normalizeDateToYMD(forecastDate);
     if (!ymd) return;

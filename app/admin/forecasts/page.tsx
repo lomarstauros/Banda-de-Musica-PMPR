@@ -39,6 +39,7 @@ const FORMATS = [
   'Apresentação local aberto',
   'Apresentação local fechado',
   'Ensaio',
+  'Viagem',
   'Outros'
 ];
 

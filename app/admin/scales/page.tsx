@@ -410,11 +410,11 @@ export default function AdminScalesListPage() {
             {/* Acesso rápido às previsões e download imediato de PDF */}
             <div className="mt-1 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-2 bg-amber-50/60 dark:bg-amber-950/20 p-3 rounded-xl border border-amber-200/50 dark:border-amber-900/30">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
-                  <span className="material-symbols-outlined text-[17px] text-amber-500">calendar_clock</span>
-                  <span>Previsões de Serviço</span>
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 min-w-0">
+                  <span className="material-symbols-outlined text-[17px] text-amber-500 shrink-0">calendar_clock</span>
+                  <span className="truncate">Previsões de Serviço</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500 text-white text-[10px] font-black shrink-0 whitespace-nowrap">
                   {allForecasts.length} cadastradas
                 </span>
               </div>
@@ -422,7 +422,7 @@ export default function AdminScalesListPage() {
                 <button
                   type="button"
                   onClick={() => setShowForecastsModal(true)}
-                  className="flex-1 py-1.5 px-2 rounded-lg bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-50 text-center transition-colors shadow-xs"
+                  className="flex-1 py-1.5 px-2 rounded-lg bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-50 text-center transition-colors shadow-xs whitespace-nowrap"
                 >
                   Ver Lista
                 </button>
@@ -430,10 +430,10 @@ export default function AdminScalesListPage() {
                   type="button"
                   onClick={() => generateForecastsPDF(allForecasts)}
                   disabled={pdfGenerating || allForecasts.length === 0}
-                  className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold text-center transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50"
+                  className="flex-1 py-1.5 px-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold text-center transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-50 whitespace-nowrap"
                   title="Baixar PDF com todas as previsões cadastradas"
                 >
-                  <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                  <span className="material-symbols-outlined text-[15px] shrink-0">picture_as_pdf</span>
                   <span>Baixar PDF</span>
                 </button>
               </div>
@@ -524,7 +524,7 @@ export default function AdminScalesListPage() {
                       <div className="flex justify-between items-start gap-2">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm whitespace-nowrap shrink-0">
                               <span className="material-symbols-outlined text-[14px]">calendar_clock</span>
                               Previsão de Serviço
                             </span>

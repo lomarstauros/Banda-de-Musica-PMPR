@@ -360,14 +360,14 @@ export default function AdminSwapsPage() {
         </header>
 
         {/* Quick nav Gestor - Somente Nova Escala, Previsão de Serviço, Permuta */}
-        <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
-          <Link href="/admin/scales/new">
-            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">Nova Escala</button>
+        <div className="px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <Link href="/admin/scales/new" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-4 sm:px-5 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors whitespace-nowrap">Nova Escala</button>
           </Link>
-          <Link href="/admin/forecasts">
-            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-5 text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm">Previsão de Serviço</button>
+          <Link href="/admin/forecasts" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-4 sm:px-5 text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm whitespace-nowrap">Previsão de Serviço</button>
           </Link>
-          <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">Permuta</button>
+          <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 whitespace-nowrap">Permuta</button>
         </div>
 
         <main className="flex-1 p-4 flex flex-col gap-6 pb-24">

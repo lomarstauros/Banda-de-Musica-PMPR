@@ -368,17 +368,17 @@ export default function AdminForecastsPage() {
         </header>
 
         {/* Quick nav Gestor - Somente as 3 abas oficiais do Painel Gestor */}
-        <div className="px-4 lg:px-6 py-4 flex gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10">
-          <Link href="/admin/scales/new">
-            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">
+        <div className="px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <Link href="/admin/scales/new" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-4 sm:px-5 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors whitespace-nowrap">
               Nova Escala
             </button>
           </Link>
-          <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-5 text-sm font-bold text-white shadow-lg shadow-primary/20">
+          <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 whitespace-nowrap">
             Previsão de Serviço
           </button>
-          <Link href="/admin/swaps">
-            <button className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors">
+          <Link href="/admin/swaps" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-4 sm:px-5 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors whitespace-nowrap">
               Permuta
             </button>
           </Link>
@@ -776,7 +776,7 @@ export default function AdminForecastsPage() {
                       
                       {/* Top Header do Card */}
                       <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500 text-white shadow-sm whitespace-nowrap shrink-0">
                           <span className="material-symbols-outlined text-[13px]">calendar_clock</span>
                           Previsão de Serviço
                         </span>

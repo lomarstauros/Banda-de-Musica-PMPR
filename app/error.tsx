@@ -47,14 +47,15 @@ export default function ErrorBoundary({
           >
             Tentar Novamente
           </button>
-          <Link href="/dashboard" className="flex-1">
-            <button
-              type="button"
-              className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-semibold text-xs sm:text-sm transition-all"
-            >
-              Ir para o Início
-            </button>
-          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/dashboard';
+            }}
+            className="flex-1 py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 hover:text-white font-semibold text-xs sm:text-sm transition-all"
+          >
+            Ir para o Início
+          </button>
         </div>
       </div>
     </div>

@@ -177,6 +177,12 @@ export function DesktopSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={(e) => {
+                  if (item.href === '/dashboard' && pathname === '/dashboard') {
+                    e.preventDefault();
+                    window.location.href = '/dashboard';
+                  }
+                }}
                 className={`relative flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 group ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30 font-bold'

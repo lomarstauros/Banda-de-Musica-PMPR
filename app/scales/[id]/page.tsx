@@ -163,8 +163,8 @@ export default function ScaleDetailsPage() {
       <div className="bg-background-light dark:bg-background-dark min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <span className="material-symbols-outlined text-gray-400 text-[64px] mb-4">event_busy</span>
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Escala não encontrada</h2>
-        <Link href="/dashboard">
-          <button className="text-primary font-bold hover:underline">Voltar ao Início</button>
+        <Link href="/dashboard" className="text-primary font-bold hover:underline">
+          Voltar ao Início
         </Link>
       </div>
     );

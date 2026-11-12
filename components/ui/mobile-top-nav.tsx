@@ -238,6 +238,12 @@ export function MobileTopNav() {
           <Link
             key={item.label}
             href={item.href}
+            onClick={(e) => {
+              if (item.href === '/dashboard' && pathname === '/dashboard') {
+                e.preventDefault();
+                window.location.href = '/dashboard';
+              }
+            }}
             className="flex flex-col items-center gap-1 group shrink-0 min-w-[54px] sm:min-w-[62px]"
           >
             <div

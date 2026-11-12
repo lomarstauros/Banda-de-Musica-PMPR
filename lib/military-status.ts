@@ -75,6 +75,8 @@ export const getCurrentMilitaryStatus = (musician: MusicianProfile): string | nu
     return statusDisplay;
   }
 
+  if (!musician.statusStartDate) return null;
+
   const today = new Date();
   const startYmd = normalizeDateToYMD(musician.statusStartDate);
   const endYmd = normalizeDateToYMD(musician.statusEndDate);

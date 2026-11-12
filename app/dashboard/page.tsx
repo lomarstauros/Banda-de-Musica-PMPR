@@ -98,9 +98,9 @@ export default function DashboardPage() {
           }) as any[];
 
           const visibleScales = allScales.filter((scale: any) => {
-            if (scale.isForecast) return false;
+            if (!scale || scale.isForecast) return false;
             if (hasFullVisibility) return true;
-            return (scale.musicians || []).some((m: any) => m.id === user.uid);
+            return Array.isArray(scale.musicians) && scale.musicians.some((m: any) => m?.id === user.uid);
           });
 
           const todayStr = getTodayYMD();
@@ -108,32 +108,32 @@ export default function DashboardPage() {
           // Próximas escalas: data >= data atual (hoje em diante), ordenadas do mais próximo ao mais distante
           const futureScales = visibleScales
             .filter(s => {
-              const sDate = normalizeDateToYMD(s.date);
+              const sDate = normalizeDateToYMD(s?.date);
               return sDate && sDate >= todayStr;
             })
             .sort((a, b) => {
-              const dateA = normalizeDateToYMD(a.date);
-              const dateB = normalizeDateToYMD(b.date);
-              const dateComp = dateA.localeCompare(dateB);
+              const dateA = normalizeDateToYMD(a?.date);
+              const dateB = normalizeDateToYMD(b?.date);
+              const dateComp = String(dateA).localeCompare(String(dateB));
               if (dateComp !== 0) return dateComp;
-              const timeA = a.startTime || a.departureTime || '00:00';
-              const timeB = b.startTime || b.departureTime || '00:00';
+              const timeA = String(a?.startTime || a?.departureTime || '00:00');
+              const timeB = String(b?.startTime || b?.departureTime || '00:00');
               return timeA.localeCompare(timeB);
             });
 
           // Escalas anteriores: data < data atual, ordenadas da mais recente para a mais antiga
           const pastScales = visibleScales
             .filter(s => {
-              const sDate = normalizeDateToYMD(s.date);
+              const sDate = normalizeDateToYMD(s?.date);
               return !sDate || sDate < todayStr;
             })
             .sort((a, b) => {
-              const dateA = normalizeDateToYMD(a.date);
-              const dateB = normalizeDateToYMD(b.date);
-              const dateComp = dateB.localeCompare(dateA);
+              const dateA = normalizeDateToYMD(a?.date);
+              const dateB = normalizeDateToYMD(b?.date);
+              const dateComp = String(dateB).localeCompare(String(dateA));
               if (dateComp !== 0) return dateComp;
-              const timeA = a.startTime || a.departureTime || '00:00';
-              const timeB = b.startTime || b.departureTime || '00:00';
+              const timeA = String(a?.startTime || a?.departureTime || '00:00');
+              const timeB = String(b?.startTime || b?.departureTime || '00:00');
               return timeB.localeCompare(timeA);
             });
 

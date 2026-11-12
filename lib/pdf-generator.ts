@@ -745,7 +745,7 @@ export const generateForecastsPDF = async (
       const formationText = f.musicalFormation || f.formation || 'Banda Completa';
 
       // Protocolo
-      const protocolText = f.protocolNumber && f.protocolNumber.trim() ? f.protocolNumber.trim() : '-';
+      const protocolText = f.protocolNumber != null && String(f.protocolNumber).trim() ? String(f.protocolNumber).trim() : '-';
 
       return [
         dateText,

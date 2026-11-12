@@ -245,16 +245,16 @@ export default function AdminScalesListPage() {
 
     if (!forecastSearch.trim()) return list;
 
-    const term = forecastSearch.toLowerCase().trim();
+    const term = String(forecastSearch || '').toLowerCase().trim();
     return list.filter((f: any) => 
-      (f.title || '').toLowerCase().includes(term) ||
-      (f.location || '').toLowerCase().includes(term) ||
-      (f.protocolNumber || '').toLowerCase().includes(term) ||
-      (f.formation || f.musicalFormation || f.customFormation || '').toLowerCase().includes(term) ||
-      (f.format || f.customFormat || '').toLowerCase().includes(term) ||
-      (f.uniform || f.customUniform || '').toLowerCase().includes(term) ||
-      (f.notes || '').toLowerCase().includes(term) ||
-      (fmtDate(f.date) || '').includes(term)
+      String(f?.title || '').toLowerCase().includes(term) ||
+      String(f?.location || '').toLowerCase().includes(term) ||
+      String(f?.protocolNumber || '').toLowerCase().includes(term) ||
+      String(f?.formation || f?.musicalFormation || f?.customFormation || '').toLowerCase().includes(term) ||
+      String(f?.format || f?.customFormat || '').toLowerCase().includes(term) ||
+      String(f?.uniform || f?.customUniform || '').toLowerCase().includes(term) ||
+      String(f?.notes || '').toLowerCase().includes(term) ||
+      String(fmtDate(f?.date) || '').toLowerCase().includes(term)
     );
   }, [allForecasts, futureForecasts, pastForecasts, forecastTab, forecastSearch]);
 
@@ -622,7 +622,7 @@ export default function AdminScalesListPage() {
                 }
 
                 const isExpanded = expandedScaleIds.includes(scale.id);
-                const sortedMusicians = [...(scale.musicians || [])].sort(sortByRankThenName);
+                const sortedMusicians = [...(scale.musicians || [])].filter(Boolean).sort(sortByRankThenName);
 
                 return (
                   <div key={scale.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all">

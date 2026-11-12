@@ -98,18 +98,20 @@ export const fmtDateObj = (date: Date | null | undefined): string => {
 };
 
 /**
- * Formata YYYY-MM-DD → DD/MM/AAAA com dia da semana abreviado
- * Ex.: "2026-04-09" → "Qui, 09/04/2026"
+ * Formata qualquer formato de data → DD/MM/AAAA com dia da semana abreviado
+ * Ex.: "2026-04-09" ou "09/04/2026" → "Qui, 09/04/2026"
  */
 export const fmtDateWithWeekday = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '—';
   try {
-    const d = new Date(dateStr + 'T12:00:00');
-    if (isNaN(d.getTime())) return dateStr;
+    const ymd = normalizeDateToYMD(dateStr);
+    if (!ymd) return String(dateStr);
+    const d = new Date(ymd + 'T12:00:00');
+    if (isNaN(d.getTime())) return fmtDate(dateStr);
     const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     return `${weekdays[d.getDay()]}, ${fmtDate(dateStr)}`;
   } catch {
-    return dateStr;
+    return String(dateStr || '—');
   }
 };
 

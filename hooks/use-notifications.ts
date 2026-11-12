@@ -112,6 +112,8 @@ export const useNotifications = () => {
               (navigator as any).clearAppBadge().catch((err: any) => console.log('Badge API error:', err));
             }
           }
+        }, (err) => {
+          console.warn('Aviso: Não foi possível sincronizar o badge de notificações:', err);
         });
       } else {
         if (unsubNotif) {

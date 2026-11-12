@@ -210,7 +210,7 @@ export default function DashboardPage() {
   }, [user, authLoading, isPending]);
 
   const displayName = profile ? `${profile.rank || ''} ${profile.war_name || profile.name || ''}`.trim() || 'Sem nome' : 'Carregando...';
-  const firstName = profile?.war_name || profile?.name?.split(' ')[0] || 'Militar';
+  const firstName = profile?.war_name || (typeof profile?.name === 'string' ? profile.name.split(' ')[0] : '') || 'Militar';
   const displayInstrument = profile?.instrument ? `Banda PMPR - ${profile.instrument}` : 'Banda PMPR';
   const displayPhoto = profile?.photo_url || null;
   const roleBadge = profile?.role === 'master' ? 'MASTER' : profile?.role === 'admin' ? 'ADM' : 'MÚSICO';

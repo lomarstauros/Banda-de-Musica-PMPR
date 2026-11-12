@@ -20,13 +20,14 @@ const RANK_ORDER: Record<string, number> = {
  * Retorna o índice de hierarquia da graduação.
  * Graduações desconhecidas vão para o final (999).
  */
-function getRankOrder(rank: string | undefined): number {
-  if (!rank) return 999;
+function getRankOrder(rank: any): number {
+  if (!rank || typeof rank !== 'string') return 999;
+  const rankStr = rank.trim();
   // Busca exata primeiro
-  if (RANK_ORDER[rank] !== undefined) return RANK_ORDER[rank];
+  if (RANK_ORDER[rankStr] !== undefined) return RANK_ORDER[rankStr];
   // Busca parcial (ex: "Soldado 1ª Cl." → Soldado)
   for (const key of Object.keys(RANK_ORDER)) {
-    if (rank.startsWith(key) || key.startsWith(rank)) {
+    if (rankStr.startsWith(key) || key.startsWith(rankStr)) {
       return RANK_ORDER[key];
     }
   }
@@ -39,11 +40,15 @@ function getRankOrder(rank: string | undefined): number {
  * 2º por nome de guerra ou nome completo em ordem alfabética
  */
 export function sortByRankThenName(a: any, b: any): number {
-  const rankDiff = getRankOrder(a.rank) - getRankOrder(b.rank);
+  if (!a && !b) return 0;
+  if (!a) return 1;
+  if (!b) return -1;
+
+  const rankDiff = getRankOrder(a?.rank) - getRankOrder(b?.rank);
   if (rankDiff !== 0) return rankDiff;
 
   // Mesmo posto: ordena pelo nome de guerra ou nome completo
-  const nameA = (a.war_name || a.name || '').trim().toLowerCase();
-  const nameB = (b.war_name || b.name || '').trim().toLowerCase();
+  const nameA = String(a?.war_name || a?.name || '').trim().toLowerCase();
+  const nameB = String(b?.war_name || b?.name || '').trim().toLowerCase();
   return nameA.localeCompare(nameB, 'pt-BR');
 }

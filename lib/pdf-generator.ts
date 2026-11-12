@@ -70,12 +70,46 @@ const getWarNameSegments = (contentRaw: string, warNameRaw: string) => {
 
 // ─── Main ────────────────────────────────────────────────────────────────────
 
+/**
+ * Formata o título da escala para visualização e PDF, aplicando numeração e formação musical quando apropriado
+ */
+export const formatScaleSummaryTitle = (scale: any, index?: number): string => {
+  const prefix = typeof index === 'number' ? `${index + 1} - ` : '';
+  const isAdmin = scale.format === 'Expediente Administrativo' || (scale.title && scale.title.toLowerCase().includes('expediente administrativo'));
+
+  if (isAdmin) {
+    return `${prefix}Expediente Administrativo`;
+  }
+
+  const rawTitle = (scale.title || scale.format || 'Serviço').trim();
+  const rawFormation = (scale.musicalFormation || scale.formation || (scale.format && scale.format !== 'Outros' && scale.format !== rawTitle ? scale.format : '') || '').trim();
+
+  if (rawFormation && !rawTitle.toLowerCase().includes(rawFormation.toLowerCase())) {
+    return `${prefix}${rawTitle} - ${rawFormation}`;
+  }
+
+  return `${prefix}${rawTitle}`;
+};
 
 /**
  * Desenha uma página ou bloco de escala no documento jsPDF fornecido.
  * @returns O Y final após o desenho.
  */
-const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>, options: { showHeader?: boolean; showSignatures?: boolean; startY?: number; signatureExpediente?: any; signatureSigner?: any } = {}) => {
+const drawScalePage = (
+  doc: jsPDF,
+  scale: any,
+  profilesMap: Record<string, any>,
+  options: {
+    showHeader?: boolean;
+    showSignatures?: boolean;
+    startY?: number;
+    signatureExpediente?: any;
+    signatureSigner?: any;
+    scaleIndex?: number;
+    totalScales?: number;
+    allDailyScales?: any[];
+  } = {}
+) => {
   const { showHeader = true, showSignatures = true, startY, signatureExpediente, signatureSigner } = options;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
@@ -177,7 +211,23 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
     const dateLabel = scale.date ? formatScaleDate(scale.date) : 'DATA NÃO INFORMADA';
     doc.setFontSize(10);
     doc.text(`ESCALA PARA O DIA ${dateLabel}`, pageWidth / 2, curY, { align: 'center' });
-    curY += 8;
+    curY += 7;
+
+    // Se houver múltiplas escalas no mesmo dia, exibe a lista quantitativa no cabeçalho
+    if (options.allDailyScales && options.allDailyScales.length > 1) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(30, 41, 59);
+      options.allDailyScales.forEach((s, idx) => {
+        const itemTitle = formatScaleSummaryTitle(s, idx);
+        const sTime = s.startTime || s.departureTime || s.tripDetails?.departureFromCuritiba;
+        const timeLabel = sTime ? ` às ${sTime}` : '';
+        doc.text(`${itemTitle}${timeLabel}`, pageWidth / 2, curY, { align: 'center' });
+        curY += 4.5;
+      });
+      doc.setTextColor(0, 0, 0);
+      curY += 2;
+    }
 
     if (scale.classification === 'provisoria') {
       doc.setTextColor(220, 38, 38); // Red text
@@ -193,9 +243,11 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   } else {
     // ── BARRA SEPARADORA PARA NOVOS SERVIÇOS --------------------------------
     const prefix = scale.classification === 'provisoria' ? '[PROVISÓRIA] ' : '';
-    const serviceTitle = (scale.title || 'SERVIÇO').toUpperCase();
-    const serviceTime = scale.startTime ? ` às ${scale.startTime}` : '';
-    const bannerText = `PRÓXIMO SERVIÇO: ${prefix}${serviceTitle}${serviceTime}`;
+    const quantServiceTitle = formatScaleSummaryTitle(scale, options.scaleIndex).toUpperCase();
+    const serviceTime = scale.startTime 
+      ? ` às ${scale.startTime}` 
+      : (scale.tripDetails?.departureFromCuritiba ? ` (Saída: ${scale.tripDetails.departureFromCuritiba})` : '');
+    const bannerText = `${prefix}${quantServiceTitle}${serviceTime}`;
 
     const maxTextWidth = (pageWidth - 2 * margin) - 8; // 4mm de respiro lateral
     doc.setFont('helvetica', 'bold');
@@ -256,23 +308,74 @@ const drawScalePage = (doc: jsPDF, scale: any, profilesMap: Record<string, any>,
   const rChief = getPersonData(chiefPerson, '');
   const rArquivo = getPersonData(arquivoPerson, exp.arquivo || '');
 
+  const isViagem = scale.format === 'Viagem' || !!scale.tripDetails;
+  const trip = scale.tripDetails;
+  const serviceDisplayName = formatScaleSummaryTitle(scale, options.scaleIndex).toUpperCase();
+
+  const detailsRows: any[] = [];
+
+  if (isViagem && trip) {
+    if (trip.departureFromCuritiba || scale.departureTime) {
+      detailsRows.push(['SAÍDA DE CURITIBA', { content: trip.departureFromCuritiba || scale.departureTime, colSpan: 2 }]);
+    }
+    if (trip.arrivalAtDestination) {
+      detailsRows.push(['CHEGADA AO DESTINO', { content: trip.arrivalAtDestination, colSpan: 2 }]);
+    }
+    if (trip.destinations && trip.destinations.length > 0) {
+      trip.destinations.forEach((d: any, dIdx: number) => {
+        const destLabel = trip.destinations.length > 1 ? `DESTINO ${dIdx + 1}` : 'DESTINO / CIDADE';
+        const parts: string[] = [];
+        if (d.city) parts.push(`CIDADE: ${d.city.toUpperCase()}`);
+        if (d.location) parts.push(`LOCAL: ${d.location.toUpperCase()}`);
+        if (d.serviceTitle) parts.push(`SERVIÇO: ${d.serviceTitle.toUpperCase()}`);
+        if (d.startTime || d.endTime) parts.push(`HORÁRIO: ${d.startTime || '--:--'} às ${d.endTime || '--:--'}`);
+        detailsRows.push([destLabel, { content: parts.join('   •   '), colSpan: 2 }]);
+      });
+    }
+    if (trip.returnToCuritiba || scale.returnTime) {
+      detailsRows.push(['RETORNO A CURITIBA', { content: trip.returnToCuritiba || scale.returnTime, colSpan: 2 }]);
+    }
+  } else {
+    if (scale.departureTime) {
+      detailsRows.push(['SAÍDA', { content: scale.departureTime, colSpan: 2 }]);
+    }
+    if (scale.startTime) {
+      detailsRows.push(['INÍCIO', { content: scale.startTime, colSpan: 2 }]);
+    }
+    if (scale.endTime) {
+      detailsRows.push(['TÉRMINO', { content: scale.endTime, colSpan: 2 }]);
+    }
+    if (scale.returnTime) {
+      detailsRows.push(['RETORNO', { content: scale.returnTime, colSpan: 2 }]);
+    }
+  }
+
+  if (scale.format) {
+    detailsRows.push(['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }]);
+  }
+
+  detailsRows.push(['SERVIÇO', { content: serviceDisplayName, colSpan: 2 }]);
+
+  if (referencia) {
+    detailsRows.push(['REFERÊNCIA', { content: referencia, colSpan: 2 }]);
+  }
+
+  if (!isViagem && scale.location) {
+    detailsRows.push(['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }]);
+  }
+
+  if (scale.uniform) {
+    detailsRows.push(['UNIFORME', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }]);
+  }
+
+  if (rMaestroChefe) detailsRows.push(['MAESTRO CHEFE', rMaestroChefe, rMaestroChefe.cpf]);
+  if (rRegente) detailsRows.push(['REGENTE', rRegente, rRegente.cpf]);
+  if (rChief) detailsRows.push(['CHEFE DO SERVIÇO', rChief, rChief.cpf]);
+  if (rArquivo) detailsRows.push(['ARQUIVO', rArquivo, rArquivo.cpf]);
+
   autoTable(doc, {
     startY: curY,
-    body: [
-      scale.departureTime ? ['SAÍDA', { content: scale.departureTime, colSpan: 2 }] : null,
-      scale.startTime ? ['INÍCIO', { content: scale.startTime, colSpan: 2 }] : null,
-      scale.endTime ? ['TÉRMINO', { content: scale.endTime, colSpan: 2 }] : null,
-      scale.returnTime ? ['RETORNO', { content: scale.returnTime, colSpan: 2 }] : null,
-      scale.format ? ['FORMATO', { content: (scale.format || '').toUpperCase(), colSpan: 2 }] : null,
-      scale.title ? ['SERVIÇO', { content: (scale.title || '').toUpperCase(), colSpan: 2 }] : null,
-      referencia ? ['REFERÊNCIA', { content: referencia, colSpan: 2 }] : null,
-      scale.location ? ['LOCAL', { content: (scale.location || '').toUpperCase(), colSpan: 2 }] : null,
-      scale.uniform ? ['UNIFORME', { content: (scale.uniform || '').toUpperCase(), colSpan: 2 }] : null,
-      rMaestroChefe ? ['MAESTRO CHEFE', rMaestroChefe, rMaestroChefe.cpf] : null,
-      rRegente ? ['REGENTE', rRegente, rRegente.cpf] : null,
-      rChief ? ['CHEFE DO SERVIÇO', rChief, rChief.cpf] : null,
-      rArquivo ? ['ARQUIVO', rArquivo, rArquivo.cpf] : null,
-    ].filter(Boolean) as any[],
+    body: detailsRows.filter(Boolean),
     theme: 'plain',
     styles: {
       fontSize: 8, cellPadding: 1.5,
@@ -567,30 +670,46 @@ export const generateDailyScalesPDF = async (
 
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
     
+    // Ordenação obrigatória das escalas do dia:
+    // 1. Sempre o serviço administrativo (quando houver) é o primeiro a aparecer no PDF.
+    // 2. Os demais serviços seguem a ordem cronológica de horário de início respectivo.
+    const sortedScales = [...scales].sort((a, b) => {
+      const isAdminA = a.format === 'Expediente Administrativo' || (a.title && a.title.toLowerCase().includes('expediente administrativo'));
+      const isAdminB = b.format === 'Expediente Administrativo' || (b.title && b.title.toLowerCase().includes('expediente administrativo'));
+
+      if (isAdminA && !isAdminB) return -1;
+      if (!isAdminA && isAdminB) return 1;
+
+      const getTime = (s: any) => {
+        return s.startTime || s.departureTime || s.tripDetails?.departureFromCuritiba || '00:00';
+      };
+      return getTime(a).localeCompare(getTime(b));
+    });
+
     const profilesMap: Record<string, any> = {};
     profiles.forEach((p: any) => { profilesMap[p.id] = p; });
 
-    let sigExp = scales[scales.length - 1].expediente || {};
-    const adminScale = scales.find(s => s.format === 'Expediente Administrativo' || (s.title && s.title.toLowerCase().includes('expediente administrativo')));
+    let sigExp = sortedScales[sortedScales.length - 1].expediente || {};
+    const adminScale = sortedScales.find(s => s.format === 'Expediente Administrativo' || (s.title && s.title.toLowerCase().includes('expediente administrativo')));
     if (adminScale && adminScale.expediente) {
       sigExp = adminScale.expediente;
     } else {
-      const scaleWithSigs = scales.find(s => s.expediente && (s.expediente.regenteMaestro || s.expediente.sargenteacao));
+      const scaleWithSigs = sortedScales.find(s => s.expediente && (s.expediente.regenteMaestro || s.expediente.sargenteacao));
       if (scaleWithSigs) {
         sigExp = scaleWithSigs.expediente;
       }
     }
 
-    const scaleWithSigner = scales.find(s => s.signer && s.signer.id);
-    const chosenSigner = scaleWithSigner ? scaleWithSigner.signer : (scales[scales.length - 1].signer || null);
+    const scaleWithSigner = sortedScales.find(s => s.signer && s.signer.id);
+    const chosenSigner = scaleWithSigner ? scaleWithSigner.signer : (sortedScales[sortedScales.length - 1].signer || null);
 
     let currentY = 15;
-    scales.forEach((scale, index) => {
-      // Se não for a primeira escala, adicionar um espaçamento maior para o divisor
+    sortedScales.forEach((scale, index) => {
+      // Se não for a primeira escala, adicionar um espaçamento para o divisor
       if (index > 0) {
-        currentY += 25; // Espaço para a barra azul e respiro
+        currentY += 15; // Espaço para a barra e respiro
         // Check if there's enough space for at least the details table
-        if (currentY > 230) {
+        if (currentY > 210) {
           doc.addPage();
           currentY = 15;
         }
@@ -605,14 +724,17 @@ export const generateDailyScalesPDF = async (
       // Se for a última escala, desenha as assinaturas
       currentY = drawScalePage(doc, scale, profilesMap, {
         showHeader: index === 0,
-        showSignatures: index === scales.length - 1,
+        showSignatures: index === sortedScales.length - 1,
         startY: currentY,
         signatureExpediente: sigExp,
-        signatureSigner: chosenSigner
+        signatureSigner: chosenSigner,
+        scaleIndex: sortedScales.length > 1 ? index : undefined,
+        totalScales: sortedScales.length,
+        allDailyScales: sortedScales
       });
     });
 
-    const dateStr = scales[0].date || 'sem_data';
+    const dateStr = sortedScales[0].date || 'sem_data';
     const filename = `Escalas_${dateStr}.pdf`;
     if (options?.action === 'view') {
       const pdfBlob = doc.output('blob');

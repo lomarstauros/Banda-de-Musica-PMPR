@@ -354,28 +354,73 @@ export default function ScaleDetailsPage() {
                 </div>
               </div>
 
-              <div className={`grid ${isEnsaio ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
-                {!isEnsaio && (
-                  <div className="flex flex-col gap-1 text-amber-600 dark:text-amber-400">
-                    <span className="text-xs opacity-70">Saída da BM</span>
-                    <span className="text-sm font-bold">{scale.departureTime}</span>
+              {scale.format === 'Viagem' || scale.tripDetails ? (
+                <div className="flex flex-col gap-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1 text-indigo-600 dark:text-indigo-400">
+                      <span className="text-xs opacity-70">Saída de Curitiba</span>
+                      <span className="text-sm font-bold">{scale.tripDetails?.departureFromCuritiba || scale.departureTime || '--:--'}</span>
+                    </div>
+                    <div className="flex flex-col gap-1 text-indigo-600 dark:text-indigo-400">
+                      <span className="text-xs opacity-70">Chegada ao Destino</span>
+                      <span className="text-sm font-bold">{scale.tripDetails?.arrivalAtDestination || '--:--'}</span>
+                    </div>
                   </div>
-                )}
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{isEnsaio ? 'Horário do Ensaio' : 'Início Previsto'}</span>
-                  <span className="text-sm font-bold text-primary">{scale.startTime}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Término Previsto</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">{scale.endTime}</span>
-                </div>
-                {!isEnsaio && (
-                  <div className="flex flex-col gap-1 text-blue-600 dark:text-blue-400">
-                    <span className="text-xs opacity-70">Retorno Previsto</span>
-                    <span className="text-sm font-bold">{scale.returnTime}</span>
+
+                  {scale.tripDetails?.destinations && scale.tripDetails.destinations.length > 0 && (
+                    <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                      <span className="text-xs font-bold text-gray-500 uppercase">Serviço(s) no Destino</span>
+                      {scale.tripDetails.destinations.map((dest: any, idx: number) => (
+                        <div key={dest.id || idx} className="p-3 bg-indigo-50/60 dark:bg-indigo-950/20 rounded-xl border border-indigo-100 dark:border-indigo-900/40 flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                              {dest.city || 'Destino'} {dest.location ? `• ${dest.location}` : ''}
+                            </span>
+                            {(dest.startTime || dest.endTime) && (
+                              <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">
+                                {dest.startTime || '--:--'} às {dest.endTime || '--:--'}
+                              </span>
+                            )}
+                          </div>
+                          {dest.serviceTitle && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{dest.serviceTitle}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div className="flex flex-col gap-1 text-blue-600 dark:text-blue-400">
+                      <span className="text-xs opacity-70">Previsão de Retorno a Curitiba</span>
+                      <span className="text-sm font-bold">{scale.tripDetails?.returnToCuritiba || scale.returnTime || '--:--'}</span>
+                    </div>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className={`grid ${isEnsaio ? 'grid-cols-2' : 'grid-cols-2'} gap-4`}>
+                  {!isEnsaio && (
+                    <div className="flex flex-col gap-1 text-amber-600 dark:text-amber-400">
+                      <span className="text-xs opacity-70">Saída da BM</span>
+                      <span className="text-sm font-bold">{scale.departureTime}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{isEnsaio ? 'Horário do Ensaio' : 'Início Previsto'}</span>
+                    <span className="text-sm font-bold text-primary">{scale.startTime}</span>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Término Previsto</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{scale.endTime}</span>
+                  </div>
+                  {!isEnsaio && (
+                    <div className="flex flex-col gap-1 text-blue-600 dark:text-blue-400">
+                      <span className="text-xs opacity-70">Retorno Previsto</span>
+                      <span className="text-sm font-bold">{scale.returnTime}</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 flex items-start gap-3 mt-2">
                 <span className="material-symbols-outlined text-gray-400 mt-0.5 text-[20px]">styler</span>

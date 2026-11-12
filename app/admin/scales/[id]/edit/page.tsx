@@ -36,6 +36,66 @@ export default function AdminEditScalePage() {
     classification: 'completa'
   });
 
+  const [musicalFormation, setMusicalFormation] = useState<string>('');
+  const [tripDetails, setTripDetails] = useState<any>({
+    departureFromCuritiba: '',
+    arrivalAtDestination: '',
+    destinations: [
+      {
+        id: '1',
+        city: '',
+        location: '',
+        serviceTitle: '',
+        startTime: '',
+        endTime: ''
+      }
+    ],
+    returnToCuritiba: ''
+  });
+
+  const addDestination = () => {
+    setTripDetails((prev: any) => ({
+      ...prev,
+      destinations: [
+        ...(prev.destinations || []),
+        {
+          id: Math.random().toString(36).substring(2, 9),
+          city: '',
+          location: '',
+          serviceTitle: '',
+          startTime: '',
+          endTime: ''
+        }
+      ]
+    }));
+  };
+
+  const removeDestination = (destIdx: number) => {
+    setTripDetails((prev: any) => {
+      const currentDests = prev.destinations || [];
+      if (currentDests.length <= 1) return prev;
+      return {
+        ...prev,
+        destinations: currentDests.filter((_: any, idx: number) => idx !== destIdx)
+      };
+    });
+  };
+
+  const updateDestination = (destIdx: number, field: string, value: any) => {
+    setTripDetails((prev: any) => {
+      const currentDests = [...(prev.destinations || [])];
+      if (!currentDests[destIdx]) return prev;
+      currentDests[destIdx] = {
+        ...currentDests[destIdx],
+        [field]: value
+      };
+      return {
+        ...prev,
+        destinations: currentDests
+      };
+    });
+  };
+
   const [selectedMusicians, setSelectedMusicians] = useState<string[]>([]);
   const [serviceChief, setServiceChief] = useState<string>('');
   const [repertoire, setRepertoire] = useState('');
@@ -176,10 +236,33 @@ export default function AdminEditScalePage() {
             location: data.location || '',
             uniform: data.uniform?.includes('Especial') ? data.uniform : 'Outros',
             customUniform: data.uniform?.includes('Especial') ? '' : (data.uniform || ''),
-            format: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? data.format : 'Outros',
-            customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar'].includes(data.format) ? '' : (data.format || ''),
+            format: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar', 'Viagem'].includes(data.format) ? data.format : 'Outros',
+            customFormat: ['Ensaio', 'Expediente Administrativo', 'Apresentação local fechado', 'Apresentação local aberto', 'Formatura Militar', 'Viagem'].includes(data.format) ? '' : (data.format || ''),
             classification: data.classification || 'completa',
           });
+
+          if (data.musicalFormation || data.formation) {
+            setMusicalFormation(data.musicalFormation || data.formation || '');
+          }
+          if (data.tripDetails) {
+            setTripDetails(data.tripDetails);
+          } else if (data.format === 'Viagem') {
+            setTripDetails({
+              departureFromCuritiba: data.departureTime || '',
+              arrivalAtDestination: '',
+              destinations: [
+                {
+                  id: '1',
+                  city: data.location || '',
+                  location: '',
+                  serviceTitle: '',
+                  startTime: data.startTime || '',
+                  endTime: data.endTime || ''
+                }
+              ],
+              returnToCuritiba: data.returnTime || ''
+            });
+          }
 
           if (data.signer && data.signer.id) {
             setSignerSelection(`${data.signer.id}|${data.signer.title}`);
@@ -310,10 +393,22 @@ export default function AdminEditScalePage() {
       return;
     }
 
-    const isReducedFormat = formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo';
+    const isReducedFormat = formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo' || formData.format === 'Viagem';
     if (formData.classification !== 'provisoria') {
-      if (!formData.title || !formData.date || (!isReducedFormat && !formData.departureTime) || (isReducedFormat && !formData.startTime)) {
-        setError(isReducedFormat ? "Preencha ao menos o Nome, Data e Início Previsto." : "Preencha ao menos o Nome, Data e Horário de Saída.");
+      if (!formData.title || !formData.date) {
+        setError("Preencha ao menos o Nome e Data da escala.");
+        return;
+      }
+      if (formData.format === 'Viagem') {
+        if (!tripDetails.departureFromCuritiba && !formData.departureTime) {
+          setError("Preencha ao menos o horário de Saída de Curitiba.");
+          return;
+        }
+      } else if (!isReducedFormat && !formData.departureTime) {
+        setError("Preencha ao menos o Nome, Data e Horário de Saída.");
+        return;
+      } else if (isReducedFormat && !formData.startTime) {
+        setError("Preencha ao menos o Nome, Data e Início Previsto.");
         return;
       }
     }
@@ -324,6 +419,15 @@ export default function AdminEditScalePage() {
       const musiciansData = musicians.filter(m => selectedMusicians.includes(m.id));
       const finalUniform = formData.uniform === 'Outros' ? formData.customUniform : formData.uniform;
       const finalFormat = formData.format === 'Outros' ? formData.customFormat : formData.format;
+
+      const isViagem = finalFormat === 'Viagem';
+      const depTime = isViagem ? (tripDetails.departureFromCuritiba || formData.departureTime) : formData.departureTime;
+      const sTime = isViagem ? (tripDetails.destinations?.[0]?.startTime || tripDetails.arrivalAtDestination || depTime || formData.startTime) : formData.startTime;
+      const eTime = isViagem ? (tripDetails.destinations?.[tripDetails.destinations.length - 1]?.endTime || formData.endTime || tripDetails.returnToCuritiba) : formData.endTime;
+      const retTime = isViagem ? (tripDetails.returnToCuritiba || formData.returnTime) : formData.returnTime;
+      const loc = isViagem && tripDetails.destinations?.length
+        ? tripDetails.destinations.map((d: any) => [d.city, d.location].filter(Boolean).join(' - ')).filter(Boolean).join(' | ') || formData.location
+        : formData.location;
 
       const scaleRef = doc(db, "scales", params.id as string);
 
@@ -405,6 +509,13 @@ export default function AdminEditScalePage() {
 
       await updateDoc(scaleRef, {
         ...formData,
+        departureTime: depTime || '',
+        startTime: sTime || '',
+        endTime: eTime || '',
+        returnTime: retTime || '',
+        location: loc || '',
+        musicalFormation: musicalFormation || '',
+        tripDetails: isViagem ? tripDetails : null,
         uniform: finalUniform,
         format: finalFormat,
         classification: formData.classification,
@@ -615,12 +726,25 @@ export default function AdminEditScalePage() {
                       <option>Apresentação local fechado</option>
                       <option>Apresentação local aberto</option>
                       <option>Formatura Militar</option>
+                      <option>Viagem</option>
                       <option>Outros</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                       <span className="material-symbols-outlined text-[20px]">expand_more</span>
                     </div>
                   </div>
+                </label>
+
+                <label className="flex flex-col gap-2">
+                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Formação Musical</span>
+                  <input
+                    type="text"
+                    name="musicalFormation"
+                    value={musicalFormation}
+                    onChange={e => setMusicalFormation(e.target.value)}
+                    placeholder="Ex: Banda Completa, Quarteto de Saxofones, etc."
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                  />
                 </label>
 
                 <label className="flex flex-col gap-2">
@@ -680,40 +804,164 @@ export default function AdminEditScalePage() {
                 </motion.label>
               )}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
-                  <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
+              {formData.format === 'Viagem' ? (
+                <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col gap-4">
+                  <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-sm uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-[18px]">flight_takeoff</span>
+                    Dados da Viagem
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Saída de Curitiba</span>
+                      <input
+                        type="time"
+                        value={tripDetails?.departureFromCuritiba || formData.departureTime || ''}
+                        onChange={e => {
+                          setTripDetails((prev: any) => ({ ...prev, departureFromCuritiba: e.target.value }));
+                          setFormData(prev => ({ ...prev, departureTime: e.target.value }));
+                        }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm"
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Chegada ao Destino</span>
+                      <input
+                        type="time"
+                        value={tripDetails?.arrivalAtDestination || ''}
+                        onChange={e => setTripDetails((prev: any) => ({ ...prev, arrivalAtDestination: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Lista de destinos */}
+                  <div className="flex flex-col gap-3">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Serviço(s) no Destino</span>
+                    {(tripDetails?.destinations || []).map((dest: any, dIdx: number) => (
+                      <div key={dest.id || dIdx} className="p-3.5 bg-white dark:bg-gray-800/90 rounded-xl border border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                            Cidade / Serviço {dIdx + 1}
+                          </span>
+                          {(tripDetails?.destinations?.length || 0) > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeDestination(dIdx)}
+                              className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-semibold"
+                            >
+                              <span className="material-symbols-outlined text-[14px]">delete</span>
+                              Remover
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Cidade (ex: Ponta Grossa)"
+                            value={dest.city || ''}
+                            onChange={e => updateDestination(dIdx, 'city', e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-900"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Local (ex: Praça Central, Teatro Ópera)"
+                            value={dest.location || ''}
+                            onChange={e => updateDestination(dIdx, 'location', e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-900"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Título do serviço (opcional)"
+                            value={dest.serviceTitle || ''}
+                            onChange={e => updateDestination(dIdx, 'serviceTitle', e.target.value)}
+                            className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-xs bg-gray-50 dark:bg-gray-900 md:col-span-1"
+                          />
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-500 font-semibold">Início:</span>
+                            <input
+                              type="time"
+                              value={dest.startTime || ''}
+                              onChange={e => updateDestination(dIdx, 'startTime', e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-900"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-gray-500 font-semibold">Término:</span>
+                            <input
+                              type="time"
+                              value={dest.endTime || ''}
+                              onChange={e => updateDestination(dIdx, 'endTime', e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-xs bg-gray-50 dark:bg-gray-900"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={addDestination}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-900/30 hover:bg-indigo-100 rounded-xl transition-colors border border-dashed border-indigo-300 dark:border-indigo-700"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add_location_alt</span>
+                      + Adicionar outra cidade / serviço no destino
+                    </button>
+                  </div>
+
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Previsão de Retorno para Curitiba</span>
                     <input
-                      name="departureTime" type="time" value={formData.departureTime} onChange={handleChange}
-                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                      type="time"
+                      value={tripDetails?.returnToCuritiba || formData.returnTime || ''}
+                      onChange={e => {
+                        setTripDetails((prev: any) => ({ ...prev, returnToCuritiba: e.target.value }));
+                        setFormData(prev => ({ ...prev, returnTime: e.target.value }));
+                      }}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2.5 text-sm"
                     />
-                  </motion.label>
-                )}
-                <label className={`flex flex-col gap-2 ${(formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Início Previsto</span>
-                  <input
-                    name="startTime" type="time" value={formData.startTime} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
-                  />
-                </label>
-                <label className="flex flex-col gap-2">
-                  <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Término Previsto</span>
-                  <input
-                    name="endTime" type="time" value={formData.endTime} onChange={handleChange}
-                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
-                  />
-                </label>
-                {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
-                  <motion.label initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
-                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Retorno Previsto</span>
+                  </label>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
+                    <motion.label initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Saída da BM</span>
+                      <input
+                        name="departureTime" type="time" value={formData.departureTime} onChange={handleChange}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                      />
+                    </motion.label>
+                  )}
+                  <label className={`flex flex-col gap-2 ${(formData.format === 'Ensaio' || formData.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Início Previsto</span>
                     <input
-                      name="returnTime" type="time" value={formData.returnTime} onChange={handleChange}
-                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                      name="startTime" type="time" value={formData.startTime} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
                     />
-                  </motion.label>
-                )}
-              </div>
+                  </label>
+                  <label className="flex flex-col gap-2">
+                    <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Término Previsto</span>
+                    <input
+                      name="endTime" type="time" value={formData.endTime} onChange={handleChange}
+                      className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                    />
+                  </label>
+                  {formData.format !== 'Ensaio' && formData.format !== 'Expediente Administrativo' && (
+                    <motion.label initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col gap-2">
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-300">Retorno Previsto</span>
+                      <input
+                        name="returnTime" type="time" value={formData.returnTime} onChange={handleChange}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all"
+                      />
+                    </motion.label>
+                  )}
+                </div>
+              )}
             </div>
 
             {formData.classification !== 'folga' && (

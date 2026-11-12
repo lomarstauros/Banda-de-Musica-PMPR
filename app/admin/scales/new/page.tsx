@@ -56,10 +56,11 @@ export default function AdminNewScalePage() {
           setExtraServices([{
             id: Math.random().toString(36).substring(2, 9),
             title: data.title || '',
+            musicalFormation: data.musicalFormation || data.formation || '',
             departureTime: data.departureTime || '',
             startTime: data.startTime || '',
             endTime: data.endTime || '',
-            returnTime: '',
+            returnTime: data.returnTime || '',
             location: data.location || '',
             uniform: data.uniform || 'Especial A1-A / A1-B',
             customUniform: '',
@@ -67,6 +68,21 @@ export default function AdminNewScalePage() {
             customFormat: '',
             serviceChief: '',
             repertoire: fullNotes,
+            tripDetails: data.tripDetails || {
+              departureFromCuritiba: data.departureTime || '',
+              arrivalAtDestination: '',
+              destinations: [
+                {
+                  id: '1',
+                  city: data.location || '',
+                  location: '',
+                  serviceTitle: '',
+                  startTime: data.startTime || '',
+                  endTime: data.endTime || ''
+                }
+              ],
+              returnToCuritiba: data.returnTime || ''
+            },
             selectedMusicians: []
           }]);
         }
@@ -168,12 +184,29 @@ export default function AdminNewScalePage() {
   });
 
   // 3. Extra Services (Dynamic Blocks)
+  const defaultTrip = () => ({
+    departureFromCuritiba: '',
+    arrivalAtDestination: '',
+    destinations: [
+      {
+        id: Math.random().toString(36).substring(2, 9),
+        city: '',
+        location: '',
+        serviceTitle: '',
+        startTime: '',
+        endTime: ''
+      }
+    ],
+    returnToCuritiba: ''
+  });
+
   const [extraServices, setExtraServices] = useState<any[]>([]);
 
   const addExtraService = () => {
     setExtraServices(prev => [...prev, {
       id: Math.random().toString(36).substring(2, 9),
       title: '',
+      musicalFormation: '',
       departureTime: '',
       startTime: '',
       endTime: '',
@@ -185,6 +218,7 @@ export default function AdminNewScalePage() {
       customFormat: '',
       serviceChief: '',
       repertoire: '',
+      tripDetails: defaultTrip(),
       selectedMusicians: [] as string[]
     }]);
   };
@@ -195,6 +229,80 @@ export default function AdminNewScalePage() {
 
   const updateExtraService = (id: string, field: string, value: any) => {
     setExtraServices(prev => prev.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  const updateTripDetails = (serviceId: string, field: string, value: any) => {
+    setExtraServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const currentTrip = s.tripDetails || defaultTrip();
+      return {
+        ...s,
+        tripDetails: {
+          ...currentTrip,
+          [field]: value
+        }
+      };
+    }));
+  };
+
+  const addDestination = (serviceId: string) => {
+    setExtraServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const currentTrip = s.tripDetails || defaultTrip();
+      return {
+        ...s,
+        tripDetails: {
+          ...currentTrip,
+          destinations: [
+            ...(currentTrip.destinations || []),
+            {
+              id: Math.random().toString(36).substring(2, 9),
+              city: '',
+              location: '',
+              serviceTitle: '',
+              startTime: '',
+              endTime: ''
+            }
+          ]
+        }
+      };
+    }));
+  };
+
+  const removeDestination = (serviceId: string, destIndex: number) => {
+    setExtraServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const currentTrip = s.tripDetails || defaultTrip();
+      const currentDests = currentTrip.destinations || [];
+      if (currentDests.length <= 1) return s;
+      return {
+        ...s,
+        tripDetails: {
+          ...currentTrip,
+          destinations: currentDests.filter((_: any, idx: number) => idx !== destIndex)
+        }
+      };
+    }));
+  };
+
+  const updateDestination = (serviceId: string, destIndex: number, field: string, value: any) => {
+    setExtraServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const currentTrip = s.tripDetails || defaultTrip();
+      const currentDests = [...(currentTrip.destinations || [])];
+      if (!currentDests[destIndex]) return s;
+      currentDests[destIndex] = {
+        ...currentDests[destIndex],
+        [field]: value
+      };
+      return {
+        ...s,
+        tripDetails: {
+          ...currentTrip,
+          destinations: currentDests
+        }
+      };
+    }));
   };
 
   const toggleMulti = (field: 'administrativo' | 'permanencia' | 'obra', id: string) => {
@@ -548,9 +656,20 @@ export default function AdminNewScalePage() {
       // Se não for "somente expediente", adicionamos os extras
       if (!onlyExpediente) {
         for (const s of extraServices) {
+          const isViagem = s.format === 'Viagem';
+          const trip = isViagem ? s.tripDetails : null;
+
+          const depTime = isViagem ? (trip?.departureFromCuritiba || s.departureTime) : s.departureTime;
+          const sTime = isViagem ? (trip?.destinations?.[0]?.startTime || trip?.arrivalAtDestination || depTime || s.startTime) : s.startTime;
+          const eTime = isViagem ? (trip?.destinations?.[trip.destinations.length - 1]?.endTime || s.endTime || trip?.returnToCuritiba) : s.endTime;
+          const retTime = isViagem ? (trip?.returnToCuritiba || s.returnTime) : s.returnTime;
+          const loc = isViagem && trip?.destinations?.length
+            ? trip.destinations.map((d: any) => [d.city, d.location].filter(Boolean).join(' - ')).filter(Boolean).join(' | ') || s.location
+            : s.location;
+
           if (sharedClassification !== 'provisoria') {
-            if (!s.title || !s.startTime) {
-              throw new Error(`Preencha o título e o início do serviço: ${s.id}`);
+            if (!s.title || (!sTime && !depTime)) {
+              throw new Error(`Preencha o título e o início ou horário da escala: ${s.title || s.id}`);
             }
           }
           const chiefData = s.serviceChief ? musicians.find(m => m.id === s.serviceChief) : null;
@@ -559,13 +678,15 @@ export default function AdminNewScalePage() {
           docsToCreate.push({
             title: s.title,
             date: sharedDate,
-            departureTime: s.departureTime,
-            startTime: s.startTime,
-            endTime: s.endTime,
-            returnTime: s.returnTime,
-            location: s.location,
+            departureTime: depTime || '',
+            startTime: sTime || '',
+            endTime: eTime || '',
+            returnTime: retTime || '',
+            location: loc || '',
             uniform: s.uniform === 'Outros' ? s.customUniform : s.uniform,
             format: s.format === 'Outros' ? s.customFormat : s.format,
+            musicalFormation: s.musicalFormation || '',
+            tripDetails: trip || null,
             serviceChief: chiefData ? { id: chiefData.id, name: chiefData.name, war_name: chiefData.war_name || '', rank: chiefData.rank || '' } : null,
             repertoire: s.repertoire || '',
             musicians: musiciansData,
@@ -1244,12 +1365,21 @@ export default function AdminNewScalePage() {
                       <option>Apresentação local fechado</option>
                       <option>Apresentação local aberto</option>
                       <option>Formatura Militar</option>
+                      <option>Viagem</option>
                       <option>Outros</option>
                     </select>
                     <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
                       <span className="material-symbols-outlined text-[16px]">expand_more</span>
                     </div>
                   </div>
+                </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-bold text-gray-500 uppercase">Formação Musical</span>
+                  <input 
+                    type="text" value={service.musicalFormation || ''} onChange={e => updateExtraService(service.id, 'musicalFormation', e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm outline-none" placeholder="Ex: Banda Completa, Quarteto de Saxofones, etc." 
+                  />
                 </label>
 
                 {service.format === 'Outros' && (
@@ -1262,36 +1392,162 @@ export default function AdminNewScalePage() {
                   </label>
                 )}
 
-                <div className="grid grid-cols-2 gap-3 min-w-0">
-                  {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                    <label className="flex flex-col gap-1.5 min-w-0">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Saída da BM</span>
-                      <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
-                    </label>
-                  )}
-                  <label className={`flex flex-col gap-1.5 min-w-0 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
-                    <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Início</span>
-                    <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
-                  </label>
-                </div>
+                {service.format === 'Viagem' ? (
+                  <div className="p-4 rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/20 flex flex-col gap-4">
+                    <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                      <span className="material-symbols-outlined text-[16px]">flight_takeoff</span>
+                      Dados da Viagem
+                    </div>
 
-                <div className="grid grid-cols-2 gap-3 min-w-0">
-                  <label className="flex flex-col gap-1.5 min-w-0">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Término</span>
-                    <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
-                  </label>
-                  {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
-                    <label className="flex flex-col gap-1.5 min-w-0">
-                      <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Retorno</span>
-                      <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
-                    </label>
-                  )}
-                </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">Saída de Curitiba</span>
+                        <input
+                          type="time"
+                          value={service.tripDetails?.departureFromCuritiba || service.departureTime || ''}
+                          onChange={e => {
+                            updateTripDetails(service.id, 'departureFromCuritiba', e.target.value);
+                            updateExtraService(service.id, 'departureTime', e.target.value);
+                          }}
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">Chegada ao Destino</span>
+                        <input
+                          type="time"
+                          value={service.tripDetails?.arrivalAtDestination || ''}
+                          onChange={e => updateTripDetails(service.id, 'arrivalAtDestination', e.target.value)}
+                          className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                        />
+                      </label>
+                    </div>
 
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-xs font-bold text-gray-500 uppercase">Local</span>
-                  <input type="text" value={service.location} onChange={e => updateExtraService(service.id, 'location', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm" />
-                </label>
+                    {/* Serviços / Cidades no Destino */}
+                    <div className="flex flex-col gap-3">
+                      <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">Serviço(s) no Destino</span>
+                      {(service.tripDetails?.destinations || []).map((dest: any, dIdx: number) => (
+                        <div key={dest.id || dIdx} className="p-3 bg-white dark:bg-gray-800/90 rounded-lg border border-indigo-100 dark:border-indigo-900/30 flex flex-col gap-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                              Cidade / Serviço {dIdx + 1}
+                            </span>
+                            {(service.tripDetails?.destinations?.length || 0) > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeDestination(service.id, dIdx)}
+                                className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">delete</span>
+                                Remover
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Cidade (ex: Ponta Grossa)"
+                              value={dest.city || ''}
+                              onChange={e => updateDestination(service.id, dIdx, 'city', e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-900"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Local (ex: Praça Central, Teatro Ópera)"
+                              value={dest.location || ''}
+                              onChange={e => updateDestination(service.id, dIdx, 'location', e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-900"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <input
+                              type="text"
+                              placeholder="Título do serviço (opcional)"
+                              value={dest.serviceTitle || ''}
+                              onChange={e => updateDestination(service.id, dIdx, 'serviceTitle', e.target.value)}
+                              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-900 md:col-span-1"
+                            />
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-gray-500">Início:</span>
+                              <input
+                                type="time"
+                                value={dest.startTime || ''}
+                                onChange={e => updateDestination(service.id, dIdx, 'startTime', e.target.value)}
+                                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-gray-500">Término:</span>
+                              <input
+                                type="time"
+                                value={dest.endTime || ''}
+                                onChange={e => updateDestination(service.id, dIdx, 'endTime', e.target.value)}
+                                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-2 py-1 text-xs bg-gray-50 dark:bg-gray-900"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={() => addDestination(service.id)}
+                        className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-100/60 dark:bg-indigo-900/30 hover:bg-indigo-100 rounded-lg transition-colors border border-dashed border-indigo-300 dark:border-indigo-700"
+                      >
+                        <span className="material-symbols-outlined text-[16px]">add_location_alt</span>
+                        + Adicionar outra cidade / serviço no destino
+                      </button>
+                    </div>
+
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase">Previsão de Retorno para Curitiba</span>
+                      <input
+                        type="time"
+                        value={service.tripDetails?.returnToCuritiba || service.returnTime || ''}
+                        onChange={e => {
+                          updateTripDetails(service.id, 'returnToCuritiba', e.target.value);
+                          updateExtraService(service.id, 'returnTime', e.target.value);
+                        }}
+                        className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm"
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3 min-w-0">
+                      {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                        <label className="flex flex-col gap-1.5 min-w-0">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Saída da BM</span>
+                          <input type="time" value={service.departureTime} onChange={e => updateExtraService(service.id, 'departureTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-amber-50 dark:bg-amber-900/10 px-3 py-2 text-sm" />
+                        </label>
+                      )}
+                      <label className={`flex flex-col gap-1.5 min-w-0 ${(service.format === 'Ensaio' || service.format === 'Expediente Administrativo') ? 'col-span-2' : ''}`}>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Início</span>
+                        <input type="time" value={service.startTime} onChange={e => updateExtraService(service.id, 'startTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 min-w-0">
+                      <label className="flex flex-col gap-1.5 min-w-0">
+                        <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Término</span>
+                        <input type="time" value={service.endTime} onChange={e => updateExtraService(service.id, 'endTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2 text-sm" />
+                      </label>
+                      {service.format !== 'Ensaio' && service.format !== 'Expediente Administrativo' && (
+                        <label className="flex flex-col gap-1.5 min-w-0">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase truncate">Retorno</span>
+                          <input type="time" value={service.returnTime} onChange={e => updateExtraService(service.id, 'returnTime', e.target.value)} className="w-full min-w-0 rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/10 px-3 py-2 text-sm" />
+                        </label>
+                      )}
+                    </div>
+
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-xs font-bold text-gray-500 uppercase">Local</span>
+                      <input type="text" value={service.location} onChange={e => updateExtraService(service.id, 'location', e.target.value)} className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-2.5 text-sm" />
+                    </label>
+                  </>
+                )}
 
                 <label className="flex flex-col gap-1.5">
                   <span className="text-[10px] font-bold text-gray-500 uppercase">Uniforme</span>

@@ -1,3 +1,5 @@
+import { normalizeDateToYMD } from './format-date';
+
 /**
  * Utilitários para gestão de situação militar (afastamentos)
  */
@@ -29,7 +31,8 @@ export const isMusicianAvailable = (musician: MusicianProfile, targetDate: strin
   // Se o afastamento for por tempo indeterminado ou sem data de término
   if (musician.statusIndefinite || !musician.statusEndDate) {
     if (musician.statusStartDate) {
-      const start = new Date(musician.statusStartDate + 'T00:00:00');
+      const startYmd = normalizeDateToYMD(musician.statusStartDate);
+      const start = new Date(startYmd + 'T00:00:00');
       // Antes da data inicial de afastamento ainda está disponível
       return scaleDate < start;
     }
@@ -39,8 +42,10 @@ export const isMusicianAvailable = (musician: MusicianProfile, targetDate: strin
 
   if (!musician.statusStartDate) return false;
 
-  const start = new Date(musician.statusStartDate + 'T00:00:00');
-  const end = new Date(musician.statusEndDate + 'T23:59:59');
+  const startYmd = normalizeDateToYMD(musician.statusStartDate);
+  const endYmd = normalizeDateToYMD(musician.statusEndDate);
+  const start = new Date(startYmd + 'T00:00:00');
+  const end = new Date(endYmd + 'T23:59:59');
   
   // Verifica se a data da escala cai dentro do intervalo de afastamento
   const isBlocked = scaleDate >= start && scaleDate <= end;
@@ -62,7 +67,8 @@ export const getCurrentMilitaryStatus = (musician: MusicianProfile): string | nu
   if (musician.statusIndefinite || !musician.statusEndDate) {
     if (musician.statusStartDate) {
       const today = new Date();
-      const start = new Date(musician.statusStartDate + 'T00:00:00');
+      const startYmd = normalizeDateToYMD(musician.statusStartDate);
+      const start = new Date(startYmd + 'T00:00:00');
       if (today >= start) return statusDisplay;
       return null;
     }
@@ -70,8 +76,10 @@ export const getCurrentMilitaryStatus = (musician: MusicianProfile): string | nu
   }
 
   const today = new Date();
-  const start = new Date(musician.statusStartDate + 'T00:00:00');
-  const end = new Date(musician.statusEndDate + 'T23:59:59');
+  const startYmd = normalizeDateToYMD(musician.statusStartDate);
+  const endYmd = normalizeDateToYMD(musician.statusEndDate);
+  const start = new Date(startYmd + 'T00:00:00');
+  const end = new Date(endYmd + 'T23:59:59');
 
   if (today >= start && today <= end) {
     return statusDisplay;

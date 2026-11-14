@@ -363,22 +363,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="bg-[#0b0e14] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
+    <div className="bg-[#070b12] text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-blue-500/30">
       
       {/* Main Workspace Content Area */}
       <main className="flex-1 flex flex-col gap-6 min-w-0 w-full px-4 sm:px-6 lg:px-0 py-4 sm:py-6">
         
         {/* Top Bar on Desktop */}
-          <section className="hidden lg:flex items-center justify-between pb-3 border-b border-white/5">
+          <section className="hidden lg:flex items-center justify-between pb-3 border-b border-white/[0.06]">
             <div className="flex flex-col">
-              <span className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
                 {todayFormatted}
               </span>
               <div className="flex items-center gap-3 mt-1">
                 <h1 className="text-2xl font-black text-white tracking-tight">
                   Olá, {firstName}
                 </h1>
-                <span className="bg-blue-600/20 text-blue-400 border border-blue-500/30 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                <span className="bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[11px] font-extrabold px-2.5 py-0.5 rounded-md uppercase tracking-wider">
                   {roleBadge}
                 </span>
               </div>
@@ -388,36 +388,36 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <Link 
                 href="/notifications" 
-                className="relative flex size-11 items-center justify-center rounded-full bg-[#161a24] border border-white/10 text-gray-300 hover:text-white hover:border-blue-500/50 transition-all shadow-md"
+                className="relative flex size-10 items-center justify-center rounded-xl bg-white/[0.04] border border-white/[0.08] text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-blue-500/40 transition-all shadow-md"
                 title="Notificações"
               >
-                <span className="material-symbols-outlined text-[22px]">notifications</span>
+                <span className="material-symbols-outlined text-[20px]">notifications</span>
                 {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 size-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] font-black text-white shadow-sm shadow-red-500/50">
+                  <span className="absolute -top-1 -right-1 size-4 bg-amber-500 rounded-full flex items-center justify-center text-[9px] font-black text-slate-950 shadow-sm">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </Link>
 
-              <div className="flex items-center gap-3 pl-3 pr-2 py-1.5 rounded-2xl bg-[#161a24] border border-white/10 shadow-md">
+              <div className="flex items-center gap-3 pl-3.5 pr-2 py-1.5 rounded-2xl bg-white/[0.04] border border-white/[0.08] shadow-lg">
                 <div className="flex flex-col text-right">
                   <span className="text-sm font-bold text-white leading-tight">{displayName}</span>
-                  <span className="text-[11px] text-gray-400 font-medium">{profile?.instrument || 'Banda de Música'}</span>
+                  <span className="text-[11px] text-slate-400 font-medium">{profile?.instrument || 'Banda de Música'}</span>
                 </div>
                 <div className="relative">
                   {displayPhoto ? (
                     <div
-                      className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-blue-500/30"
+                      className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-blue-500/30 shadow-sm"
                       style={{ backgroundImage: `url(${displayPhoto})` }}
                     ></div>
                   ) : (
-                    <div className="bg-blue-600/20 text-blue-400 aspect-square rounded-full size-10 border-2 border-blue-500/30 flex items-center justify-center font-bold text-sm uppercase">
+                    <div className="bg-blue-600/20 text-blue-400 aspect-square rounded-full size-10 border border-blue-500/30 flex items-center justify-center font-bold text-sm uppercase shadow-inner">
                       {profile?.war_name?.[0] || '?'}
                     </div>
                   )}
-                  <div className="absolute bottom-0 right-0 size-3 bg-emerald-500 border-2 border-[#161a24] rounded-full"></div>
+                  <div className="absolute bottom-0 right-0 size-2.5 bg-emerald-500 border-2 border-[#070b12] rounded-full"></div>
                 </div>
-                <div className="border-l border-white/10 pl-1 ml-1">
+                <div className="border-l border-white/[0.08] pl-1 ml-1">
                   <LogoutButton />
                 </div>
               </div>
@@ -563,8 +563,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                /* Card Principal da Escala Ativa (Átrio style) */
-                <div className="relative rounded-3xl bg-[#121620] border border-white/10 p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6">
+                /* Card Principal da Escala Ativa (Opção 2 - Military Dark Clean) */
+                <div className="relative rounded-3xl bg-[#0b101b]/95 border border-white/[0.08] p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6 backdrop-blur-2xl">
                   
                   {/* Header do Card */}
                   <div className="flex flex-col gap-3">
@@ -590,7 +590,7 @@ export default function DashboardPage() {
                             return (
                               <>
                                 <span>{capWeekday}, {day}</span>{' '}
-                                <span className="text-gray-300">de {capMonth}</span>
+                                <span className="text-slate-400">de {capMonth}</span>
                               </>
                             );
                           } catch {
@@ -599,9 +599,9 @@ export default function DashboardPage() {
                         })()}
                       </h3>
 
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-400 font-medium">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-400 font-medium">
                         <span className="text-white font-semibold">{currentFeaturedScale.title}</span>
-                        <span className="text-gray-500">•</span>
+                        <span className="text-slate-600">•</span>
                         <span className="text-blue-400 font-bold whitespace-nowrap">
                           {currentFeaturedScale.startTime || currentFeaturedScale.departureTime}
                           {currentFeaturedScale.endTime ? ` às ${currentFeaturedScale.endTime}` : ''}
@@ -610,8 +610,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Informações detalhadas em linhas elegantes */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-y border-white/5">
+                  {/* Informações detalhadas em linhas elegantes com micro-cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-y border-white/[0.06]">
                     {(() => {
                       const chief = currentFeaturedScale.serviceChief;
                       const chiefName = typeof chief === 'object' && chief !== null
@@ -622,8 +622,8 @@ export default function DashboardPage() {
 
                       return (
                         <div className="flex flex-col">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Chefe do Serviço</span>
-                          <span className="text-sm font-semibold text-gray-200 mt-0.5 truncate">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Chefe do Serviço</span>
+                          <span className="text-sm font-semibold text-slate-200 mt-0.5 truncate">
                             {chiefName}
                           </span>
                         </div>
@@ -631,15 +631,15 @@ export default function DashboardPage() {
                     })()}
                     
                     <div className="flex flex-col">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Uniforme</span>
-                      <span className="text-sm font-semibold text-gray-200 mt-0.5 truncate">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Uniforme</span>
+                      <span className="text-sm font-semibold text-slate-200 mt-0.5 truncate">
                         {currentFeaturedScale.uniform || 'A definir'}
                       </span>
                     </div>
 
                     <div className="flex flex-col sm:col-span-2">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500">Local do Evento</span>
-                      <div className="flex items-center gap-1.5 text-gray-200 mt-0.5">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Local do Evento</span>
+                      <div className="flex items-center gap-1.5 text-slate-200 mt-0.5">
                         <span className="material-symbols-outlined text-[18px] text-blue-400">location_on</span>
                         <span className="text-sm font-semibold truncate">{currentFeaturedScale.location || 'Banda de Música PMPR'}</span>
                       </div>
@@ -654,14 +654,14 @@ export default function DashboardPage() {
                         Tudo pronto
                       </span>
                       {currentFeaturedScale.musicians?.length > 0 && (
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/5 text-gray-300 border border-white/10">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.04] text-slate-300 border border-white/[0.08]">
                           <span className="material-symbols-outlined text-[16px]">groups</span>
                           {currentFeaturedScale.musicians.length} no efetivo
                         </span>
                       )}
                     </div>
 
-                    {/* Botões de Ação */}
+                    {/* Botões de Ação com Estilo Clean Moderno */}
                     <div className="grid grid-cols-12 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                       <button 
                         onClick={(e) => {
@@ -669,7 +669,7 @@ export default function DashboardPage() {
                           generateScalePDF(currentFeaturedScale);
                         }}
                         title="Baixar PDF Oficial"
-                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1 px-2 sm:px-2.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/30 transition-all font-bold text-xs shrink-0"
+                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-bold text-xs shrink-0 shadow-sm"
                       >
                         <span className="material-symbols-outlined text-[18px]">download</span>
                         <span>PDF</span>
@@ -678,10 +678,10 @@ export default function DashboardPage() {
                       <button
                         onClick={(e) => handleVerify(e, currentFeaturedScale)}
                         disabled={verifying === currentFeaturedScale.id}
-                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1 px-2 sm:px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
+                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
                           viewedScales[currentFeaturedScale.id]?.confirmed
-                            ? 'bg-blue-600 border-blue-500 text-white shadow-md shadow-blue-500/30'
-                            : 'bg-white/5 border-white/10 text-gray-300 hover:border-blue-500 hover:text-white'
+                            ? 'bg-blue-600 border-blue-500/50 text-white shadow-md shadow-blue-900/40'
+                            : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:border-blue-500/50 hover:text-white'
                         }`}
                       >
                         {verifying === currentFeaturedScale.id ? (
@@ -700,8 +700,8 @@ export default function DashboardPage() {
                       </button>
 
                       <Link href={`/scales/${currentFeaturedScale.id}`} className="col-span-5 sm:col-auto min-w-0">
-                        <button className="w-full flex items-center justify-center gap-1 px-2 sm:px-3 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all active:scale-95 truncate">
-                          <span className="truncate">Abrir escala</span>
+                        <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-900/50 border border-blue-400/30 transition-all active:scale-95 truncate">
+                          <span className="truncate">Visualizar Escala Completa</span>
                           <span className="material-symbols-outlined text-[16px] shrink-0">arrow_forward</span>
                         </button>
                       </Link>
@@ -731,17 +731,17 @@ export default function DashboardPage() {
               
               {/* Header with Filter Pills */}
               <div className="flex items-center justify-between px-1">
-                <span className="text-xs font-bold uppercase tracking-widest text-gray-400">
+                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
                   PRÓXIMAS ESCALAS
                 </span>
 
-                <div className="flex items-center p-1 rounded-xl bg-[#121620] border border-white/10">
+                <div className="flex items-center p-1 rounded-xl bg-[#0b101b] border border-white/[0.08]">
                   <button
                     onClick={() => setListFilter('todas')}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       listFilter === 'todas'
-                        ? 'bg-white/10 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-white/[0.08] text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     Todas
@@ -750,8 +750,8 @@ export default function DashboardPage() {
                     onClick={() => setListFilter('pendentes')}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                       listFilter === 'pendentes'
-                        ? 'bg-white/10 text-white shadow-sm'
-                        : 'text-gray-400 hover:text-white'
+                        ? 'bg-white/[0.08] text-white shadow-sm'
+                        : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     Pendentes
@@ -759,11 +759,11 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Stacked Cards List */}
-              <div className="flex flex-col gap-3">
+              {/* Stacked Cards List com Micro-Cards de Data (Opção 2 - Military Dark Clean) */}
+              <div className="flex flex-col gap-2.5">
                 {filteredNextScales.length === 0 ? (
-                  <div className="bg-[#121620] rounded-2xl p-6 text-center text-gray-400 text-xs border border-white/5 font-medium flex flex-col items-center gap-2">
-                    <span className="material-symbols-outlined text-gray-600 text-[26px]">event_busy</span>
+                  <div className="bg-[#0b101b]/90 rounded-2xl p-6 text-center text-slate-400 text-xs border border-white/[0.06] font-medium flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined text-slate-600 text-[26px]">event_busy</span>
                     <span>
                       {listFilter === 'pendentes'
                         ? 'Nenhuma escala com pendência de ciência.'
@@ -785,14 +785,14 @@ export default function DashboardPage() {
                     return (
                       <div
                         key={scale.id}
-                        className="bg-[#121620] hover:bg-[#161a26] border border-white/10 hover:border-blue-500/40 rounded-2xl p-4 transition-all duration-200 flex items-center justify-between gap-4 group shadow-md"
+                        className="bg-[#0b101b]/90 hover:bg-[#101524] border border-white/[0.08] hover:border-blue-500/40 rounded-2xl p-3.5 sm:p-4 transition-all duration-200 flex items-center justify-between gap-3 sm:gap-4 group shadow-md"
                       >
-                        {/* Date badge */}
-                        <div className="flex flex-col items-center justify-center size-14 rounded-xl bg-white/5 border border-white/10 shrink-0">
+                        {/* Micro-Card Date badge */}
+                        <div className="flex flex-col items-center justify-center size-13 rounded-2xl bg-white/[0.04] border border-white/[0.08] shrink-0 shadow-inner group-hover:border-blue-500/30 transition-colors">
                           <span className="text-[10px] font-black uppercase text-blue-400 tracking-wider">
                             {dayOfWeek}
                           </span>
-                          <span className="text-base font-black text-white leading-tight">
+                          <span className="text-sm font-black text-white leading-tight">
                             {dateFormatted}
                           </span>
                         </div>
@@ -802,7 +802,7 @@ export default function DashboardPage() {
                           <h4 className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">
                             {isFolga ? 'Folga' : scale.title}
                           </h4>
-                          <span className="text-[11px] text-gray-400 truncate mt-0.5">
+                          <span className="text-[11px] text-slate-400 truncate mt-0.5">
                             {isFolga ? 'Sem serviço escalado' : `${scale.format || 'Evento'} • ${scale.startTime || scale.departureTime || 'Horário a definir'}`}
                           </span>
                         </div>
@@ -820,7 +820,7 @@ export default function DashboardPage() {
                           ) : null}
 
                           <Link href={`/scales/${scale.id}`}>
-                            <button className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-blue-600 text-gray-300 hover:text-white text-xs font-bold transition-all border border-white/10 hover:border-blue-500">
+                            <button className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-blue-600 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/[0.08] hover:border-blue-500/50 shadow-sm active:scale-95">
                               Abrir
                             </button>
                           </Link>

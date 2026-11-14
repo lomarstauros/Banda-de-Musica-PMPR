@@ -24,14 +24,6 @@ const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined
 const CACHE_PROFILE_KEY = 'banda_pmpr_cached_profile';
 
 export default function FirebaseProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
-  const [userRole, setUserRole] = useState<UserRole>('user');
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
-  const [pendingSwapsCount, setPendingSwapsCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
-
   // Função para derivar o papel de usuário padronizado
   const computeRole = (pData: any, email?: string | null): UserRole => {
     if (email?.toLowerCase() === 'heliomardejesus87@gmail.com') return 'master';
@@ -41,21 +33,30 @@ export default function FirebaseProvider({ children }: { children: React.ReactNo
     return 'user';
   };
 
-  // Carrega cache síncrono inicial se disponível no localStorage
-  useEffect(() => {
+  const getCachedProfile = (): any | null => {
+    if (typeof window === 'undefined') return null;
     try {
       const cached = localStorage.getItem(CACHE_PROFILE_KEY);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (parsed && (parsed.uid || parsed.id)) {
-          setProfile(parsed);
-          setUserRole(computeRole(parsed, parsed.email));
+          return parsed;
         }
       }
-    } catch {
-      // Ignora erro de parsing
-    }
-  }, []);
+    } catch {}
+    return null;
+  };
+
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<any | null>(() => getCachedProfile());
+  const [userRole, setUserRole] = useState<UserRole>(() => {
+    const cached = getCachedProfile();
+    return cached ? computeRole(cached, cached.email) : 'user';
+  });
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState<number>(0);
+  const [pendingSwapsCount, setPendingSwapsCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const refreshProfile = useCallback(async (targetUid?: string) => {
     const uid = targetUid || auth.currentUser?.uid;

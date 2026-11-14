@@ -95,26 +95,32 @@ export function DesktopSidebar() {
 
   return (
     <aside className="hidden lg:flex flex-col w-64 shrink-0 self-start sticky top-6 max-h-[calc(100vh-3rem)]">
-      <div className="bg-[#121620]/95 dark:bg-[#121620]/95 backdrop-blur-2xl border border-white/10 dark:border-white/10 rounded-3xl p-5 shadow-2xl flex flex-col h-full gap-5">
-        {/* Brand / Logo */}
-        <Link href="/dashboard" className="flex items-center gap-3 px-2 group">
-          <div className="size-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-1.5 shadow-lg shadow-black/20 group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+      {/* Container com Glassmorphism Dark Clean e Sombreamento Nobre */}
+      <div className="bg-[#0b101b]/95 dark:bg-[#0b101b]/95 backdrop-blur-2xl border border-white/[0.08] dark:border-white/[0.08] rounded-3xl p-4 shadow-2xl shadow-black/80 flex flex-col h-full gap-4">
+        
+        {/* Brand / Logo com micro-card */}
+        <Link href="/dashboard" className="flex items-center gap-3 px-2 py-1 group">
+          <div className="size-10 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center p-1.5 shadow-md shadow-black/30 group-hover:scale-105 group-hover:border-blue-500/30 transition-all overflow-hidden shrink-0">
             <img 
               src="/brasao_banda.png" 
               alt="Brasão Banda de Música PMPR" 
               className="w-full h-full object-contain drop-shadow" 
             />
           </div>
-          <div className="flex flex-col">
-            <span className="text-base font-extrabold text-white tracking-tight leading-tight">Banda PMPR</span>
-            <span className="text-[11px] font-medium text-gray-400">
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm font-black text-white tracking-tight leading-tight group-hover:text-blue-400 transition-colors">
+              Banda PMPR
+            </span>
+            <span className="text-[11px] font-medium text-slate-400 truncate">
               {userRole === 'master' ? 'Painel Master' : userRole === 'admin' ? 'Painel Gestor' : 'Portal do Efetivo'}
             </span>
           </div>
         </Link>
 
-        {/* Navigation Links */}
-        <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto no-scrollbar">
+        <div className="h-px bg-white/[0.06] mx-1" />
+
+        {/* Navigation Links com Micro-Cards para Ícones (Opção 2 - Military Dark Clean) */}
+        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar pr-0.5">
           {navItems.map((item) => {
             const isActive = item.active;
             return (
@@ -127,22 +133,29 @@ export function DesktopSidebar() {
                     window.location.href = '/dashboard';
                   }
                 }}
-                className={`relative flex items-center gap-3.5 px-4 py-3 rounded-2xl text-sm font-semibold transition-all duration-200 group ${
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-2xl text-[13px] transition-all duration-200 group ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30 font-bold'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-900/40 border border-blue-400/30'
+                    : 'text-slate-400 font-semibold hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
-                <span
-                  className={`material-symbols-outlined text-[22px] transition-transform group-hover:scale-110 ${
-                    isActive ? 'filled text-white' : 'text-gray-400 group-hover:text-white'
+                {/* Micro-Card Emoldurando o Ícone */}
+                <div
+                  className={`size-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 ${
+                    isActive
+                      ? 'bg-white/20 text-white border border-white/20 shadow-inner'
+                      : 'bg-white/[0.03] border border-white/[0.06] text-slate-400 group-hover:text-white group-hover:bg-white/[0.08] group-hover:border-white/10 shadow-sm'
                   }`}
                 >
-                  {item.icon}
-                </span>
-                <span className="flex-1 truncate">{item.label}</span>
+                  <span className={`material-symbols-outlined text-[19px] ${isActive ? 'filled' : ''}`}>
+                    {item.icon}
+                  </span>
+                </div>
+
+                <span className="flex-1 truncate tracking-tight">{item.label}</span>
+
                 {item.badge !== undefined && (
-                  <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                  <span className="bg-amber-500 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm animate-pulse">
                     {item.badge}
                   </span>
                 )}
@@ -151,33 +164,39 @@ export function DesktopSidebar() {
           })}
         </nav>
 
-        {/* User identification & Logout */}
-        <div className="pt-3 border-t border-white/5 flex flex-col gap-3">
+        {/* User identification & Status Footer */}
+        <div className="pt-2 border-t border-white/[0.06] flex flex-col gap-2.5">
           {user && (
-            <div className="flex items-center justify-between px-2 bg-white/5 rounded-2xl p-2.5">
+            <div className="flex items-center justify-between px-2.5 py-2 bg-white/[0.03] border border-white/[0.06] rounded-2xl shadow-inner">
               <div className="flex flex-col min-w-0 pr-2">
                 <span className="text-xs font-bold text-white truncate">
-                  {userRank ? `${userRank} ` : ''}{userName || 'Usuário'}
+                  {userRank ? `${userRank} ` : ''}{userName || 'Militar'}
                 </span>
-                <span className="text-[10px] font-semibold text-blue-400 uppercase tracking-wider">
-                  {userRole === 'master' ? 'Master' : userRole === 'admin' ? 'Gestor' : 'Músico'}
-                </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="bg-blue-500/15 text-blue-400 border border-blue-500/30 px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase tracking-wider">
+                    {userRole === 'master' ? 'MASTER' : userRole === 'admin' ? 'GESTOR' : 'MÚSICO'}
+                  </span>
+                </div>
               </div>
               <LogoutButton />
             </div>
           )}
 
-          {/* Footer Info */}
-          <div className="flex items-center justify-between px-2">
+          {/* Footer Info Militar */}
+          <div className="flex items-center justify-between px-2 pt-0.5">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500">PMPR • 1854</span>
-              <span className="text-[11px] text-gray-400 font-medium">Banda de Música</span>
+              <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">PMPR • 1854</span>
+              <span className="text-[10px] text-slate-400 font-medium">Banda de Música</span>
             </div>
-            <span className="size-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" title="Online" />
+            <div className="flex items-center gap-1.5">
+              <span className="relative flex size-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full size-2 bg-emerald-500"></span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </aside>
   );
 }
-

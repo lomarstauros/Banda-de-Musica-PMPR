@@ -50,15 +50,24 @@ export const useNotifications = () => {
         console.log('Token FCM obtido:', currentToken);
         setFcmToken(currentToken);
         
-        // Save token to user profile if logged in
+        // Save token to user profile if logged in and not already saved locally
         if (auth.currentUser) {
-          console.log('Salvando token no Firestore para o usuário:', auth.currentUser.uid);
-          const userRef = doc(db, 'profiles', auth.currentUser.uid);
-          await updateDoc(userRef, {
-            fcmTokens: arrayUnion(currentToken)
-          });
-          console.log('Token salvo com sucesso no banco de dados.');
-          if (isManual) alert('Notificações ativadas com sucesso neste aparelho!');
+          const registeredKey = `fcm_registered_${auth.currentUser.uid}_${currentToken}`;
+          if (typeof window !== 'undefined' && localStorage.getItem(registeredKey) === 'true') {
+            console.log('Token FCM já registrado neste dispositivo para este usuário.');
+            if (isManual) alert('Notificações já estão ativadas neste aparelho!');
+          } else {
+            console.log('Salvando token no Firestore para o usuário:', auth.currentUser.uid);
+            const userRef = doc(db, 'profiles', auth.currentUser.uid);
+            await updateDoc(userRef, {
+              fcmTokens: arrayUnion(currentToken)
+            });
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(registeredKey, 'true');
+            }
+            console.log('Token salvo com sucesso no banco de dados.');
+            if (isManual) alert('Notificações ativadas com sucesso neste aparelho!');
+          }
         } else {
           console.warn('Usuário não logado. Token não foi salvo no banco.');
           if (isManual) alert('Token gerado, mas você precisa estar logado para salvá-lo.');
@@ -88,47 +97,15 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
-    let unsubNotif: (() => void) | undefined;
-
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         // Tenta registrar automaticamente ao logar
         setupNotifications(false);
-
-        // Escuta globalmente as notificações não lidas para atualizar o Badge do ícone do App (PWA)
-        const qNotif = query(
-          collection(db, 'notifications'),
-          where('userId', '==', user.uid),
-          where('read', '==', false)
-        );
-
-        unsubNotif = onSnapshot(qNotif, (snap) => {
-          const unreadCount = snap.docs.length;
-          
-          if (typeof navigator !== 'undefined' && 'setAppBadge' in navigator && 'clearAppBadge' in navigator) {
-            if (unreadCount > 0) {
-              (navigator as any).setAppBadge(unreadCount).catch((err: any) => console.log('Badge API error:', err));
-            } else {
-              (navigator as any).clearAppBadge().catch((err: any) => console.log('Badge API error:', err));
-            }
-          }
-        }, (err) => {
-          console.warn('Aviso: Não foi possível sincronizar o badge de notificações:', err);
-        });
-      } else {
-        if (unsubNotif) {
-          unsubNotif();
-          unsubNotif = undefined;
-        }
-        if (typeof navigator !== 'undefined' && 'clearAppBadge' in navigator) {
-          (navigator as any).clearAppBadge().catch(console.log);
-        }
       }
     });
 
     return () => {
       unsubscribe();
-      if (unsubNotif) unsubNotif();
     };
   }, []);
 

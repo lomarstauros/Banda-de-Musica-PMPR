@@ -18,7 +18,7 @@ const MONTH_NAMES = [
 
 export default function AdminReportsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useFirebase();
+  const { user, profile, loading: authLoading } = useFirebase();
 
   // Estados principais
   const [musicians, setMusicians] = useState<any[]>([]);
@@ -49,20 +49,10 @@ export default function AdminReportsPage() {
       return;
     }
 
-    const checkAccess = async () => {
-      try {
-        const snap = await getDoc(doc(db, 'profiles', user.uid));
-        const profileData = snap.data();
-        if (!canAccessReports(profileData, user.email)) {
-          router.push('/dashboard');
-        }
-      } catch (err) {
-        console.error('Erro ao verificar permissão de relatórios:', err);
-        router.push('/dashboard');
-      }
-    };
-    checkAccess();
-  }, [user, authLoading, router]);
+    if (profile && !canAccessReports(profile, user.email)) {
+      router.push('/dashboard');
+    }
+  }, [user, profile, authLoading, router]);
 
   // Carregar Músicos (Efetivo)
   useEffect(() => {

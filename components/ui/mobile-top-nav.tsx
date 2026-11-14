@@ -2,96 +2,21 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { canAccessReports } from '@/lib/permissions';
 
 export function MobileTopNav() {
   const pathname = usePathname() || '';
-  const { user } = useFirebase();
+  const { user, profile, userRole, unreadNotificationsCount, pendingSwapsCount } = useFirebase();
 
-  const [userRole, setUserRole] = useState<'user' | 'admin' | 'master'>('user');
-  const [userName, setUserName] = useState<string>('');
-  const [userRank, setUserRank] = useState<string>('');
-  const [userInstrument, setUserInstrument] = useState<string>('');
-  const [userPhoto, setUserPhoto] = useState<string>('');
-  const [hasReportsAccess, setHasReportsAccess] = useState(false);
-  const [pendingSwaps, setPendingSwaps] = useState(0);
-  const [unreadNotifs, setUnreadNotifs] = useState(0);
-
-  // Carrega os dados do perfil do usuário
-  useEffect(() => {
-    if (!user) return;
-    const fetchProfile = async () => {
-      try {
-        const snap = await getDoc(doc(db, 'profiles', user.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-          const role = data.role?.toLowerCase();
-          if (role === 'master') {
-            setUserRole('master');
-          } else if (role === 'admin' || role === 'manager') {
-            setUserRole('admin');
-          }
-          setUserName(data.war_name || data.name || '');
-          setUserRank(data.rank || '');
-          setUserInstrument(data.instrument || '');
-          setUserPhoto(data.photo_url || '');
-          setHasReportsAccess(canAccessReports(data, user.email));
-        }
-      } catch (err) {
-        console.error('Erro ao carregar perfil para MobileTopNav:', err);
-      }
-    };
-    fetchProfile();
-  }, [user]);
-
-  // Listener de permutas pendentes (badge)
-  useEffect(() => {
-    if (!user) return;
-
-    let q;
-    if (userRole === 'admin' || userRole === 'master') {
-      q = query(
-        collection(db, 'swaps'),
-        where('status', '==', 'Aguardando Gestor')
-      );
-    } else {
-      q = query(
-        collection(db, 'swaps'),
-        where('substitute_id', '==', user.uid),
-        where('status', '==', 'Aguardando Parceiro')
-      );
-    }
-
-    const unsub = onSnapshot(q, (snap) => {
-      setPendingSwaps(snap.size);
-    }, (err) => {
-      console.error('Erro no listener de permutas pendentes (MobileTopNav):', err);
-    });
-
-    return () => unsub();
-  }, [user, userRole]);
-
-  // Listener de notificações não lidas
-  useEffect(() => {
-    if (!user) return;
-    const qNotifs = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      where('read', '==', false)
-    );
-    const unsub = onSnapshot(qNotifs, (snapshot) => {
-      setUnreadNotifs(snapshot.size);
-    }, (err) => {
-      console.error('Erro no listener de notificações não lidas (MobileTopNav):', err);
-    });
-
-    return () => unsub();
-  }, [user]);
+  const userName = profile?.war_name || profile?.name || '';
+  const userRank = profile?.rank || '';
+  const userInstrument = profile?.instrument || '';
+  const userPhoto = profile?.photo_url || '';
+  const hasReportsAccess = canAccessReports(profile, user?.email);
+  const pendingSwaps = pendingSwapsCount;
+  const unreadNotifs = unreadNotificationsCount;
 
   // Itens de navegação correspondentes à DesktopSidebar, respeitando permissões
   const navItems = [

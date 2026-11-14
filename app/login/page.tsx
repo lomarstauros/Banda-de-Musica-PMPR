@@ -2,16 +2,27 @@
 
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useFirebase } from '@/components/providers/firebase-provider';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword, verifyBeforeUpdateEmail, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 
 export default function LoginPage() {
+  const { user, loading: authLoading } = useFirebase();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const router = useRouter();
+
+  // Se já estiver logado, redireciona imediatamente para o dashboard
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/dashboard');
+    }
+  }, [user, authLoading, router]);
   
   // Password Reset State
   const [needsPasswordReset, setNeedsPasswordReset] = useState(false);
@@ -28,7 +39,6 @@ export default function LoginPage() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();

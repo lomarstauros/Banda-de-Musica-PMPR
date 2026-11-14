@@ -10,19 +10,31 @@ import { fmtDate, getTodayYMD, normalizeDateToYMD } from '@/lib/format-date';
 
 export function ReturnsAlertModal() {
   const router = useRouter();
-  const { user } = useFirebase();
+  const { user, userRole } = useFirebase();
   const [isOpen, setIsOpen] = useState(false);
   const [returningUsers, setReturningUsers] = useState<any[]>([]);
   const [tomorrowDateFormatted, setTomorrowDateFormatted] = useState('');
 
   useEffect(() => {
     if (!user) return;
+    if (userRole !== 'admin' && userRole !== 'master') return;
 
     const checkReturningMusicians = async () => {
       try {
         // 1. Data de Hoje e de Amanhã
         const today = new Date();
         const localTodayStr = getTodayYMD();
+
+        // 2. Verificar se o gestor já dispensou o aviso hoje ou já verificou nesta sessão
+        const storageKey = `dismissed_returns_popup_${user.uid}_${localTodayStr}`;
+        if (localStorage.getItem(storageKey) === 'true') {
+          return;
+        }
+
+        const sessionKey = `checked_returns_${user.uid}_${localTodayStr}`;
+        if (sessionStorage.getItem(sessionKey) === 'true') {
+          return;
+        }
 
         const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
         const yTomorrow = tomorrow.getFullYear();
@@ -36,38 +48,15 @@ export function ReturnsAlertModal() {
         const formattedTomorrow = `${tomorrow.getDate().toString().padStart(2, '0')}/${(tomorrow.getMonth() + 1).toString().padStart(2, '0')}/${tomorrow.getFullYear()} (${tomorrowDayWeek})`;
         setTomorrowDateFormatted(formattedTomorrow);
 
-        // 2. Verificar se o gestor já dispensou o aviso hoje
-        const storageKey = `dismissed_returns_popup_${user.uid}_${localTodayStr}`;
-        const alreadyDismissed = localStorage.getItem(storageKey);
-        if (alreadyDismissed === 'true') {
-          return;
-        }
-
-        // 3. Verificar se o usuário atual é Gestor, Sargenteante, Comandante ou Master
-        const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
-        if (!profileSnap.exists()) return;
-
-        const profileData = profileSnap.data();
-        const role = (profileData.role || '').toLowerCase();
-        const isManager = 
-          role === 'admin' || 
-          role === 'master' || 
-          role === 'manager' || 
-          role === 'sargenteante' || 
-          role === 'comando' || 
-          user.email === 'heliomardejesus87@gmail.com';
-
-        if (!isManager) return;
-
-        // 4. Buscar militares cujo afastamento se encerra hoje (retorno amanhã)
-        // Nota: no sistema da Banda PMPR, statusEndDate é o último dia do afastamento.
-        // Logo, quando statusEndDate === hoje, o militar retorna no dia seguinte (amanhã).
+        // 3. Buscar militares cujo afastamento se encerra hoje (retorno amanhã)
         const q = query(collection(db, 'profiles'), where('militaryStatus', '!=', 'Ativo'));
         const snap = await getDocs(q);
 
         const list = snap.docs
           .map(d => ({ id: d.id, ...d.data() } as any))
           .filter(p => !p.statusIndefinite && normalizeDateToYMD(p.statusEndDate) === localTodayStr);
+
+        sessionStorage.setItem(sessionKey, 'true');
 
         if (list.length > 0) {
           setReturningUsers(list);
@@ -79,7 +68,7 @@ export function ReturnsAlertModal() {
     };
 
     checkReturningMusicians();
-  }, [user]);
+  }, [user, userRole]);
 
   const handleDismiss = () => {
     try {

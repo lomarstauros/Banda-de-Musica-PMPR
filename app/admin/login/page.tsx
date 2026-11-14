@@ -6,15 +6,23 @@ import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useFirebase } from '@/components/providers/firebase-provider';
 
 export default function AdminLoginPage() {
+  const { user, userRole, loading: authLoading } = useFirebase();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && user && (userRole === 'admin' || userRole === 'master')) {
+      router.replace('/admin/swaps');
+    }
+  }, [user, userRole, authLoading, router]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();

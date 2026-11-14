@@ -2,74 +2,18 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { LogoutButton } from '@/components/ui/logout-button';
 import { canAccessReports } from '@/lib/permissions';
 
 export function DesktopSidebar() {
   const pathname = usePathname() || '';
-  const { user } = useFirebase();
-  const [userRole, setUserRole] = useState<'user' | 'admin' | 'master'>('user');
-  const [userName, setUserName] = useState<string>('');
-  const [userRank, setUserRank] = useState<string>('');
-  const [hasReportsAccess, setHasReportsAccess] = useState(false);
-  const [pendingSwaps, setPendingSwaps] = useState(0);
+  const { user, profile, userRole, pendingSwapsCount } = useFirebase();
 
-  useEffect(() => {
-    const checkRole = async () => {
-      if (user) {
-        try {
-          const snap = await getDoc(doc(db, 'profiles', user.uid));
-          if (snap.exists()) {
-            const data = snap.data();
-            const role = data.role?.toLowerCase();
-            if (role === 'master') {
-              setUserRole('master');
-            } else if (role === 'admin' || role === 'manager') {
-              setUserRole('admin');
-            }
-            setUserName(data.war_name || data.name || '');
-            setUserRank(data.rank || '');
-            setHasReportsAccess(canAccessReports(data, user.email));
-          }
-        } catch (error) {
-          console.error("Erro ao verificar papel na sidebar:", error);
-        }
-      }
-    };
-    checkRole();
-  }, [user]);
-
-  // Badge de permutas pendentes:
-  // Se gestor/master: conta permutas aguardando autorização do comando ('Aguardando Gestor')
-  // Se músico: conta permutas onde o usuário é o substituto indicado ('Aguardando Parceiro')
-  useEffect(() => {
-    if (!user) return;
-
-    let q;
-    if (userRole === 'admin' || userRole === 'master') {
-      q = query(
-        collection(db, 'swaps'),
-        where('status', '==', 'Aguardando Gestor')
-      );
-    } else {
-      q = query(
-        collection(db, 'swaps'),
-        where('substitute_id', '==', user.uid),
-        where('status', '==', 'Aguardando Parceiro')
-      );
-    }
-
-    const unsub = onSnapshot(q, snap => {
-      setPendingSwaps(snap.size);
-    }, (err) => {
-      console.error("Erro no listener da DesktopSidebar (permutas pendentes):", err);
-    });
-    return () => unsub();
-  }, [user, userRole]);
+  const userName = profile?.war_name || profile?.name || '';
+  const userRank = profile?.rank || '';
+  const hasReportsAccess = canAccessReports(profile, user?.email);
+  const pendingSwaps = pendingSwapsCount;
 
   const navItems = [
     {

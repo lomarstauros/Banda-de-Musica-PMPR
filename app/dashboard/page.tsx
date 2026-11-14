@@ -15,7 +15,7 @@ import { getFormatColors } from '@/lib/scale-formats';
 import { canAccessReports } from '@/lib/permissions';
 
 export default function DashboardPage() {
-  const { user, loading: authLoading } = useFirebase();
+  const { user, profile: authProfile, unreadNotificationsCount, loading: authLoading } = useFirebase();
   const router = useRouter();
   const [profile, setProfile] = useState<{ 
     war_name?: string; 
@@ -27,16 +27,21 @@ export default function DashboardPage() {
     statusStartDate?: string;
     statusEndDate?: string;
     role?: string;
-  } | null>(null);
+  } | null>(() => authProfile);
   const [nextScales, setNextScales] = useState<any[]>([]);
   const [historyScales, setHistoryScales] = useState<any[]>([]);
   const [returningTomorrow, setReturningTomorrow] = useState<any[]>([]);
   const [loadingScales, setLoadingScales] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = unreadNotificationsCount;
   const [viewedScales, setViewedScales] = useState<Record<string, { confirmed: boolean; notifId: string | null }>>({});
   const [verifying, setVerifying] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [isInactive, setIsInactive] = useState(false);
+
+  // Sincroniza profile com o FirebaseProvider imediatamente
+  useEffect(() => {
+    if (authProfile) setProfile(authProfile);
+  }, [authProfile]);
 
   // Estados da interface desktop estilo Átrio
   const [activeScaleIndex, setActiveScaleIndex] = useState(0);
@@ -49,13 +54,33 @@ export default function DashboardPage() {
       return;
     }
 
+    // Carregamento instantâneo do cache de escalas se disponível
+    try {
+      const cacheKey = `dashboard_scales_${user.uid}`;
+      const cachedRaw = sessionStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && Array.isArray(cached.futureScales)) {
+          setNextScales(cached.futureScales);
+          setHistoryScales(cached.pastScales || []);
+          setLoadingScales(false);
+        }
+      }
+    } catch {}
+
     const fetchDashboardData = async () => {
       try {
-        // 1. Fetch Profile
-        const docRef = doc(db, 'profiles', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const profileData = docSnap.data();
+        // 1. Fetch Profile (se não tiver ainda do context)
+        let profileData = authProfile;
+        if (!profileData) {
+          const docRef = doc(db, 'profiles', user.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            profileData = docSnap.data();
+          }
+        }
+
+        if (profileData) {
           if (profileData.role?.toLowerCase() !== 'master') {
             if (profileData.status === 'pending') {
               setIsPending(true);
@@ -141,6 +166,14 @@ export default function DashboardPage() {
           setHistoryScales(pastScales);
           setActiveScaleIndex(0);
 
+          // Salva em cache de sessão para renderização imediata nos próximos acessos
+          try {
+            sessionStorage.setItem(`dashboard_scales_${user.uid}`, JSON.stringify({
+              futureScales,
+              pastScales
+            }));
+          } catch {}
+
           // 3. Admin Notification for Leaves Ending Tomorrow
           if (profileData.role === 'admin' || profileData.role === 'master') {
             try {
@@ -166,21 +199,7 @@ export default function DashboardPage() {
       }
     };
     fetchDashboardData();
-
-    // 4. Notificações não lidas
-    const qNotifs = query(
-      collection(db, 'notifications'),
-      where('userId', '==', user.uid),
-      where('read', '==', false)
-    );
-    const unsub = onSnapshot(qNotifs, (snapshot) => {
-      setUnreadCount(snapshot.size);
-    }, (err) => {
-      console.error("Erro no listener de notificações não lidas:", err);
-    });
-
-    return () => unsub();
-  }, [user, authLoading, router]);
+  }, [user, authLoading, authProfile, router]);
 
   // Carregar status de visualização/confirmação das escalas
   useEffect(() => {

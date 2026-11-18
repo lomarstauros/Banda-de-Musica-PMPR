@@ -190,17 +190,16 @@ export default function AdminMusiciansListPage() {
                             {currentStatus}
                           </span>
                         ) : upcomingLeave ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                              ATIVO
-                            </span>
-                            <span 
-                              className="text-[9px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-300/40" 
-                              title={`Afastamento agendado: ${upcomingLeave.status} a partir de ${fmtDate(upcomingLeave.startDate)}`}
-                            >
-                              {upcomingLeave.status} em {fmtDate(upcomingLeave.startDate).slice(0, 5)}
-                            </span>
-                          </div>
+                          <span 
+                            className="text-[9px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider" 
+                            title={`Afastamento agendado: ${upcomingLeave.status} a partir de ${fmtDate(upcomingLeave.startDate)}`}
+                          >
+                            {upcomingLeave.status} {upcomingLeave.startDate ? `em ${fmtDate(upcomingLeave.startDate).slice(0, 5)}` : ''}
+                          </span>
+                        ) : musician.militaryStatus && musician.militaryStatus.trim().toLowerCase() !== 'ativo' ? (
+                          <span className="text-[9px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                            {musician.militaryStatus}
+                          </span>
                         ) : (
                           <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
                             ATIVO

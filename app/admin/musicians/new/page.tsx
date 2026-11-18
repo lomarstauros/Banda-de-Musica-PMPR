@@ -9,6 +9,7 @@ import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, setDoc
 import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { normalizeSpaces } from '@/lib/utils';
+import { MilitaryStatusSelector } from '@/components/ui/military-status-badge';
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import firebaseConfig from '@/firebase-applet-config.json';
@@ -389,33 +390,19 @@ export default function AdminNewMusicianPage() {
               </div>
             </label>
 
-            <label className={labelCls}>
-              <span className={labelTextCls}>Situação do Militar</span>
-              <div className="relative">
-                <select 
-                  className={selectCls} 
-                  value={formData.militaryStatus} 
-                  onChange={(e) => {
-                    const newStatus = e.target.value;
-                    setFormData({ 
-                      ...formData, 
-                      militaryStatus: newStatus,
-                      ...(newStatus === 'Ativo' ? { statusStartDate: '', statusEndDate: '', statusIndefinite: false, adidoTo: '' } : {})
-                    });
-                  }}
-                >
-                  <option value="Ativo">Ativo</option>
-                  <option value="Férias">Férias</option>
-                  <option value="Licença">Licença</option>
-                  <option value="Atestado">Atestado</option>
-                  <option value="Adido">Adido</option>
-                  <option value="Outros">Outros</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                  <span className="material-symbols-outlined">expand_more</span>
-                </div>
-              </div>
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <span className={labelTextCls}>Situação Funcional / Afastamento</span>
+              <MilitaryStatusSelector 
+                value={formData.militaryStatus}
+                onChange={(newStatus) => {
+                  setFormData({ 
+                    ...formData, 
+                    militaryStatus: newStatus,
+                    ...(newStatus === 'Ativo' ? { statusStartDate: '', statusEndDate: '', statusIndefinite: false, adidoTo: '' } : {})
+                  });
+                }}
+              />
+            </div>
 
             {/* Campo específico quando for Adido: Para quem o militar está adido */}
             {formData.militaryStatus === 'Adido' && (

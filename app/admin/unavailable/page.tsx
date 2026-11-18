@@ -8,6 +8,7 @@ import { collection, query, getDocs, orderBy, doc, updateDoc } from 'firebase/fi
 import { db } from '@/lib/firebase';
 import { fmtDate, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
 import { getEffectiveMilitaryLeave, getAllCandidateLeaves, getUpcomingMilitaryLeave } from '@/lib/military-status';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 function UnavailableMusiciansContent() {
   const searchParams = useSearchParams();
@@ -375,17 +376,10 @@ function UnavailableMusiciansContent() {
                               {m.rank} {m.war_name || m.name}
                             </p>
                             <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
-                              <span className="font-bold text-red-500 uppercase tracking-wide">
-                                {m.militaryStatus}
-                              </span>
-                              {m.militaryStatus === 'Adido' && m.adidoTo && (
-                                <>
-                                  <span>•</span>
-                                  <span className="font-semibold text-amber-600 dark:text-amber-400">
-                                    Adido a: {m.adidoTo}
-                                  </span>
-                                </>
-                              )}
+                              <MilitaryStatusBadge 
+                                status={m.militaryStatus} 
+                                adidoTo={m.militaryStatus === 'Adido' ? m.adidoTo : undefined}
+                              />
                               {m.instrument && (
                                 <>
                                   <span>•</span>
@@ -487,13 +481,11 @@ function UnavailableMusiciansContent() {
                           </div>
                           <div>
                             <p className="text-sm font-bold text-gray-900 dark:text-white">{m.rank} {m.war_name || m.name}</p>
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="text-xs font-bold text-red-500 uppercase tracking-wide">{m.militaryStatus}</p>
-                              {m.militaryStatus === 'Adido' && m.adidoTo && (
-                                <span className="text-[11px] font-medium text-amber-600 dark:text-amber-400">
-                                  ({m.adidoTo})
-                                </span>
-                              )}
+                            <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                              <MilitaryStatusBadge 
+                                status={m.militaryStatus} 
+                                adidoTo={m.militaryStatus === 'Adido' ? m.adidoTo : undefined}
+                              />
                             </div>
                           </div>
                         </div>
@@ -626,12 +618,10 @@ function UnavailableMusiciansContent() {
                                 <div key={idx} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 flex flex-col gap-2 border border-gray-100 dark:border-gray-700">
                                   <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-[16px] text-gray-400">history</span>
-                                    <span className="text-sm font-bold text-gray-900 dark:text-white uppercase">{leave.status}</span>
-                                    {leave.status === 'Adido' && leave.adidoTo && (
-                                      <span className="text-xs font-normal text-amber-600 dark:text-amber-400">
-                                        ({leave.adidoTo})
-                                      </span>
-                                    )}
+                                    <MilitaryStatusBadge 
+                                      status={leave.status} 
+                                      adidoTo={leave.status === 'Adido' ? leave.adidoTo : undefined}
+                                    />
                                   </div>
                                   <div className="grid grid-cols-2 gap-2 mt-1">
                                     <div className="flex flex-col">

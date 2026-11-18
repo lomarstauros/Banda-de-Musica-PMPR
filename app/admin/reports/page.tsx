@@ -10,6 +10,7 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
 import { getFormatColors } from '@/lib/scale-formats';
 import { canAccessReports } from '@/lib/permissions';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -692,9 +693,10 @@ export default function AdminReportsPage() {
                               {rank} {warName}
                             </span>
                             {musician.militaryStatus && musician.militaryStatus !== 'Ativo' && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-red-500/20 text-red-400 border border-red-500/30 uppercase">
-                                {musician.militaryStatus}
-                              </span>
+                              <MilitaryStatusBadge 
+                                status={musician.militaryStatus} 
+                                size="xs"
+                              />
                             )}
                           </div>
                           <span className="text-[11px] text-gray-400 truncate font-medium">

@@ -20,6 +20,7 @@ import { sortByRankThenName } from '@/lib/sort-military';
 import { useRouter } from 'next/navigation';
 import { normalizeSpaces } from '@/lib/utils';
 import { fmtDate } from '@/lib/format-date';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 export default function MasterPanelPage() {
   const router = useRouter();
@@ -618,9 +619,11 @@ export default function MasterPanelPage() {
 
                             {/* Situação Funcional Militar */}
                             {user.militaryStatus && user.militaryStatus !== 'Ativo' && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
-                                {user.militaryStatus} {user.statusEndDate ? `até ${fmtDate(user.statusEndDate)}` : ''}
-                              </span>
+                              <MilitaryStatusBadge 
+                                status={user.militaryStatus}
+                                adidoTo={user.militaryStatus === 'Adido' ? user.adidoTo : undefined}
+                                title={user.statusEndDate ? `Afastado até ${fmtDate(user.statusEndDate)}` : undefined}
+                              />
                             )}
                           </div>
                         </div>

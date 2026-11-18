@@ -7,6 +7,7 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { fmtDate, getTodayYMD, normalizeDateToYMD } from '@/lib/format-date';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 export function ReturnsAlertModal() {
   const router = useRouter();
@@ -151,15 +152,12 @@ export function ReturnsAlertModal() {
                     <h4 className="text-sm font-bold text-gray-900 dark:text-white truncate">
                       {m.rank} {m.war_name || m.name}
                     </h4>
-                    <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400">
-                      <span className="font-semibold text-red-500 uppercase">
-                        {m.militaryStatus}
-                      </span>
-                      {m.militaryStatus === 'Adido' && m.adidoTo && (
-                        <span className="font-medium text-amber-600 dark:text-amber-400">
-                          ({m.adidoTo})
-                        </span>
-                      )}
+                    <div className="flex items-center gap-2 text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      <MilitaryStatusBadge 
+                        status={m.militaryStatus} 
+                        adidoTo={m.militaryStatus === 'Adido' ? m.adidoTo : undefined}
+                        size="xs"
+                      />
                       {m.instrument && (
                         <>
                           <span>•</span>

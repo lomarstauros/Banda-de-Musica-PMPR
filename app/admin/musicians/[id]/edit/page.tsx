@@ -11,6 +11,7 @@ import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { updateUserAuthEmail, resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
 import { normalizeDateToYMD, getTodayYMD, fmtDate } from '@/lib/format-date';
+import { MilitaryStatusSelector } from '@/components/ui/military-status-badge';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -590,33 +591,19 @@ export default function AdminEditMusicianPage() {
               </div>
             </label>
 
-            <label className={labelCls}>
-              <span className={labelTextCls}>Situação do Militar</span>
-              <div className="relative">
-                <select 
-                  className={selectCls} 
-                  value={formData.militaryStatus} 
-                  onChange={(e) => {
-                    const newStatus = e.target.value;
-                    setFormData({ 
-                      ...formData, 
-                      militaryStatus: newStatus,
-                      ...(newStatus === 'Ativo' ? { statusStartDate: '', statusEndDate: '', statusIndefinite: false, adidoTo: '' } : {})
-                    });
-                  }}
-                >
-                  <option value="Ativo">Ativo</option>
-                  <option value="Férias">Férias</option>
-                  <option value="Licença">Licença</option>
-                  <option value="Atestado">Atestado</option>
-                  <option value="Adido">Adido</option>
-                  <option value="Outros">Outros</option>
-                </select>
-                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
-                  <span className="material-symbols-outlined">expand_more</span>
-                </div>
-              </div>
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <span className={labelTextCls}>Situação Funcional / Afastamento</span>
+              <MilitaryStatusSelector 
+                value={formData.militaryStatus}
+                onChange={(newStatus) => {
+                  setFormData({ 
+                    ...formData, 
+                    militaryStatus: newStatus,
+                    ...(newStatus === 'Ativo' ? { statusStartDate: '', statusEndDate: '', statusIndefinite: false, adidoTo: '' } : {})
+                  });
+                }}
+              />
+            </div>
 
             {/* Campo específico quando for Adido: Para quem o militar está adido */}
             {formData.militaryStatus === 'Adido' && (

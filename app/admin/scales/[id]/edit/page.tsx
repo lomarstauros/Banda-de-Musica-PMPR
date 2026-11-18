@@ -9,6 +9,7 @@ import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { isMusicianAvailable } from '@/lib/military-status';
 import { sortByRankThenName } from '@/lib/sort-military';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 export default function AdminEditScalePage() {
   const params = useParams();
@@ -1157,7 +1158,7 @@ export default function AdminEditScalePage() {
                               }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('administrativo', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              {!available && <MilitaryStatusBadge status={m.militaryStatus} size="xs" />}
                               <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
                             </label>
                           );
@@ -1196,7 +1197,7 @@ export default function AdminEditScalePage() {
                               }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('obra', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              {!available && <MilitaryStatusBadge status={m.militaryStatus} size="xs" />}
                               <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
                             </label>
                           );
@@ -1235,7 +1236,7 @@ export default function AdminEditScalePage() {
                               }`}>
                               <input type="checkbox" checked={checked} disabled={!available} onChange={() => { if (available) toggleMulti('permanencia', m.id); }} className="size-4 rounded border-gray-300 text-primary focus:ring-primary disabled:opacity-50" />
                               <span className={`text-sm font-medium ${checked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{label}</span>
-                              {!available && <span className="text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">{m.militaryStatus}</span>}
+                              {!available && <MilitaryStatusBadge status={m.militaryStatus} size="xs" />}
                               <span className="ml-auto text-[10px] text-gray-400 uppercase">{m.instrument}</span>
                             </label>
                           );
@@ -1405,9 +1406,11 @@ export default function AdminEditScalePage() {
                             <div className="flex items-center gap-2">
                               <p className={`text-sm font-bold truncate ${isChecked ? 'text-primary' : 'text-gray-900 dark:text-white'}`}>{displayName}</p>
                               {!isAvailable && (
-                                <span className="flex-none text-[8px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-                                  {musician.militaryStatus}
-                                </span>
+                                <MilitaryStatusBadge 
+                                  status={musician.militaryStatus} 
+                                  size="xs" 
+                                  className="flex-none"
+                                />
                               )}
                             </div>
                             <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{musician.instrument}</p>

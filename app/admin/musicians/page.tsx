@@ -12,9 +12,11 @@ import { fmtDate } from '@/lib/format-date';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
+import { MilitaryStatusBadge, getMilitaryStatusStyle } from '@/components/ui/military-status-badge';
 
 export default function AdminMusiciansListPage() {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'ativo' | 'férias' | 'licença' | 'atestado' | 'adido'>('all');
   const [musicians, setMusicians] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -77,11 +79,22 @@ export default function AdminMusiciansListPage() {
   };
 
   const filteredMusicians = musicians
-    .filter(m =>
-      (m.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (m.war_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (m.re || '').includes(search)
-    )
+    .filter(m => {
+      const matchesSearch =
+        (m.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (m.war_name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+        (m.re || '').includes(search);
+
+      if (!matchesSearch) return false;
+
+      if (statusFilter === 'all') return true;
+
+      const activeStatus = (getCurrentMilitaryStatus(m) || m.militaryStatus || 'Ativo').toLowerCase();
+      if (statusFilter === 'ativo') {
+        return activeStatus === 'ativo';
+      }
+      return activeStatus.includes(statusFilter);
+    })
     .sort(sortByRankThenName);
 
   if (loading) {
@@ -139,6 +152,46 @@ export default function AdminMusiciansListPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
+
+            {/* Filtros rápidos padronizados por situação funcional */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar text-xs">
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1.5 rounded-full font-bold text-xs shrink-0 transition-all border cursor-pointer ${
+                  statusFilter === 'all'
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-white dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Todos ({musicians.length})
+              </button>
+              {(['ativo', 'férias', 'licença', 'atestado', 'adido'] as const).map(st => {
+                const isSelected = statusFilter === st;
+                const style = getMilitaryStatusStyle(st);
+                const count = musicians.filter(m => {
+                  const curr = (getCurrentMilitaryStatus(m) || m.militaryStatus || 'Ativo').toLowerCase();
+                  return st === 'ativo' ? curr === 'ativo' : curr.includes(st);
+                }).length;
+
+                return (
+                  <button
+                    key={st}
+                    type="button"
+                    onClick={() => setStatusFilter(isSelected ? 'all' : st)}
+                    className={`px-2.5 py-1.5 rounded-full font-bold text-xs uppercase shrink-0 transition-all border flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? `${style.badgeCls} ring-2 ring-primary/40 shadow-sm scale-105`
+                        : 'bg-white dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[14px]">{style.icon}</span>
+                    <span>{style.label}</span>
+                    <span className="text-[10px] opacity-75 font-normal">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -173,7 +226,7 @@ export default function AdminMusiciansListPage() {
                         </span>
                       </h3>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
                           musician.role === 'admin' || musician.role === 'Admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
                           musician.role === 'master' || musician.role === 'Master' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
@@ -186,24 +239,25 @@ export default function AdminMusiciansListPage() {
                            'Efetivo'}
                         </span>
                         {currentStatus ? (
-                          <span className="text-[9px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            {currentStatus}
-                          </span>
+                          <MilitaryStatusBadge 
+                            status={currentStatus} 
+                            adidoTo={musician.adidoTo} 
+                          />
                         ) : upcomingLeave ? (
-                          <span 
-                            className="text-[9px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider" 
-                            title={`Afastamento agendado: ${upcomingLeave.status} a partir de ${fmtDate(upcomingLeave.startDate)}`}
-                          >
-                            {upcomingLeave.status} {upcomingLeave.startDate ? `em ${fmtDate(upcomingLeave.startDate).slice(0, 5)}` : ''}
-                          </span>
+                          <>
+                            <MilitaryStatusBadge status="Ativo" />
+                            <MilitaryStatusBadge 
+                              status={upcomingLeave.status} 
+                              upcomingDate={upcomingLeave.startDate} 
+                            />
+                          </>
                         ) : musician.militaryStatus && musician.militaryStatus.trim().toLowerCase() !== 'ativo' ? (
-                          <span className="text-[9px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            {musician.militaryStatus}
-                          </span>
+                          <MilitaryStatusBadge 
+                            status={musician.militaryStatus} 
+                            adidoTo={musician.adidoTo} 
+                          />
                         ) : (
-                          <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                            ATIVO
-                          </span>
+                          <MilitaryStatusBadge status="Ativo" />
                         )}
                       </div>
                     </div>

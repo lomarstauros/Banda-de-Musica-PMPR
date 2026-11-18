@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { collection, query, getDocs, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, orderBy, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { fmtDate, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
 import { getEffectiveMilitaryLeave, getAllCandidateLeaves, getUpcomingMilitaryLeave } from '@/lib/military-status';
@@ -20,6 +20,52 @@ function UnavailableMusiciansContent() {
   );
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const handleEndLeaveEarly = async (musician: any) => {
+    const nome = `${musician.rank || ''} ${musician.war_name || musician.name || ''}`.trim();
+    if (!window.confirm(`Deseja realmente encerrar o afastamento de ${nome} e retorná-lo imediatamente ao efetivo ATIVO?`)) {
+      return;
+    }
+
+    try {
+      setProcessingId(musician.id);
+      const todayYmd = getTodayYMD();
+      const rawHistory = Array.isArray(musician.leaveHistory) ? musician.leaveHistory : [];
+      const updatedHistory = rawHistory.map((h: any) => {
+        const hEnd = normalizeDateToYMD(h.endDate);
+        if (!hEnd || hEnd >= todayYmd) {
+          return {
+            ...h,
+            endDate: todayYmd,
+            statusIndefinite: false,
+            earlyReturnDate: todayYmd,
+            notes: (h.notes ? `${h.notes} • ` : '') + `Encerrado antecipadamente em ${fmtDate(todayYmd)}`
+          };
+        }
+        return h;
+      });
+
+      const docRef = doc(db, 'profiles', musician.id);
+      await updateDoc(docRef, {
+        militaryStatus: 'Ativo',
+        statusStartDate: '',
+        statusEndDate: '',
+        statusIndefinite: false,
+        adidoTo: '',
+        leaveHistory: updatedHistory,
+      });
+
+      // Remove imediatamente da lista de afastados atuais / próximos retornos
+      setCurrentMusicians(prev => prev.filter(m => m.id !== musician.id));
+      alert(`Afastamento de ${nome} encerrado com sucesso! O militar agora consta como ATIVO.`);
+    } catch (err) {
+      console.error('Erro ao encerrar afastamento:', err);
+      alert('Ocorreu um erro ao encerrar o afastamento. Tente novamente.');
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchUnavailable = async () => {
@@ -384,16 +430,32 @@ function UnavailableMusiciansContent() {
                       </div>
 
                       {/* Rodapé do Card */}
-                      <div className="flex items-center justify-between text-xs pt-1 border-t border-gray-100 dark:border-gray-800">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs pt-2 border-t border-gray-100 dark:border-gray-800">
                         <span className="text-gray-400">
-                          Início do afastamento: {m.statusStartDate ? fmtDate(m.statusStartDate) : 'N/A'}
+                          Início: {m.statusStartDate ? fmtDate(m.statusStartDate) : 'N/A'}
                         </span>
-                        <Link href={`/admin/musicians/${m.id}/edit`}>
-                          <button className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[14px]">edit</span>
-                            Editar Afastamento
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEndLeaveEarly(m)}
+                            disabled={processingId === m.id}
+                            className="px-2.5 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-bold flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                            title="Encerrar afastamento e retornar ao efetivo ativo"
+                          >
+                            {processingId === m.id ? (
+                              <span className="material-symbols-outlined animate-spin text-[14px]">progress_activity</span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[14px]">how_to_reg</span>
+                            )}
+                            <span>Encerrar e Tornar Ativo</span>
                           </button>
-                        </Link>
+                          <Link href={`/admin/musicians/${m.id}/edit`}>
+                            <button className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">edit</span>
+                              Editar
+                            </button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
@@ -486,7 +548,21 @@ function UnavailableMusiciansContent() {
                                 </div>
                               </div>
 
-                              <div className="mt-2 flex justify-end">
+                              <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-between gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEndLeaveEarly(m)}
+                                  disabled={processingId === m.id}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                                  title="Encerrar afastamento antecipadamente e retornar ao efetivo ativo"
+                                >
+                                  {processingId === m.id ? (
+                                    <span className="material-symbols-outlined animate-spin text-[16px]">progress_activity</span>
+                                  ) : (
+                                    <span className="material-symbols-outlined text-[16px]">how_to_reg</span>
+                                  )}
+                                  <span>Encerrar e Tornar Ativo</span>
+                                </button>
                                 <Link href={`/admin/musicians/${m.id}/edit`}>
                                   <button className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
                                     <span className="material-symbols-outlined text-[14px]">edit</span>

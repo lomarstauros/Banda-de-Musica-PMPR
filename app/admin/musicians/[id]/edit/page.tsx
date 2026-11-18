@@ -10,7 +10,7 @@ import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { updateUserAuthEmail, resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
-import { normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
+import { normalizeDateToYMD, getTodayYMD, fmtDate } from '@/lib/format-date';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -225,6 +225,21 @@ export default function AdminEditMusicianPage() {
             });
           }
         }
+      } else {
+        // Se o gestor definiu como Ativo, encerra qualquer afastamento que estivesse aberto no histórico
+        const todayYmd = getTodayYMD();
+        updatedHistory = updatedHistory.map((h: any) => {
+          const hEnd = normalizeDateToYMD(h.endDate);
+          if (!hEnd || hEnd >= todayYmd) {
+            return {
+              ...h,
+              endDate: todayYmd,
+              statusIndefinite: false,
+              earlyReturnDate: todayYmd,
+            };
+          }
+          return h;
+        });
       }
 
       // Salva com as mesmas chaves do Firestore usadas pelo perfil do usuário
@@ -250,6 +265,57 @@ export default function AdminEditMusicianPage() {
       });
       router.push('/admin/musicians');
     } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `profiles/${params.id}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEndLeaveEarly = async () => {
+    if (!window.confirm('Deseja encerrar o afastamento antes do término do período e retornar o militar imediatamente ao efetivo ATIVO?')) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const todayYmd = getTodayYMD();
+      const updatedHistory = (formData.leaveHistory || []).map((h: any) => {
+        const hEnd = normalizeDateToYMD(h.endDate);
+        if (!hEnd || hEnd >= todayYmd) {
+          return {
+            ...h,
+            endDate: todayYmd,
+            statusIndefinite: false,
+            earlyReturnDate: todayYmd,
+            notes: (h.notes ? `${h.notes} • ` : '') + `Encerrado antecipadamente em ${fmtDate(todayYmd)}`
+          };
+        }
+        return h;
+      });
+
+      const docRef = doc(db, 'profiles', params.id as string);
+      await updateDoc(docRef, {
+        militaryStatus: 'Ativo',
+        statusStartDate: '',
+        statusEndDate: '',
+        statusIndefinite: false,
+        adidoTo: '',
+        leaveHistory: updatedHistory,
+      });
+
+      setFormData(prev => ({
+        ...prev,
+        militaryStatus: 'Ativo',
+        statusStartDate: '',
+        statusEndDate: '',
+        statusIndefinite: false,
+        adidoTo: '',
+        leaveHistory: updatedHistory,
+      }));
+
+      alert('Afastamento encerrado com sucesso! O militar agora consta como ATIVO no efetivo.');
+      router.push('/admin/musicians');
+    } catch (error) {
+      console.error('Erro ao encerrar afastamento:', error);
       handleFirestoreError(error, OperationType.UPDATE, `profiles/${params.id}`);
     } finally {
       setSaving(false);
@@ -579,6 +645,30 @@ export default function AdminEditMusicianPage() {
             {formData.militaryStatus !== 'Ativo' && (
               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="flex flex-col gap-3">
                 
+                {/* Botão de Encerramento Antecipado do Afastamento */}
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="size-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">how_to_reg</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-900 dark:text-white">Encerrar Afastamento Agora</span>
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                        Retornar o militar imediatamente ao efetivo <strong>ATIVO</strong> antes do término previsto.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleEndLeaveEarly}
+                    disabled={saving}
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 active:scale-95 transition-all shrink-0 disabled:opacity-50 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                    <span>Encerrar e Tornar Ativo</span>
+                  </button>
+                </div>
+
                 {/* Opção de Tempo Indeterminado */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200 dark:border-gray-700">
                   <div className="flex flex-col">

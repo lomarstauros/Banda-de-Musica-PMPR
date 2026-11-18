@@ -31,11 +31,18 @@ export interface ActiveLeaveInfo {
  */
 export const getAllCandidateLeaves = (musician: MusicianProfile): ActiveLeaveInfo[] => {
   if (!musician) return [];
+
+  // Se o militar foi explicitamente definido como 'Ativo', ele está Ativo!
+  // Afastamentos anteriores do histórico não devem sobrepor a decisão do gestor.
+  const mainStatus = (musician.militaryStatus || '').trim();
+  if (mainStatus.toLowerCase() === 'ativo') {
+    return [];
+  }
+
   const leaves: ActiveLeaveInfo[] = [];
 
   // 1. Afastamento registrado diretamente nos campos principais do documento
-  const mainStatus = (musician.militaryStatus || '').trim();
-  if (mainStatus && mainStatus.toLowerCase() !== 'ativo') {
+  if (mainStatus) {
     leaves.push({
       status: mainStatus,
       startDate: musician.statusStartDate || '',

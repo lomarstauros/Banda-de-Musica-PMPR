@@ -10,6 +10,7 @@ import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { isMusicianAvailable } from '@/lib/military-status';
 import { sortByRankThenName } from '@/lib/sort-military';
 import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
+import { areScalesSameScheduleOrOverlapping, isExpedienteScale } from '@/lib/notification-dedup';
 
 export default function AdminEditScalePage() {
   const params = useParams();
@@ -597,12 +598,19 @@ export default function AdminEditScalePage() {
           }
         });
 
+        const isCurrentExp = isExpedienteScale(formData.title || formData.format);
+        const sTime = formData.startTime || formData.departureTime || '';
+        const eTime = formData.endTime || formData.returnTime || '';
+
         const batchNotification = writeBatch(db);
         uniqueNotifiedIds.forEach((uid: any) => {
           if (existingByUser[uid]) {
             batchNotification.update(doc(db, 'notifications', existingByUser[uid]), {
               scaleTitle: formData.title,
               scaleDate: formData.date,
+              scaleStartTime: sTime,
+              scaleEndTime: eTime,
+              format: formData.format || '',
             });
           } else {
             const notifRef = doc(collection(db, 'notifications'));
@@ -611,6 +619,9 @@ export default function AdminEditScalePage() {
               scaleId: params.id,
               scaleTitle: formData.title,
               scaleDate: formData.date,
+              scaleStartTime: sTime,
+              scaleEndTime: eTime,
+              format: formData.format || '',
               read: false,
               confirmedAt: null,
               createdAt: serverTimestamp()
@@ -618,6 +629,36 @@ export default function AdminEditScalePage() {
           }
         });
         await batchNotification.commit();
+
+        // Se for uma escala específica (não expediente), remove notificações de rotina administrativa
+        // para os mesmos usuários que já estão nesta escala no mesmo dia e horário
+        if (!isCurrentExp) {
+          for (const uid of uniqueNotifiedIds) {
+            try {
+              const oldExpQ = query(
+                collection(db, 'notifications'),
+                where('userId', '==', uid),
+                where('scaleDate', '==', formData.date),
+                where('read', '==', false)
+              );
+              const oldSnap = await getDocs(oldExpQ);
+              const toDelete: string[] = [];
+              oldSnap.docs.forEach(oldDoc => {
+                const oldData = oldDoc.data();
+                if (oldDoc.id !== params.id && isExpedienteScale(oldData.scaleTitle || oldData.format)) {
+                  toDelete.push(oldDoc.id);
+                }
+              });
+              if (toDelete.length > 0) {
+                const delBatch = writeBatch(db);
+                toDelete.forEach(did => delBatch.delete(doc(db, 'notifications', did)));
+                await delBatch.commit();
+              }
+            } catch (cleanErr) {
+              console.warn('Aviso ao limpar notificações redundantes de expediente:', cleanErr);
+            }
+          }
+        }
 
         // Disparar Notificações Push (Mobile)
         try {

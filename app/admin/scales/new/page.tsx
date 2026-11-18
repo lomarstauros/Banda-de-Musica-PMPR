@@ -14,6 +14,7 @@ import { sortByRankThenName } from '@/lib/sort-military';
 import { generateDailyScalesPDF, viewDailyScalesPDF } from '@/lib/pdf-generator';
 import { getWhatsAppBroadcastUrl, buildScaleWhatsAppMessage } from '@/lib/whatsapp';
 import { fmtDate } from '@/lib/format-date';
+import { areScalesSameScheduleOrOverlapping, isExpedienteScale } from '@/lib/notification-dedup';
 
 export default function AdminNewScalePage() {
   const router = useRouter();
@@ -768,9 +769,10 @@ export default function AdminNewScalePage() {
         }
       }
 
-      // 2. Salvar todos os documentos e preparar notificações sem duplicidade
+      // 2. Salvar todos os documentos e preparar notificações com gerenciamento estrito de 1 notificação por horário
       const batchPushedUserIds = new Set<string>();
       let primaryScaleId = '';
+      const createdScalesList: Array<{ id: string; doc: any }> = [];
 
       for (const d of docsToCreate) {
         const scaleRef = await addDoc(collection(db, "scales"), {
@@ -778,36 +780,7 @@ export default function AdminNewScalePage() {
           createdAt: serverTimestamp()
         });
         if (!primaryScaleId) primaryScaleId = scaleRef.id;
-
-        // Notificações internas no banco de dados para a escala
-        const notifyIds = new Set<string>();
-        if (d.serviceChief?.id) notifyIds.add(d.serviceChief.id);
-        if (d.musicians) d.musicians.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
-        if (d.expediente) {
-          const e = d.expediente;
-          [e.regenteMaestroId, e.regenteId, e.arquivoId, e.sargenteacaoId, e.p4FinancasTransporteId].forEach(id => { if (id) notifyIds.add(id); });
-          e.administrativo?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
-          e.obra?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
-          e.permanencia?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
-        }
-
-        const uniqueIds = Array.from(notifyIds).filter(id => !!id);
-        if (uniqueIds.length > 0) {
-          const batch = writeBatch(db);
-          uniqueIds.forEach(uid => {
-            batchPushedUserIds.add(uid);
-            const nRef = doc(collection(db, 'notifications'));
-            batch.set(nRef, {
-              userId: uid,
-              scaleId: scaleRef.id,
-              scaleTitle: d.format === 'Expediente Administrativo' ? `${d.format}` : d.title,
-              scaleDate: d.date,
-              read: false,
-              createdAt: serverTimestamp()
-            });
-          });
-          await batch.commit();
-        }
+        createdScalesList.push({ id: scaleRef.id, doc: d });
 
         // Auditoria
         if (currentUser) {
@@ -819,6 +792,148 @@ export default function AdminNewScalePage() {
             entityTitle: d.title,
             timestamp: serverTimestamp()
           });
+        }
+      }
+
+      // Mapeia todas as escalas criadas para cada usuário no lote
+      const userToScalesMap = new Map<string, Array<{ scaleId: string; doc: any }>>();
+
+      createdScalesList.forEach(({ id: scaleId, doc: d }) => {
+        const notifyIds = new Set<string>();
+        if (d.serviceChief?.id) notifyIds.add(d.serviceChief.id);
+        if (d.musicians) d.musicians.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+        if (d.expediente) {
+          const e = d.expediente;
+          [e.regenteMaestroId, e.regenteId, e.arquivoId, e.sargenteacaoId, e.p4FinancasTransporteId].forEach(id => { if (id) notifyIds.add(id); });
+          e.administrativo?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+          e.obra?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+          e.permanencia?.forEach((m: any) => { if (m?.id) notifyIds.add(m.id); });
+        }
+
+        notifyIds.forEach(uid => {
+          if (!uid) return;
+          if (!userToScalesMap.has(uid)) {
+            userToScalesMap.set(uid, []);
+          }
+          userToScalesMap.get(uid)!.push({ scaleId, doc: d });
+        });
+      });
+
+      // Para cada usuário, seleciona estritamente UMA notificação por horário:
+      // se houver rotina administrativa e uma escala de evento no mesmo horário/dia,
+      // prioriza a notificação da escala específica de evento e descarta a da rotina.
+      const notificationsToInsert: Array<{
+        userId: string;
+        scaleId: string;
+        scaleTitle: string;
+        scaleDate: string;
+        scaleStartTime: string;
+        scaleEndTime: string;
+        format: string;
+      }> = [];
+
+      userToScalesMap.forEach((userScales, uid) => {
+        const chosenScales: Array<{ scaleId: string; doc: any }> = [];
+
+        for (const candidate of userScales) {
+          const conflictIndex = chosenScales.findIndex(chosen =>
+            areScalesSameScheduleOrOverlapping(
+              {
+                date: chosen.doc.date,
+                startTime: chosen.doc.startTime || chosen.doc.departureTime,
+                endTime: chosen.doc.endTime || chosen.doc.returnTime,
+                format: chosen.doc.format,
+                title: chosen.doc.title
+              },
+              {
+                date: candidate.doc.date,
+                startTime: candidate.doc.startTime || candidate.doc.departureTime,
+                endTime: candidate.doc.endTime || candidate.doc.returnTime,
+                format: candidate.doc.format,
+                title: candidate.doc.title
+              }
+            )
+          );
+
+          if (conflictIndex === -1) {
+            chosenScales.push(candidate);
+          } else {
+            const existingChosen = chosenScales[conflictIndex];
+            const isExistingExp = isExpedienteScale(existingChosen.doc);
+            const isCandidateExp = isExpedienteScale(candidate.doc);
+
+            // Prioriza evento específico sobre rotina administrativa
+            if (isExistingExp && !isCandidateExp) {
+              chosenScales[conflictIndex] = candidate;
+            }
+          }
+        }
+
+        chosenScales.forEach(({ scaleId, doc: d }) => {
+          batchPushedUserIds.add(uid);
+          notificationsToInsert.push({
+            userId: uid,
+            scaleId: scaleId,
+            scaleTitle: d.format === 'Expediente Administrativo' ? `${d.format}` : d.title,
+            scaleDate: d.date,
+            scaleStartTime: d.startTime || d.departureTime || '',
+            scaleEndTime: d.endTime || d.returnTime || '',
+            format: d.format || ''
+          });
+        });
+      });
+
+      // Grava no Firestore as notificações deduplicadas
+      if (notificationsToInsert.length > 0) {
+        // Divide em lotes de no máximo 450 para segurança do batch
+        for (let i = 0; i < notificationsToInsert.length; i += 450) {
+          const slice = notificationsToInsert.slice(i, i + 450);
+          const batch = writeBatch(db);
+          slice.forEach(item => {
+            const nRef = doc(collection(db, 'notifications'));
+            batch.set(nRef, {
+              userId: item.userId,
+              scaleId: item.scaleId,
+              scaleTitle: item.scaleTitle,
+              scaleDate: item.scaleDate,
+              scaleStartTime: item.scaleStartTime,
+              scaleEndTime: item.scaleEndTime,
+              format: item.format,
+              read: false,
+              createdAt: serverTimestamp()
+            });
+          });
+          await batch.commit();
+        }
+
+        // Se foram inseridas notificações de escalas específicas, limpa qualquer notificação
+        // pré-existente de Expediente Administrativo que estivesse não lida para o mesmo dia e horário
+        for (const notif of notificationsToInsert) {
+          if (!isExpedienteScale(notif.scaleTitle)) {
+            try {
+              const oldExpQ = query(
+                collection(db, 'notifications'),
+                where('userId', '==', notif.userId),
+                where('scaleDate', '==', notif.scaleDate),
+                where('read', '==', false)
+              );
+              const oldSnap = await getDocs(oldExpQ);
+              const toDelete: string[] = [];
+              oldSnap.docs.forEach(oldDoc => {
+                const oldData = oldDoc.data();
+                if (oldDoc.id !== notif.scaleId && isExpedienteScale(oldData.scaleTitle || oldData.format)) {
+                  toDelete.push(oldDoc.id);
+                }
+              });
+              if (toDelete.length > 0) {
+                const delBatch = writeBatch(db);
+                toDelete.forEach(did => delBatch.delete(doc(db, 'notifications', did)));
+                await delBatch.commit();
+              }
+            } catch (cleanErr) {
+              console.warn('Aviso ao limpar notificações redundantes de expediente:', cleanErr);
+            }
+          }
         }
       }
 

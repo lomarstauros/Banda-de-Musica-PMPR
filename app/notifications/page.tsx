@@ -8,6 +8,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc, serverTimestamp, 
 import { db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { fmtDate } from '@/lib/format-date';
+import { deduplicateNotificationsList } from '@/lib/notification-dedup';
 
 export default function NotificationsPage() {
   const { user, loading: authLoading } = useFirebase();
@@ -27,7 +28,9 @@ export default function NotificationsPage() {
       orderBy('createdAt', 'desc')
     );
     const unsub = onSnapshot(q, (snap) => {
-      setNotifications(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const rawList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const dedupedList = deduplicateNotificationsList(rawList);
+      setNotifications(dedupedList);
       setLoading(false);
     }, (err) => {
       console.error("Erro no listener de notificações (Page):", err);

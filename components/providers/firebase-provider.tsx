@@ -5,6 +5,7 @@ import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { deduplicateNotificationsList } from '@/lib/notification-dedup';
 
 export type UserRole = 'user' | 'admin' | 'master';
 
@@ -96,7 +97,9 @@ export default function FirebaseProvider({ children }: { children: React.ReactNo
             where('read', '==', false)
           );
           unsubNotifs = onSnapshot(qNotif, (snap) => {
-            const count = snap.size;
+            const rawList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const dedupedList = deduplicateNotificationsList(rawList);
+            const count = dedupedList.length;
             setUnreadNotificationsCount(count);
 
             // Atualiza App Badge nativo (PWA)

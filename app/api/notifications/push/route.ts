@@ -79,7 +79,8 @@ export async function POST(request: Request) {
         notification: {
           requireInteraction: true,
           icon: `${baseUrl}/brasao_banda.png`,
-          badge: `${baseUrl}/brasao_banda.png`
+          badge: `${baseUrl}/brasao_banda.png`,
+          tag: scaleId ? `pmpr-scale-${scaleId}` : `pmpr-scale-default`
         }
       }
     };

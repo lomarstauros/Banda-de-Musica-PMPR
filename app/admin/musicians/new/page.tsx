@@ -136,7 +136,7 @@ export default function AdminNewMusicianPage() {
         const endDateVal = isIndefinite ? '' : formData.statusEndDate;
         const adidoVal = formData.militaryStatus === 'Adido' ? (formData.adidoTo || '').trim() : '';
 
-        if (formData.statusStartDate || isIndefinite) {
+        if (formData.statusStartDate || formData.statusEndDate || isIndefinite) {
           initialLeaveHistory.push({
             status: formData.militaryStatus,
             startDate: formData.statusStartDate,

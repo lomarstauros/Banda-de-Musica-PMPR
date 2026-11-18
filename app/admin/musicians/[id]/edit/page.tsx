@@ -10,6 +10,7 @@ import { db, auth } from '@/lib/firebase';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { updateUserAuthEmail, resetUserAccess } from '@/app/actions/auth-actions';
 import { normalizeSpaces } from '@/lib/utils';
+import { normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
 
 // Máscara RG: 0.000.000-0
 const formatRG = (value: string) => {
@@ -77,9 +78,10 @@ export default function AdminEditMusicianPage() {
               let currentEnd = data.statusEndDate || '';
               const isIndefinite = data.statusIndefinite ?? (!currentEnd && currentStatus !== 'Ativo');
               
-              if (currentStatus !== 'Ativo' && !isIndefinite && currentStart && currentEnd) {
-                const endDate = new Date(currentEnd + 'T23:59:59');
-                if (new Date() > endDate) {
+              if (currentStatus !== 'Ativo' && !isIndefinite && currentEnd) {
+                const endYmd = normalizeDateToYMD(currentEnd);
+                const todayYmd = getTodayYMD();
+                if (endYmd && todayYmd > endYmd) {
                   currentStatus = 'Ativo';
                   currentStart = '';
                   currentEnd = '';
@@ -205,11 +207,11 @@ export default function AdminEditMusicianPage() {
         const endDateVal = isIndefinite ? '' : formData.statusEndDate;
         const adidoVal = formData.militaryStatus === 'Adido' ? (formData.adidoTo || '').trim() : '';
 
-        if (formData.statusStartDate || isIndefinite) {
+        if (formData.statusStartDate || formData.statusEndDate || isIndefinite) {
           // Checa se já existe no histórico com esses mesmos dados
           const exists = updatedHistory.find(
-            h => h.startDate === formData.statusStartDate && 
-                 h.endDate === endDateVal && 
+            h => normalizeDateToYMD(h.startDate) === normalizeDateToYMD(formData.statusStartDate) && 
+                 normalizeDateToYMD(h.endDate) === normalizeDateToYMD(endDateVal) && 
                  h.status === formData.militaryStatus &&
                  (h.adidoTo || '') === adidoVal
           );

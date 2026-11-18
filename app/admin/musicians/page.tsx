@@ -7,7 +7,8 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
-import { getCurrentMilitaryStatus } from '@/lib/military-status';
+import { getCurrentMilitaryStatus, getUpcomingMilitaryLeave } from '@/lib/military-status';
+import { fmtDate } from '@/lib/format-date';
 import { handleFirestoreError, OperationType } from '@/lib/firestore-errors';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { useRouter } from 'next/navigation';
@@ -143,6 +144,7 @@ export default function AdminMusiciansListPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredMusicians.map((musician) => {
               const currentStatus = getCurrentMilitaryStatus(musician);
+              const upcomingLeave = !currentStatus ? getUpcomingMilitaryLeave(musician) : null;
               const displayName = musician.war_name || musician.name || 'Militar';
 
               return (
@@ -187,6 +189,18 @@ export default function AdminMusiciansListPage() {
                           <span className="text-[9px] font-black bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
                             {currentStatus}
                           </span>
+                        ) : upcomingLeave ? (
+                          <div className="flex items-center gap-1">
+                            <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                              ATIVO
+                            </span>
+                            <span 
+                              className="text-[9px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 px-1.5 py-0.5 rounded border border-amber-300/40" 
+                              title={`Afastamento agendado: ${upcomingLeave.status} a partir de ${fmtDate(upcomingLeave.startDate)}`}
+                            >
+                              {upcomingLeave.status} em {fmtDate(upcomingLeave.startDate).slice(0, 5)}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-[9px] font-black bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 px-1.5 py-0.5 rounded uppercase tracking-wider">
                             ATIVO

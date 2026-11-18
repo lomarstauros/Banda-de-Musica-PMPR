@@ -6,7 +6,8 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { collection, query, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { fmtDate } from '@/lib/format-date';
+import { fmtDate, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
+import { getEffectiveMilitaryLeave, getAllCandidateLeaves, getUpcomingMilitaryLeave } from '@/lib/military-status';
 
 function UnavailableMusiciansContent() {
   const searchParams = useSearchParams();
@@ -29,60 +30,52 @@ function UnavailableMusiciansContent() {
         
         const current: any[] = [];
         const pastGrouped: any[] = [];
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const todayYmd = getTodayYMD();
 
         docs.forEach((p: any) => {
-          let hasCurrentLeave = false;
           const userPastLeaves: any[] = [];
+          const candidateLeaves = getAllCandidateLeaves(p);
 
-          // Verifica o leave principal
-          if (p.militaryStatus && p.militaryStatus !== 'Ativo') {
-            let isPast = false;
-            if (p.statusEndDate && !p.statusIndefinite) {
-              const end = new Date(p.statusEndDate + 'T23:59:59');
-              if (today > end) isPast = true;
-            }
-            if (isPast) {
-              userPastLeaves.push({
-                status: p.militaryStatus,
-                startDate: p.statusStartDate,
-                endDate: p.statusEndDate,
-                statusIndefinite: false,
-                adidoTo: p.adidoTo
-              });
-            } else {
-              hasCurrentLeave = true;
-              current.push(p);
-            }
-          }
-
-          // Verifica os leaves no histórico
-          if (Array.isArray(p.leaveHistory)) {
-            p.leaveHistory.forEach((leave: any) => {
-              const isCurrentActiveLeave = hasCurrentLeave && 
-                p.militaryStatus === leave.status && 
-                p.statusStartDate === leave.startDate && 
-                p.statusEndDate === leave.endDate;
-
-              if (isCurrentActiveLeave) return;
-
-              const alreadyExists = userPastLeaves.find(
-                (l) => l.startDate === leave.startDate && l.endDate === leave.endDate && l.status === leave.status
-              );
-              
-              if (!alreadyExists) {
-                userPastLeaves.push(leave);
-              }
+          // 1. Verifica se tem afastamento vigente hoje
+          const activeLeave = getEffectiveMilitaryLeave(p);
+          if (activeLeave) {
+            current.push({
+              ...p,
+              militaryStatus: activeLeave.status,
+              statusStartDate: activeLeave.startDate,
+              statusEndDate: activeLeave.endDate,
+              statusIndefinite: activeLeave.statusIndefinite,
+              adidoTo: activeLeave.adidoTo,
+              activeLeave
             });
           }
 
+          // 2. Coleta afastamentos anteriores que já se encerraram antes de hoje
+          candidateLeaves.forEach((leave) => {
+            const endYmd = normalizeDateToYMD(leave.endDate);
+            const isIndef = !!leave.statusIndefinite;
+            
+            const isPast = !isIndef && !!endYmd && endYmd < todayYmd;
+            
+            if (isPast) {
+              const alreadyExists = userPastLeaves.some(
+                (l) => normalizeDateToYMD(l.startDate) === normalizeDateToYMD(leave.startDate) &&
+                       normalizeDateToYMD(l.endDate) === endYmd &&
+                       l.status === leave.status
+              );
+              if (!alreadyExists) {
+                userPastLeaves.push(leave);
+              }
+            }
+          });
+
           if (userPastLeaves.length > 0) {
             userPastLeaves.sort((a, b) => {
-              if (!a.endDate) return 1;
-              if (!b.endDate) return -1;
-              return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+              const aEnd = normalizeDateToYMD(a.endDate);
+              const bEnd = normalizeDateToYMD(b.endDate);
+              if (!aEnd) return 1;
+              if (!bEnd) return -1;
+              return bEnd.localeCompare(aEnd);
             });
             pastGrouped.push({ user: p, leaves: userPastLeaves });
           }
@@ -105,7 +98,11 @@ function UnavailableMusiciansContent() {
 
   const getReturnDate = (endDateStr?: string, isIndefinite?: boolean) => {
     if (isIndefinite || !endDateStr) return 'Tempo Indeterminado';
-    const date = new Date(endDateStr + 'T12:00:00');
+    const ymd = normalizeDateToYMD(endDateStr);
+    if (!ymd) return 'Tempo Indeterminado';
+    const parts = ymd.split('-').map(Number);
+    if (parts.length !== 3) return endDateStr;
+    const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
     date.setDate(date.getDate() + 1);
     return date.toLocaleDateString('pt-BR');
   };
@@ -117,8 +114,8 @@ function UnavailableMusiciansContent() {
       const isIndefB = !!b.statusIndefinite || !b.statusEndDate;
       if (isIndefA && !isIndefB) return 1; // Indeterminado vai para o fim
       if (!isIndefA && isIndefB) return -1;
-      const endA = a.statusEndDate || '';
-      const endB = b.statusEndDate || '';
+      const endA = normalizeDateToYMD(a.statusEndDate || a.activeLeave?.endDate) || '';
+      const endB = normalizeDateToYMD(b.statusEndDate || b.activeLeave?.endDate) || '';
       // Ordem cronológica crescente: retorno mais próximo primeiro
       return endA.localeCompare(endB);
     });
@@ -139,7 +136,13 @@ function UnavailableMusiciansContent() {
     }
 
     try {
-      const end = new Date(endDateStr + 'T12:00:00');
+      const endYmd = normalizeDateToYMD(endDateStr);
+      if (!endYmd) throw new Error('Data inválida');
+
+      const parts = endYmd.split('-').map(Number);
+      if (parts.length !== 3) throw new Error('Data inválida');
+
+      const end = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
       const returnDate = new Date(end);
       returnDate.setDate(returnDate.getDate() + 1);
 

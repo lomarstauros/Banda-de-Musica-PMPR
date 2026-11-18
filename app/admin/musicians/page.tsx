@@ -243,18 +243,15 @@ export default function AdminMusiciansListPage() {
                             status={currentStatus} 
                             adidoTo={musician.adidoTo} 
                           />
-                        ) : upcomingLeave ? (
-                          <>
-                            <MilitaryStatusBadge status="Ativo" />
-                            <MilitaryStatusBadge 
-                              status={upcomingLeave.status} 
-                              upcomingDate={upcomingLeave.startDate} 
-                            />
-                          </>
                         ) : musician.militaryStatus && musician.militaryStatus.trim().toLowerCase() !== 'ativo' ? (
                           <MilitaryStatusBadge 
                             status={musician.militaryStatus} 
                             adidoTo={musician.adidoTo} 
+                          />
+                        ) : upcomingLeave ? (
+                          <MilitaryStatusBadge 
+                            status={upcomingLeave.status} 
+                            upcomingDate={upcomingLeave.startDate} 
                           />
                         ) : (
                           <MilitaryStatusBadge status="Ativo" />

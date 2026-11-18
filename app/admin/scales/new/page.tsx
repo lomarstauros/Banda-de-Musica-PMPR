@@ -15,6 +15,7 @@ import { generateDailyScalesPDF, viewDailyScalesPDF } from '@/lib/pdf-generator'
 import { getWhatsAppBroadcastUrl, buildScaleWhatsAppMessage } from '@/lib/whatsapp';
 import { fmtDate } from '@/lib/format-date';
 import { areScalesSameScheduleOrOverlapping, isExpedienteScale } from '@/lib/notification-dedup';
+import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 export default function AdminNewScalePage() {
   const router = useRouter();
@@ -1738,10 +1739,15 @@ export default function AdminNewScalePage() {
                       const available = isMusicianAvailable(m, sharedDate);
                       const checked = service.selectedMusicians.includes(m.id);
                       return (
-                        <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer ${!available ? 'opacity-40 cursor-not-allowed' : checked ? 'bg-primary/5' : ''}`}>
-                          <input type="checkbox" checked={checked} disabled={!available} onChange={() => handleMusicianToggle(service.id, m.id)} className="size-4 rounded border-gray-300 text-primary" />
-                          <div className="flex flex-col">
-                            <span className="text-xs font-bold dark:text-white leading-tight">{getMusicianLabel(m.id)}</span>
+                        <label key={m.id} className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${!available ? 'opacity-50 cursor-not-allowed bg-gray-100/50 dark:bg-gray-800/30' : checked ? 'bg-primary/5 cursor-pointer' : 'cursor-pointer'}`}>
+                          <input type="checkbox" checked={checked} disabled={!available} onChange={() => handleMusicianToggle(service.id, m.id)} className="size-4 rounded border-gray-300 text-primary disabled:opacity-50" />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`text-xs font-bold leading-tight ${!available ? 'text-gray-400' : 'dark:text-white'}`}>{getMusicianLabel(m.id)}</span>
+                              {!available && (
+                                <MilitaryStatusBadge status={m.militaryStatus || 'Afastado'} size="xs" />
+                              )}
+                            </div>
                             <span className="text-[8px] text-gray-400 uppercase leading-none mt-0.5">{m.instrument}</span>
                           </div>
                         </label>

@@ -91,27 +91,61 @@ export const getEffectiveMilitaryLeave = (
   const targetYmd = targetDate ? normalizeDateToYMD(targetDate) : getTodayYMD();
   if (!targetYmd) return null;
 
-  const candidateLeaves = getAllCandidateLeaves(musician);
-  if (candidateLeaves.length === 0) return null;
+  const mainStatus = (musician.militaryStatus || '').trim();
 
-  for (const leave of candidateLeaves) {
-    const startYmd = normalizeDateToYMD(leave.startDate);
-    const endYmd = normalizeDateToYMD(leave.endDate);
-    const isIndef = !!leave.statusIndefinite || (!endYmd && !startYmd);
+  // 1. Se o militar foi explicitamente definido como 'Ativo', ele está Ativo!
+  if (mainStatus.toLowerCase() === 'ativo') {
+    return null;
+  }
 
-    // Se não informou data de início, considera já em vigor se a data final for futura ou indefinida
-    const hasStarted = !startYmd || targetYmd >= startYmd;
-    // Se não for tempo indeterminado e tiver data final, verifica se já passou
+  // 2. Se o status principal do militar for um afastamento (Licença, Férias, Atestado, Adido, Outros):
+  // O militar está em afastamento!
+  if (mainStatus) {
+    const endYmd = normalizeDateToYMD(musician.statusEndDate);
+    const isIndef = !!musician.statusIndefinite || !endYmd;
+
+    // Só é considerado encerrado se houver data de término definida E a data alvo for estritamente posterior a ela
     const hasEnded = !isIndef && !!endYmd && targetYmd > endYmd;
 
-    if (hasStarted && !hasEnded) {
+    if (!hasEnded) {
       return {
-        ...leave,
+        status: mainStatus,
+        startDate: musician.statusStartDate || '',
+        endDate: musician.statusEndDate || '',
         statusIndefinite: isIndef,
+        adidoTo: (musician.adidoTo || '').trim(),
         isCurrent: true,
         isFuture: false,
         isPast: false,
       };
+    }
+  }
+
+  // 3. Afastamentos cadastrados em leaveHistory
+  if (Array.isArray(musician.leaveHistory)) {
+    for (const item of musician.leaveHistory) {
+      const s = (item?.status || '').trim();
+      if (s && s.toLowerCase() !== 'ativo') {
+        const startYmd = normalizeDateToYMD(item.startDate);
+        const endYmd = normalizeDateToYMD(item.endDate);
+        const isIndef = !!item.statusIndefinite || (!endYmd && !startYmd);
+
+        const hasStarted = !startYmd || targetYmd >= startYmd;
+        const hasEnded = !isIndef && !!endYmd && targetYmd > endYmd;
+
+        if (hasStarted && !hasEnded) {
+          return {
+            status: s,
+            startDate: item.startDate || '',
+            endDate: item.endDate || '',
+            statusIndefinite: isIndef,
+            adidoTo: (item.adidoTo || '').trim(),
+            isCurrent: true,
+            isFuture: false,
+            isPast: false,
+          };
+        }
+      }
     }
   }
 
@@ -123,23 +157,38 @@ export const getEffectiveMilitaryLeave = (
  */
 export const getUpcomingMilitaryLeave = (musician: MusicianProfile): ActiveLeaveInfo | null => {
   if (!musician) return null;
+
+  // Se o militar já está com afastamento ativo como status principal, NÃO é "upcoming" (ele já está afastado)
+  const mainStatus = (musician.militaryStatus || '').trim();
+  if (mainStatus && mainStatus.toLowerCase() !== 'ativo') {
+    return null;
+  }
+
   const todayYmd = getTodayYMD();
 
-  const candidateLeaves = getAllCandidateLeaves(musician);
-  for (const leave of candidateLeaves) {
-    const startYmd = normalizeDateToYMD(leave.startDate);
-    const endYmd = normalizeDateToYMD(leave.endDate);
-    const isIndef = !!leave.statusIndefinite;
+  if (Array.isArray(musician.leaveHistory)) {
+    for (const leave of musician.leaveHistory) {
+      const s = (leave?.status || '').trim();
+      if (s && s.toLowerCase() !== 'ativo') {
+        const startYmd = normalizeDateToYMD(leave.startDate);
+        const endYmd = normalizeDateToYMD(leave.endDate);
+        const isIndef = !!leave.statusIndefinite;
 
-    // Inicia no futuro
-    if (startYmd && startYmd > todayYmd) {
-      if (isIndef || !endYmd || endYmd >= startYmd) {
-        return {
-          ...leave,
-          isCurrent: false,
-          isFuture: true,
-          isPast: false,
-        };
+        // Inicia no futuro
+        if (startYmd && startYmd > todayYmd) {
+          if (isIndef || !endYmd || endYmd >= startYmd) {
+            return {
+              status: s,
+              startDate: leave.startDate || '',
+              endDate: leave.endDate || '',
+              statusIndefinite: isIndef,
+              adidoTo: (leave.adidoTo || '').trim(),
+              isCurrent: false,
+              isFuture: true,
+              isPast: false,
+            };
+          }
+        }
       }
     }
   }

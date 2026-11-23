@@ -44,7 +44,7 @@ export function MobileTopNav() {
             label: 'Painel Gestor',
             href: '/admin/scales/new',
             icon: 'shield_person',
-            active: pathname.startsWith('/admin/scales/new') || pathname.startsWith('/admin/scales/import') || pathname.startsWith('/admin/swaps') || pathname.startsWith('/admin/forecasts'),
+            active: pathname.startsWith('/admin/scales/new') || pathname.startsWith('/admin/scales/operational') || pathname.startsWith('/admin/scales/import') || pathname.startsWith('/admin/swaps') || pathname.startsWith('/admin/forecasts'),
             badge: pendingSwaps > 0 ? pendingSwaps : undefined,
           },
           {

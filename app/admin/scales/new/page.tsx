@@ -1127,9 +1127,12 @@ export default function AdminNewScalePage() {
           <div className="size-10" /> {/* Spacer */}
         </header>
 
-        {/* Quick nav Gestor - Somente Nova Escala, Previsão de Serviço, Permuta */}
+        {/* Quick nav Gestor - Nova Escala, Escala Operacional, Previsão de Serviço, Permuta */}
         <div className="px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10 shrink-0">
           <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 whitespace-nowrap">Nova Escala</button>
+          <Link href="/admin/scales/operational" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-4 sm:px-5 text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">Nova Escala Operacional</button>
+          </Link>
           <Link href="/admin/forecasts" className="shrink-0">
             <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-4 sm:px-5 text-xs sm:text-sm font-bold text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors border border-amber-200 dark:border-amber-800 shadow-sm whitespace-nowrap">Previsão de Serviço</button>
           </Link>

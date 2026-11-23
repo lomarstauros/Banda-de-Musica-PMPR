@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { collection, onSnapshot, query, where, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { sortByRankThenName } from '@/lib/sort-military';
@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { getFormatColors } from '@/lib/scale-formats';
 import { canAccessReports } from '@/lib/permissions';
 import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
+import { fmtDate, fmtDateWithWeekday, normalizeDateToYMD, getTodayYMD } from '@/lib/format-date';
+import { getCurrentMilitaryStatus } from '@/lib/military-status';
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -38,6 +40,12 @@ export default function AdminReportsPage() {
   const [selectedFormat, setSelectedFormat] = useState<string>('todos');
   const [filterPresence, setFilterPresence] = useState<'todos' | 'com_escala' | 'sem_escala'>('todos');
   const [sortBy, setSortBy] = useState<'mais_escalados' | 'menos_escalados' | 'posto' | 'nome'>('mais_escalados');
+
+  // Controle de Abas do Relatório: Escalas Musicais vs Relatório Operacional
+  const [activeReportType, setActiveReportType] = useState<'musica' | 'operacional'>('musica');
+  const [operationalPeriodFilter, setOperationalPeriodFilter] = useState<'mes' | 'semana' | 'todos'>('mes');
+  const [operationalSearch, setOperationalSearch] = useState('');
+  const [expandedOperationalMusicianId, setExpandedOperationalMusicianId] = useState<string | null>(null);
 
   // Músico expandido para ver detalhes
   const [expandedMusicianId, setExpandedMusicianId] = useState<string | null>(null);
@@ -367,6 +375,154 @@ export default function AdminReportsPage() {
     document.body.removeChild(link);
   };
 
+  // ─── CÁLCULOS E DADOS DO RELATÓRIO OPERACIONAL ─────────────────────────────
+  
+  // Escalas operacionais filtradas pelo período
+  const operationalScales = useMemo(() => {
+    return scales.filter((s: any) => {
+      const isOp = s.classification === 'operacional' || s.isOperational === true || s.type === 'operacional';
+      if (!isOp) return false;
+      if (!s.date || typeof s.date !== 'string') return false;
+
+      if (operationalPeriodFilter === 'mes') {
+        return s.date.startsWith(currentMonthPrefix);
+      }
+      if (operationalPeriodFilter === 'semana') {
+        const today = new Date();
+        const firstDayOfWeek = new Date(today);
+        const day = today.getDay();
+        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Segunda
+        firstDayOfWeek.setDate(diff);
+        firstDayOfWeek.setHours(0, 0, 0, 0);
+
+        const lastDayOfWeek = new Date(firstDayOfWeek);
+        lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+        lastDayOfWeek.setHours(23, 59, 59, 999);
+
+        const scaleDate = new Date(`${s.date}T12:00:00`);
+        return scaleDate >= firstDayOfWeek && scaleDate <= lastDayOfWeek;
+      }
+      // 'todos' (ano inteiro)
+      return s.date.startsWith(String(selectedYear));
+    }).sort((a: any, b: any) => (b.date || '').localeCompare(a.date || ''));
+  }, [scales, currentMonthPrefix, selectedYear, operationalPeriodFilter]);
+
+  // Indicadores Gerais do Relatório Operacional
+  const operationalStats = useMemo(() => {
+    const totalEscalas = operationalScales.length;
+    let totalHoras = 0;
+    const participatingMusicianIds = new Set<string>();
+    const opmsSet = new Set<string>();
+
+    operationalScales.forEach((s: any) => {
+      const h = Number(s.durationHours) || 8;
+      totalHoras += h;
+      if (s.opm) opmsSet.add(s.opm.split(' (')[0]);
+      if (s.serviceChief?.id) participatingMusicianIds.add(s.serviceChief.id);
+      if (s.driver?.id) participatingMusicianIds.add(s.driver.id);
+      if (Array.isArray(s.musicians)) {
+        s.musicians.forEach((m: any) => participatingMusicianIds.add(m.id));
+      }
+    });
+
+    return {
+      totalEscalas,
+      totalHoras: Math.round(totalHoras * 10) / 10,
+      totalMilitares: participatingMusicianIds.size,
+      totalOpms: opmsSet.size,
+      opmsList: Array.from(opmsSet),
+    };
+  }, [operationalScales]);
+
+  // Dados consolidados por militar no Relatório Operacional
+  const operationalReportByMusician = useMemo(() => {
+    return musicians.map((musician) => {
+      const mid = musician.id;
+      const userOperationalScales = operationalScales.filter((s: any) => {
+        if (s.serviceChief?.id === mid) return true;
+        if (s.driver?.id === mid) return true;
+        if (Array.isArray(s.musicians) && s.musicians.some((m: any) => m.id === mid)) return true;
+        return false;
+      });
+
+      const totalEscalas = userOperationalScales.length;
+      const totalHoras = userOperationalScales.reduce((acc: number, s: any) => acc + (Number(s.durationHours) || 8), 0);
+      const ultimaEscala = userOperationalScales[0] || null;
+      const currentStatus = getCurrentMilitaryStatus(musician) || musician.militaryStatus || 'Ativo';
+
+      return {
+        musician,
+        totalEscalas,
+        totalHoras: Math.round(totalHoras * 10) / 10,
+        ultimaEscala,
+        currentStatus,
+        scales: userOperationalScales,
+      };
+    });
+  }, [musicians, operationalScales]);
+
+  // Lista filtrada e ordenada do Relatório Operacional
+  const filteredOperationalReportData = useMemo(() => {
+    return operationalReportByMusician
+      .filter(({ musician, totalEscalas }) => {
+        if (operationalSearch.trim()) {
+          const q = operationalSearch.toLowerCase();
+          const name = (musician.name || '').toLowerCase();
+          const warName = (musician.war_name || '').toLowerCase();
+          const re = (musician.re || '').toLowerCase();
+          const rank = (musician.rank || '').toLowerCase();
+          return name.includes(q) || warName.includes(q) || re.includes(q) || rank.includes(q);
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        // Primeiro quem mais participou de escalas operacionais
+        if (b.totalEscalas !== a.totalEscalas) return b.totalEscalas - a.totalEscalas;
+        if (b.totalHoras !== a.totalHoras) return b.totalHoras - a.totalHoras;
+        return sortByRankThenName(a.musician, b.musician);
+      });
+  }, [operationalReportByMusician, operationalSearch]);
+
+  const maxOperationalHours = useMemo(() => {
+    return Math.max(...operationalReportByMusician.map(d => d.totalHoras), 1);
+  }, [operationalReportByMusician]);
+
+  // Exportação CSV do Relatório Operacional
+  const handleExportOperationalCSV = () => {
+    const headers = [
+      'Posto/Graduação',
+      'Nome de Guerra',
+      'Nome Completo',
+      'RE',
+      'Total Escalas Operacionais',
+      'Carga Horária (Horas)',
+      'Última Escala (Data)',
+      'Última Escala (OPM)',
+      'Situação Atual'
+    ];
+
+    const rows = filteredOperationalReportData.map(d => [
+      `"${d.musician.rank || ''}"`,
+      `"${d.musician.war_name || ''}"`,
+      `"${d.musician.name || ''}"`,
+      `"${d.musician.re || ''}"`,
+      d.totalEscalas,
+      `${d.totalHoras}h`,
+      d.ultimaEscala ? `"${fmtDate(d.ultimaEscala.date)}"` : '"—"',
+      d.ultimaEscala ? `"${(d.ultimaEscala.opm || '').split(' (')[0]}"` : '"—"',
+      `"${d.currentStatus}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `relatorio_operacional_pmpr_${selectedYear}_${selectedMonth + 1}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const formatDateTime = (ts: any) => {
     if (!ts) return '';
     try {
@@ -409,7 +565,7 @@ export default function AdminReportsPage() {
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
-            onClick={handleExportCSV}
+            onClick={activeReportType === 'operacional' ? handleExportOperationalCSV : handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-gray-300 hover:text-white transition-all shadow-sm"
             title="Exportar dados para planilha Excel / CSV"
           >
@@ -430,6 +586,466 @@ export default function AdminReportsPage() {
 
       {/* Main Container */}
       <main className="flex-1 flex flex-col gap-6 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6">
+
+        {/* Seletor de Tipo de Relatório: Musical vs Operacional */}
+        <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto no-scrollbar">
+          <button
+            type="button"
+            onClick={() => setActiveReportType('musica')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+              activeReportType === 'musica'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">music_note</span>
+            <span>Escalas Musicais & Expediente</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveReportType('operacional')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all ${
+              activeReportType === 'operacional'
+                ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                : 'bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 border border-white/5'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">local_police</span>
+            <span>Relatório Operacional</span>
+            {operationalStats.totalEscalas > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-black border border-blue-400/30">
+                {operationalStats.totalEscalas}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* ============================================================== */}
+        {/* ABA: RELATÓRIO OPERACIONAL                                     */}
+        {/* ============================================================== */}
+        {activeReportType === 'operacional' ? (
+          <div className="flex flex-col gap-6">
+
+            {/* Barra de Período Operacional */}
+            <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start">
+                <button
+                  onClick={handlePrevMonth}
+                  className="size-10 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+                  title="Mês anterior"
+                >
+                  <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-[#161a24] border border-white/10">
+                  <span className="material-symbols-outlined text-blue-400 text-[20px]">calendar_month</span>
+                  <span className="text-base sm:text-lg font-black text-white">
+                    {MONTH_NAMES[selectedMonth]} de {selectedYear}
+                  </span>
+                </div>
+
+                <button
+                  onClick={handleNextMonth}
+                  className="size-10 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-gray-300 hover:text-white transition-colors"
+                  title="Próximo mês"
+                >
+                  <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+              </div>
+
+              {/* Filtros Rápidos de Período */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setOperationalPeriodFilter('semana')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    operationalPeriodFilter === 'semana'
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  Semana Atual
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOperationalPeriodFilter('mes')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    operationalPeriodFilter === 'mes'
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  Mês Inteiro
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setOperationalPeriodFilter('todos')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                    operationalPeriodFilter === 'todos'
+                      ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                      : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                  }`}
+                >
+                  Ano {selectedYear}
+                </button>
+              </div>
+            </section>
+
+            {/* 4 Cards de Indicadores Operacionais */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-[#121620] border border-blue-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-blue-400">local_police</span>
+                  Escalas Operacionais
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+                  {operationalStats.totalEscalas}
+                </span>
+                <span className="text-[11px] text-gray-400">Serviços externos realizados</span>
+              </div>
+
+              <div className="bg-[#121620] border border-indigo-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-indigo-400">schedule</span>
+                  Horas Operacionais
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-indigo-400 tracking-tight mt-1">
+                  {operationalStats.totalHoras}h
+                </span>
+                <span className="text-[11px] text-gray-400">Carga horária acumulada</span>
+              </div>
+
+              <div className="bg-[#121620] border border-emerald-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-emerald-400">groups</span>
+                  Efetivo Empregado
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-1">
+                  {operationalStats.totalMilitares}
+                </span>
+                <span className="text-[11px] text-gray-400">Militares participantes</span>
+              </div>
+
+              <div className="bg-[#121620] border border-amber-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-amber-400">domain</span>
+                  Unidades Apoiadas
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight mt-1">
+                  {operationalStats.totalOpms}
+                </span>
+                <span className="text-[11px] text-gray-400">OPMs atendidas na PMPR</span>
+              </div>
+            </section>
+
+            {/* Busca Rápida no Relatório Operacional */}
+            <section className="bg-[#121620] border border-white/10 rounded-2xl p-4 shadow-lg flex items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[18px]">
+                  search
+                </span>
+                <input
+                  type="text"
+                  placeholder="Filtrar militar por nome de guerra ou RE..."
+                  value={operationalSearch}
+                  onChange={(e) => setOperationalSearch(e.target.value)}
+                  className="w-full bg-[#161a24] border border-white/10 text-white rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-blue-500"
+                />
+              </div>
+
+              <Link href="/admin/scales/operational">
+                <button
+                  type="button"
+                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[18px]">add_circle</span>
+                  <span className="hidden sm:inline">Nova Escala Operacional</span>
+                </button>
+              </Link>
+            </section>
+
+            {/* TABELA 1: Consolidada por Militar & Participação */}
+            <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <span className="material-symbols-outlined text-blue-400 text-[22px]">badge</span>
+                    Controle de Efetivo em Escalas Operacionais
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Total de escalas operacionais e horas acumuladas no período por militar
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 font-bold self-start sm:self-auto">
+                  {filteredOperationalReportData.length} militar(es) listado(s)
+                </span>
+              </div>
+
+              {/* Tabela Responsiva */}
+              <div className="overflow-x-auto no-scrollbar">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                      <th className="py-3 px-3 font-extrabold">Militar</th>
+                      <th className="py-3 px-3 font-extrabold text-center">Escalas</th>
+                      <th className="py-3 px-3 font-extrabold text-center">Horas Acumuladas</th>
+                      <th className="py-3 px-3 font-extrabold hidden md:table-cell">Última Escala Operacional</th>
+                      <th className="py-3 px-3 font-extrabold text-center">Situação</th>
+                      <th className="py-3 px-3 font-extrabold text-right">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {filteredOperationalReportData.map(({ musician, totalEscalas, totalHoras, ultimaEscala, currentStatus, scales: userOpScales }) => {
+                      const isExpanded = expandedOperationalMusicianId === musician.id;
+                      const hasScales = totalEscalas > 0;
+                      const percentHours = Math.round((totalHoras / maxOperationalHours) * 100);
+
+                      return (
+                        <React.Fragment key={musician.id}>
+                          <tr className={`hover:bg-white/[0.03] transition-colors ${hasScales ? 'bg-blue-500/[0.02]' : ''}`}>
+                            <td className="py-3 px-3">
+                              <div className="flex items-center gap-2.5">
+                                {musician.photo_url ? (
+                                  <div
+                                    className="size-8 rounded-full bg-cover bg-center border border-white/10 shrink-0"
+                                    style={{ backgroundImage: `url(${musician.photo_url})` }}
+                                  />
+                                ) : (
+                                  <div className="size-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold text-[11px] uppercase shrink-0">
+                                    {(musician.war_name || musician.name || 'M')[0]}
+                                  </div>
+                                )}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-white truncate">
+                                    {musician.rank || ''} {musician.war_name || musician.name || ''}
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 truncate">
+                                    {musician.re ? `RE ${musician.re}` : 'Efetivo'} • {musician.instrument || 'Banda'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Quantidade de Escalas */}
+                            <td className="py-3 px-3 text-center">
+                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-black ${
+                                totalEscalas > 0
+                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                  : 'bg-white/5 text-gray-500'
+                              }`}>
+                                {totalEscalas}
+                              </span>
+                            </td>
+
+                            {/* Horas Acumuladas */}
+                            <td className="py-3 px-3 text-center">
+                              <div className="flex flex-col items-center gap-1">
+                                <span className="font-extrabold text-white text-xs">
+                                  {totalHoras}h
+                                </span>
+                                {totalHoras > 0 && (
+                                  <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-blue-500 rounded-full"
+                                      style={{ width: `${Math.min(percentHours, 100)}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Última Escala */}
+                            <td className="py-3 px-3 hidden md:table-cell text-gray-300">
+                              {ultimaEscala ? (
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-white">
+                                    {fmtDate(ultimaEscala.date)} ({ultimaEscala.time || '07:00'})
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 truncate">
+                                    {(ultimaEscala.opm || ultimaEscala.location || '').split(' (')[0]} • {ultimaEscala.format || 'RPA'}
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-gray-500 italic">Nenhuma escala no período</span>
+                              )}
+                            </td>
+
+                            {/* Situação Militar */}
+                            <td className="py-3 px-3 text-center">
+                              <MilitaryStatusBadge 
+                                status={currentStatus} 
+                                size="xs"
+                              />
+                            </td>
+
+                            {/* Ação: Expandir detalhes */}
+                            <td className="py-3 px-3 text-right">
+                              {hasScales ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedOperationalMusicianId(isExpanded ? null : musician.id)}
+                                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-blue-400 font-bold text-[11px] transition-colors inline-flex items-center gap-1"
+                                >
+                                  <span>{isExpanded ? 'Recolher' : 'Detalhar'}</span>
+                                  <span className="material-symbols-outlined text-[14px]">
+                                    {isExpanded ? 'expand_less' : 'expand_more'}
+                                  </span>
+                                </button>
+                              ) : (
+                                <span className="text-[11px] text-gray-600">—</span>
+                              )}
+                            </td>
+                          </tr>
+
+                          {/* Linha de Detalhamento das Escalas do Militar */}
+                          {isExpanded && hasScales && (
+                            <tr className="bg-blue-950/20 border-b border-blue-500/20">
+                              <td colSpan={6} className="p-4">
+                                <div className="flex flex-col gap-2.5">
+                                  <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[16px]">list_alt</span>
+                                    Detalhamento dos Serviços Operacionais de {musician.rank} {musician.war_name || musician.name}:
+                                  </span>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                    {userOpScales.map((s: any) => {
+                                      const isChief = s.serviceChief?.id === musician.id;
+                                      const isDriver = s.driver?.id === musician.id;
+                                      const funcao = isChief ? 'Comandante da Equipe' : isDriver ? 'Motorista / Condutor' : 'Patrulheiro / Componente';
+
+                                      return (
+                                        <div key={s.id} className="bg-[#121620] border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+                                          <div className="flex items-center justify-between">
+                                            <span className="font-extrabold text-white text-xs">
+                                              {fmtDate(s.date)}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                              {s.durationHours || 8}h ({s.time} - {s.endTime || '19:00'})
+                                            </span>
+                                          </div>
+                                          <div className="text-xs text-gray-300">
+                                            <span className="font-semibold text-white">OPM:</span> {(s.opm || s.location || '').split(' (')[0]}
+                                          </div>
+                                          <div className="text-[11px] text-gray-400 flex items-center justify-between">
+                                            <span>{s.format || 'Viatura (RPA)'}</span>
+                                            {s.viatura && <span className="font-bold text-amber-400">{s.viatura}</span>}
+                                          </div>
+                                          <div className="text-[10px] text-indigo-400 font-bold border-t border-white/5 pt-1 mt-0.5">
+                                            Função: {funcao}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            {/* TABELA 2: Histórico Geral das Escalas Operacionais do Período */}
+            <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+              <div className="border-b border-white/10 pb-3">
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span className="material-symbols-outlined text-blue-400 text-[22px]">history</span>
+                  Histórico Detalhado de Escalas Operacionais
+                </h3>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Todas as guarnições e viaturas escaladas para policiamento no período
+                </p>
+              </div>
+
+              {operationalScales.length === 0 ? (
+                <div className="py-12 flex flex-col items-center justify-center text-center gap-2 text-gray-500">
+                  <span className="material-symbols-outlined text-4xl text-gray-600">local_police</span>
+                  <p className="text-sm font-semibold">Nenhuma escala operacional cadastrada neste período.</p>
+                  <Link href="/admin/scales/operational">
+                    <button type="button" className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all">
+                      Cadastrar Primeira Escala Operacional
+                    </button>
+                  </Link>
+                </div>
+              ) : (
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-3 font-extrabold">Data / Horário</th>
+                        <th className="py-3 px-3 font-extrabold">Modalidade</th>
+                        <th className="py-3 px-3 font-extrabold">OPM Apoiada</th>
+                        <th className="py-3 px-3 font-extrabold">Viatura</th>
+                        <th className="py-3 px-3 font-extrabold">Guarnição Escalada</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {operationalScales.map((s: any) => {
+                        const chiefLabel = s.serviceChief ? `${s.serviceChief.rank || ''} ${s.serviceChief.war_name || s.serviceChief.name || ''}`.trim() : null;
+                        const driverLabel = s.driver ? `${s.driver.rank || ''} ${s.driver.war_name || s.driver.name || ''}`.trim() : null;
+                        const membersLabels = Array.isArray(s.musicians)
+                          ? s.musicians
+                              .filter((m: any) => m.id !== s.serviceChief?.id && m.id !== s.driver?.id)
+                              .map((m: any) => `${m.rank || ''} ${m.war_name || m.name || ''}`.trim())
+                          : [];
+
+                        return (
+                          <tr key={s.id} className="hover:bg-white/[0.03] transition-colors">
+                            <td className="py-3 px-3 font-bold text-white whitespace-nowrap">
+                              <div>{fmtDate(s.date)}</div>
+                              <span className="text-[10px] text-gray-400 font-normal">
+                                {s.time} às {s.endTime || '19:00'} ({s.durationHours || 8}h)
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-blue-300 font-semibold">
+                              {s.format || 'Viatura (RPA)'}
+                            </td>
+                            <td className="py-3 px-3 text-white font-bold">
+                              {(s.opm || s.location || '').split(' (')[0]}
+                            </td>
+                            <td className="py-3 px-3 text-amber-400 font-bold whitespace-nowrap">
+                              {s.viatura || '—'}
+                            </td>
+                            <td className="py-3 px-3">
+                              <div className="flex flex-col gap-0.5">
+                                {chiefLabel && (
+                                  <span className="text-white font-bold">
+                                    ⭐ <span className="text-amber-300">{chiefLabel}</span> (Cmt)
+                                  </span>
+                                )}
+                                {driverLabel && (
+                                  <span className="text-indigo-300 font-medium">
+                                    🚘 {driverLabel} (Mot)
+                                  </span>
+                                )}
+                                {membersLabels.length > 0 && (
+                                  <span className="text-gray-300">
+                                    👮 {membersLabels.join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+
+          </div>
+        ) : (
+          /* ============================================================== */
+          /* ABA: ESCALAS MUSICAIS & EXPEDIENTE (EXISTENTE)                */
+          /* ============================================================== */
+          <div className="flex flex-col gap-6">
 
         {/* Barra de Seleção de Mês e Ano */}
         <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4">
@@ -883,6 +1499,8 @@ export default function AdminReportsPage() {
             </div>
           )}
         </section>
+        </div>
+      )}
 
         <div className="h-6"></div>
       </main>

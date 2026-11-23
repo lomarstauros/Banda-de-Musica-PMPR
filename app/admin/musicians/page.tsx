@@ -251,7 +251,7 @@ export default function AdminMusiciansListPage() {
                         ) : upcomingLeave ? (
                           <MilitaryStatusBadge 
                             status={upcomingLeave.status} 
-                            upcomingDate={upcomingLeave.startDate} 
+                            title={`Afastamento agendado a partir de ${fmtDate(upcomingLeave.startDate)}`}
                           />
                         ) : (
                           <MilitaryStatusBadge status="Ativo" />

@@ -368,11 +368,16 @@ export default function AdminForecastsPage() {
           </div>
         </header>
 
-        {/* Quick nav Gestor - Somente as 3 abas oficiais do Painel Gestor */}
+        {/* Quick nav Gestor - Nova Escala, Escala Operacional, Previsão de Serviço, Permuta */}
         <div className="px-4 lg:px-6 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar bg-white dark:bg-gray-900/60 border-b border-gray-100 dark:border-white/10 shrink-0">
           <Link href="/admin/scales/new" className="shrink-0">
             <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 px-4 sm:px-5 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-200 transition-colors whitespace-nowrap">
               Nova Escala
+            </button>
+          </Link>
+          <Link href="/admin/scales/operational" className="shrink-0">
+            <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 px-4 sm:px-5 text-xs sm:text-sm font-bold text-blue-700 dark:text-blue-400 hover:bg-blue-100 transition-colors border border-blue-200 dark:border-blue-800 shadow-sm whitespace-nowrap">
+              Nova Escala Operacional
             </button>
           </Link>
           <button type="button" className="flex h-9 shrink-0 items-center justify-center rounded-full bg-primary px-4 sm:px-5 text-xs sm:text-sm font-bold text-white shadow-lg shadow-primary/20 whitespace-nowrap">

@@ -47,6 +47,14 @@ export default function AdminReportsPage() {
   const [operationalSearch, setOperationalSearch] = useState('');
   const [expandedOperationalMusicianId, setExpandedOperationalMusicianId] = useState<string | null>(null);
 
+  // Estados dos Modais de Tabela e Abas Operacionais acionados pelos Cards/Botões
+  const [activeTableModal, setActiveTableModal] = useState<
+    'op_escalas' | 'op_horas' | 'op_efetivo' | 'op_unidades' | 'mus_servicos' | 'mus_participacoes' | 'mus_ciencia' | null
+  >(null);
+  const [activeOperationalTab, setActiveOperationalTab] = useState<'todos' | 'efetivo' | 'escalas' | 'horas' | 'unidades'>('todos');
+  const [efetivoEmpregadoSubTab, setEfetivoEmpregadoSubTab] = useState<'empregados' | 'nao_empregados'>('empregados');
+  const [modalSearch, setModalSearch] = useState('');
+
   // Músico expandido para ver detalhes
   const [expandedMusicianId, setExpandedMusicianId] = useState<string | null>(null);
 
@@ -487,6 +495,81 @@ export default function AdminReportsPage() {
     return Math.max(...operationalReportByMusician.map(d => d.totalHoras), 1);
   }, [operationalReportByMusician]);
 
+  // Agrupamento detalhado por Unidade Apoiada (OPM)
+  const opmBreakdown = useMemo(() => {
+    const map = new Map<string, {
+      opm: string;
+      totalScales: number;
+      totalHours: number;
+      viaturas: Set<string>;
+      musicians: Map<string, { id: string; name: string; rank: string; war_name: string; count: number; hours: number }>;
+      scales: any[];
+      lastDate: string;
+    }>();
+
+    operationalScales.forEach((s: any) => {
+      const rawOpm = (s.opm || s.location || 'Outra Unidade').split(' (')[0].trim();
+      if (!map.has(rawOpm)) {
+        map.set(rawOpm, {
+          opm: rawOpm,
+          totalScales: 0,
+          totalHours: 0,
+          viaturas: new Set(),
+          musicians: new Map(),
+          scales: [],
+          lastDate: s.date || '',
+        });
+      }
+
+      const entry = map.get(rawOpm)!;
+      const hours = (Number(s.durationHours) || 8);
+      entry.totalScales += 1;
+      entry.totalHours += hours;
+      if (s.viatura) entry.viaturas.add(s.viatura);
+      if (s.date && (!entry.lastDate || s.date > entry.lastDate)) entry.lastDate = s.date;
+      entry.scales.push(s);
+
+      const addPerson = (p: any) => {
+        if (!p || !p.id) return;
+        const cur = entry.musicians.get(p.id) || {
+          id: p.id,
+          name: p.name || '',
+          war_name: p.war_name || '',
+          rank: p.rank || '',
+          count: 0,
+          hours: 0,
+        };
+        cur.count += 1;
+        cur.hours += hours;
+        entry.musicians.set(p.id, cur);
+      };
+
+      if (s.serviceChief) addPerson(s.serviceChief);
+      if (s.driver) addPerson(s.driver);
+      if (Array.isArray(s.musicians)) {
+        s.musicians.forEach(addPerson);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalScales - a.totalScales);
+  }, [operationalScales]);
+
+  // Listas de Efetivo Empregado vs Não Empregado no período
+  const { empregadosList, naoEmpregadosList } = useMemo(() => {
+    const emp = operationalReportByMusician.filter(d => d.totalEscalas > 0);
+    const naoEmp = operationalReportByMusician.filter(d => d.totalEscalas === 0);
+    return { empregadosList: emp, naoEmpregadosList: naoEmp };
+  }, [operationalReportByMusician]);
+
+  // Ranking de Militares por Carga Horária Operacional
+  const horasRankingList = useMemo(() => {
+    return [...operationalReportByMusician].sort((a, b) => {
+      if (b.totalHoras !== a.totalHoras) return b.totalHoras - a.totalHoras;
+      if (b.totalEscalas !== a.totalEscalas) return b.totalEscalas - a.totalEscalas;
+      return sortByRankThenName(a.musician, b.musician);
+    });
+  }, [operationalReportByMusician]);
+
   // Exportação CSV do Relatório Operacional
   const handleExportOperationalCSV = () => {
     const headers = [
@@ -694,52 +777,196 @@ export default function AdminReportsPage() {
               </div>
             </section>
 
-            {/* 4 Cards de Indicadores Operacionais */}
+            {/* 4 Cards de Indicadores Operacionais Clicáveis como Botões de Tabela */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              <div className="bg-[#121620] border border-blue-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-blue-400">local_police</span>
-                  Escalas Operacionais
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+              
+              {/* Botão Card 1: Escalas Operacionais */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTableModal('op_escalas');
+                  setActiveOperationalTab('escalas');
+                  setModalSearch('');
+                }}
+                className={`text-left bg-[#121620] border rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group hover:border-blue-500/60 hover:shadow-blue-500/10 ${
+                  activeOperationalTab === 'escalas' ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-blue-500/20'
+                }`}
+                title="Clique para abrir tabela detalhada com todas as Escalas Operacionais"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-blue-400 transition-colors">
+                    <span className="material-symbols-outlined text-[18px] text-blue-400">local_police</span>
+                    Escalas Operacionais
+                  </span>
+                  <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-blue-400 transition-colors">
+                    open_in_new
+                  </span>
+                </div>
+                <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1 group-hover:text-blue-300 transition-colors">
                   {operationalStats.totalEscalas}
                 </span>
-                <span className="text-[11px] text-gray-400">Serviços externos realizados</span>
-              </div>
+                <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+                  <span className="truncate">Serviços externos</span>
+                  <span className="text-[10px] text-blue-400 font-bold group-hover:underline shrink-0">Abrir Tabela</span>
+                </div>
+              </button>
 
-              <div className="bg-[#121620] border border-indigo-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-indigo-400">schedule</span>
-                  Horas Operacionais
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-indigo-400 tracking-tight mt-1">
+              {/* Botão Card 2: Horas Operacionais */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTableModal('op_horas');
+                  setActiveOperationalTab('horas');
+                  setModalSearch('');
+                }}
+                className={`text-left bg-[#121620] border rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group hover:border-indigo-500/60 hover:shadow-indigo-500/10 ${
+                  activeOperationalTab === 'horas' ? 'border-indigo-500 ring-2 ring-indigo-500/30' : 'border-indigo-500/20'
+                }`}
+                title="Clique para abrir tabela de Equalização e Ranking de Carga Horária"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-indigo-400 transition-colors">
+                    <span className="material-symbols-outlined text-[18px] text-indigo-400">schedule</span>
+                    Horas Operacionais
+                  </span>
+                  <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-indigo-400 transition-colors">
+                    open_in_new
+                  </span>
+                </div>
+                <span className="text-2xl sm:text-3xl font-black text-indigo-400 tracking-tight mt-1 group-hover:text-indigo-300 transition-colors">
                   {operationalStats.totalHoras}h
                 </span>
-                <span className="text-[11px] text-gray-400">Carga horária acumulada</span>
-              </div>
+                <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+                  <span className="truncate">Carga horária total</span>
+                  <span className="text-[10px] text-indigo-400 font-bold group-hover:underline shrink-0">Ver Ranking</span>
+                </div>
+              </button>
 
-              <div className="bg-[#121620] border border-emerald-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-emerald-400">groups</span>
-                  Efetivo Empregado
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-1">
+              {/* Botão Card 3: Efetivo Empregado */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTableModal('op_efetivo');
+                  setActiveOperationalTab('efetivo');
+                  setModalSearch('');
+                }}
+                className={`text-left bg-[#121620] border rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group hover:border-emerald-500/60 hover:shadow-emerald-500/10 ${
+                  activeOperationalTab === 'efetivo' ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-emerald-500/20'
+                }`}
+                title="Clique para abrir tabela do Efetivo Empregado e Não Empregado"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-emerald-400 transition-colors">
+                    <span className="material-symbols-outlined text-[18px] text-emerald-400">groups</span>
+                    Efetivo Empregado
+                  </span>
+                  <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-emerald-400 transition-colors">
+                    open_in_new
+                  </span>
+                </div>
+                <span className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-1 group-hover:text-emerald-300 transition-colors">
                   {operationalStats.totalMilitares}
                 </span>
-                <span className="text-[11px] text-gray-400">Militares participantes</span>
-              </div>
+                <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+                  <span className="truncate">Militares ativos</span>
+                  <span className="text-[10px] text-emerald-400 font-bold group-hover:underline shrink-0">Ver Efetivo</span>
+                </div>
+              </button>
 
-              <div className="bg-[#121620] border border-amber-500/20 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-amber-400">domain</span>
-                  Unidades Apoiadas
-                </span>
-                <span className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight mt-1">
+              {/* Botão Card 4: Unidades Apoiadas */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTableModal('op_unidades');
+                  setActiveOperationalTab('unidades');
+                  setModalSearch('');
+                }}
+                className={`text-left bg-[#121620] border rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group hover:border-amber-500/60 hover:shadow-amber-500/10 ${
+                  activeOperationalTab === 'unidades' ? 'border-amber-500 ring-2 ring-amber-500/30' : 'border-amber-500/20'
+                }`}
+                title="Clique para abrir tabela detalhada por Unidade Apoiada (OPM)"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-amber-400 transition-colors">
+                    <span className="material-symbols-outlined text-[18px] text-amber-400">domain</span>
+                    Unidades Apoiadas
+                  </span>
+                  <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-amber-400 transition-colors">
+                    open_in_new
+                  </span>
+                </div>
+                <span className="text-2xl sm:text-3xl font-black text-amber-400 tracking-tight mt-1 group-hover:text-amber-300 transition-colors">
                   {operationalStats.totalOpms}
                 </span>
-                <span className="text-[11px] text-gray-400">OPMs atendidas na PMPR</span>
-              </div>
+                <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+                  <span className="truncate">OPMs atendidas</span>
+                  <span className="text-[10px] text-amber-400 font-bold group-hover:underline shrink-0">Ver por OPM</span>
+                </div>
+              </button>
             </section>
+
+            {/* Barra de Filtros Rápidos de Visualização de Tabelas */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">view_list</span>
+                Tabela:
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveOperationalTab('todos')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  activeOperationalTab === 'todos'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                }`}
+              >
+                Visão Geral (Todas)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOperationalTab('efetivo')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  activeOperationalTab === 'efetivo'
+                    ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                }`}
+              >
+                👮 Efetivo Empregado ({operationalStats.totalMilitares})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOperationalTab('escalas')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  activeOperationalTab === 'escalas'
+                    ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                }`}
+              >
+                🚓 Escalas Operacionais ({operationalStats.totalEscalas})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOperationalTab('horas')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  activeOperationalTab === 'horas'
+                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                }`}
+              >
+                ⏱️ Carga Horária & Ranking ({operationalStats.totalHoras}h)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveOperationalTab('unidades')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
+                  activeOperationalTab === 'unidades'
+                    ? 'bg-amber-600 text-white border-amber-500 shadow-sm'
+                    : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
+                }`}
+              >
+                🏛️ Unidades Apoiadas ({operationalStats.totalOpms})
+              </button>
+            </div>
 
             {/* Busca Rápida no Relatório Operacional */}
             <section className="bg-[#121620] border border-white/10 rounded-2xl p-4 shadow-lg flex items-center justify-between gap-4">
@@ -767,269 +994,144 @@ export default function AdminReportsPage() {
               </Link>
             </section>
 
-            {/* TABELA 1: Consolidada por Militar & Participação */}
-            <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
-                <div>
-                  <h3 className="text-base font-black text-white flex items-center gap-2">
-                    <span className="material-symbols-outlined text-blue-400 text-[22px]">badge</span>
-                    Controle de Efetivo em Escalas Operacionais
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Total de escalas operacionais e horas acumuladas no período por militar
-                  </p>
+            {/* TABELAS OPERACIONAIS SELECIONADAS PELAS ABAS OU CARDS */}
+
+            {/* 1. VISÃO: UNIDADES APOIADAS (OPMs) */}
+            {(activeOperationalTab === 'unidades') && (
+              <section className="bg-[#121620] border border-amber-500/30 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-amber-400 text-[22px]">domain</span>
+                      Controle por Unidade Apoiada (OPM)
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Detalhamento de escalas, carga horária e viaturas empregadas por Batalhão/Unidade
+                    </p>
+                  </div>
+                  <span className="text-xs text-amber-400 font-bold self-start sm:self-auto bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                    {opmBreakdown.length} unidade(s) atendida(s)
+                  </span>
                 </div>
-                <span className="text-xs text-gray-400 font-bold self-start sm:self-auto">
-                  {filteredOperationalReportData.length} militar(es) listado(s)
-                </span>
-              </div>
 
-              {/* Tabela Responsiva */}
-              <div className="overflow-x-auto no-scrollbar">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
-                      <th className="py-3 px-3 font-extrabold">Militar</th>
-                      <th className="py-3 px-3 font-extrabold text-center">Escalas</th>
-                      <th className="py-3 px-3 font-extrabold text-center">Horas Acumuladas</th>
-                      <th className="py-3 px-3 font-extrabold hidden md:table-cell">Última Escala Operacional</th>
-                      <th className="py-3 px-3 font-extrabold text-center">Situação</th>
-                      <th className="py-3 px-3 font-extrabold text-right">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {filteredOperationalReportData.map(({ musician, totalEscalas, totalHoras, ultimaEscala, currentStatus, scales: userOpScales }) => {
-                      const isExpanded = expandedOperationalMusicianId === musician.id;
-                      const hasScales = totalEscalas > 0;
-                      const percentHours = Math.round((totalHoras / maxOperationalHours) * 100);
-
-                      return (
-                        <React.Fragment key={musician.id}>
-                          <tr className={`hover:bg-white/[0.03] transition-colors ${hasScales ? 'bg-blue-500/[0.02]' : ''}`}>
-                            <td className="py-3 px-3">
-                              <div className="flex items-center gap-2.5">
-                                {musician.photo_url ? (
-                                  <div
-                                    className="size-8 rounded-full bg-cover bg-center border border-white/10 shrink-0"
-                                    style={{ backgroundImage: `url(${musician.photo_url})` }}
-                                  />
-                                ) : (
-                                  <div className="size-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold text-[11px] uppercase shrink-0">
-                                    {(musician.war_name || musician.name || 'M')[0]}
-                                  </div>
-                                )}
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-white truncate">
-                                    {musician.rank || ''} {musician.war_name || musician.name || ''}
-                                  </span>
-                                  <span className="text-[10px] text-gray-400 truncate">
-                                    {musician.re ? `RE ${musician.re}` : 'Efetivo'} • {musician.instrument || 'Banda'}
-                                  </span>
-                                </div>
-                              </div>
+                {opmBreakdown.length === 0 ? (
+                  <div className="py-10 text-center text-gray-500 text-xs">
+                    Nenhuma unidade apoiada registrada no período.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-3 px-3 font-extrabold">Unidade / OPM</th>
+                          <th className="py-3 px-3 font-extrabold text-center">Escalas</th>
+                          <th className="py-3 px-3 font-extrabold text-center">Carga Horária</th>
+                          <th className="py-3 px-3 font-extrabold">Viaturas Empregadas</th>
+                          <th className="py-3 px-3 font-extrabold">Efetivo Alocado</th>
+                          <th className="py-3 px-3 font-extrabold text-right">Último Apoio</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {opmBreakdown.map((item) => (
+                          <tr key={item.opm} className="hover:bg-white/[0.03] transition-colors">
+                            <td className="py-3 px-3 font-black text-white text-sm">
+                              {item.opm}
                             </td>
-
-                            {/* Quantidade de Escalas */}
                             <td className="py-3 px-3 text-center">
-                              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-black ${
-                                totalEscalas > 0
-                                  ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                  : 'bg-white/5 text-gray-500'
-                              }`}>
-                                {totalEscalas}
+                              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                                {item.totalScales}
                               </span>
                             </td>
-
-                            {/* Horas Acumuladas */}
-                            <td className="py-3 px-3 text-center">
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="font-extrabold text-white text-xs">
-                                  {totalHoras}h
-                                </span>
-                                {totalHoras > 0 && (
-                                  <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-blue-500 rounded-full"
-                                      style={{ width: `${Math.min(percentHours, 100)}%` }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
+                            <td className="py-3 px-3 text-center font-bold text-indigo-300">
+                              {item.totalHours}h
                             </td>
-
-                            {/* Última Escala */}
-                            <td className="py-3 px-3 hidden md:table-cell text-gray-300">
-                              {ultimaEscala ? (
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-white">
-                                    {fmtDate(ultimaEscala.date)} ({ultimaEscala.time || '07:00'})
-                                  </span>
-                                  <span className="text-[10px] text-gray-400 truncate">
-                                    {(ultimaEscala.opm || ultimaEscala.location || '').split(' (')[0]} • {ultimaEscala.format || 'RPA'}
-                                  </span>
-                                </div>
-                              ) : (
-                                <span className="text-gray-500 italic">Nenhuma escala no período</span>
-                              )}
+                            <td className="py-3 px-3 text-amber-400 font-semibold">
+                              {Array.from(item.viaturas).join(', ') || 'A pé / Não informado'}
                             </td>
-
-                            {/* Situação Militar */}
-                            <td className="py-3 px-3 text-center">
-                              <MilitaryStatusBadge 
-                                status={currentStatus} 
-                                size="xs"
-                              />
+                            <td className="py-3 px-3 text-gray-300">
+                              <span className="text-[11px]">
+                                {Array.from(item.musicians.values()).map(m => `${m.rank} ${m.war_name || m.name}`).join(', ')}
+                              </span>
                             </td>
-
-                            {/* Ação: Expandir detalhes */}
-                            <td className="py-3 px-3 text-right">
-                              {hasScales ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setExpandedOperationalMusicianId(isExpanded ? null : musician.id)}
-                                  className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-blue-400 font-bold text-[11px] transition-colors inline-flex items-center gap-1"
-                                >
-                                  <span>{isExpanded ? 'Recolher' : 'Detalhar'}</span>
-                                  <span className="material-symbols-outlined text-[14px]">
-                                    {isExpanded ? 'expand_less' : 'expand_more'}
-                                  </span>
-                                </button>
-                              ) : (
-                                <span className="text-[11px] text-gray-600">—</span>
-                              )}
+                            <td className="py-3 px-3 text-right text-gray-400 whitespace-nowrap">
+                              {item.lastDate ? fmtDate(item.lastDate) : '—'}
                             </td>
                           </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
 
-                          {/* Linha de Detalhamento das Escalas do Militar */}
-                          {isExpanded && hasScales && (
-                            <tr className="bg-blue-950/20 border-b border-blue-500/20">
-                              <td colSpan={6} className="p-4">
-                                <div className="flex flex-col gap-2.5">
-                                  <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
-                                    <span className="material-symbols-outlined text-[16px]">list_alt</span>
-                                    Detalhamento dos Serviços Operacionais de {musician.rank} {musician.war_name || musician.name}:
-                                  </span>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                                    {userOpScales.map((s: any) => {
-                                      const isChief = s.serviceChief?.id === musician.id;
-                                      const isDriver = s.driver?.id === musician.id;
-                                      const funcao = isChief ? 'Comandante da Equipe' : isDriver ? 'Motorista / Condutor' : 'Patrulheiro / Componente';
-
-                                      return (
-                                        <div key={s.id} className="bg-[#121620] border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
-                                          <div className="flex items-center justify-between">
-                                            <span className="font-extrabold text-white text-xs">
-                                              {fmtDate(s.date)}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
-                                              {s.durationHours || 8}h ({s.time} - {s.endTime || '19:00'})
-                                            </span>
-                                          </div>
-                                          <div className="text-xs text-gray-300">
-                                            <span className="font-semibold text-white">OPM:</span> {(s.opm || s.location || '').split(' (')[0]}
-                                          </div>
-                                          <div className="text-[11px] text-gray-400 flex items-center justify-between">
-                                            <span>{s.format || 'Viatura (RPA)'}</span>
-                                            {s.viatura && <span className="font-bold text-amber-400">{s.viatura}</span>}
-                                          </div>
-                                          <div className="text-[10px] text-indigo-400 font-bold border-t border-white/5 pt-1 mt-0.5">
-                                            Função: {funcao}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-
-            {/* TABELA 2: Histórico Geral das Escalas Operacionais do Período */}
-            <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
-              <div className="border-b border-white/10 pb-3">
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <span className="material-symbols-outlined text-blue-400 text-[22px]">history</span>
-                  Histórico Detalhado de Escalas Operacionais
-                </h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Todas as guarnições e viaturas escaladas para policiamento no período
-                </p>
-              </div>
-
-              {operationalScales.length === 0 ? (
-                <div className="py-12 flex flex-col items-center justify-center text-center gap-2 text-gray-500">
-                  <span className="material-symbols-outlined text-4xl text-gray-600">local_police</span>
-                  <p className="text-sm font-semibold">Nenhuma escala operacional cadastrada neste período.</p>
-                  <Link href="/admin/scales/operational">
-                    <button type="button" className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all">
-                      Cadastrar Primeira Escala Operacional
-                    </button>
-                  </Link>
+            {/* 2. VISÃO: CARGA HORÁRIA & RANKING */}
+            {(activeOperationalTab === 'horas') && (
+              <section className="bg-[#121620] border border-indigo-500/30 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-4">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-indigo-400 text-[22px]">schedule</span>
+                      Controle e Equalização de Carga Horária Operacional
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Ranking de horas cumpridas pelo efetivo para equilíbrio das futuras escalas
+                    </p>
+                  </div>
+                  <span className="text-xs text-indigo-400 font-bold self-start sm:self-auto bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                    Total: {operationalStats.totalHoras}h cumpridas
+                  </span>
                 </div>
-              ) : (
+
                 <div className="overflow-x-auto no-scrollbar">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
-                        <th className="py-3 px-3 font-extrabold">Data / Horário</th>
-                        <th className="py-3 px-3 font-extrabold">Modalidade</th>
-                        <th className="py-3 px-3 font-extrabold">OPM Apoiada</th>
-                        <th className="py-3 px-3 font-extrabold">Viatura</th>
-                        <th className="py-3 px-3 font-extrabold">Guarnição Escalada</th>
+                        <th className="py-3 px-3 font-extrabold">Pos.</th>
+                        <th className="py-3 px-3 font-extrabold">Militar</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Horas Acumuladas</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Escalas</th>
+                        <th className="py-3 px-3 font-extrabold">Proporção Carga</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Situação</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {operationalScales.map((s: any) => {
-                        const chiefLabel = s.serviceChief ? `${s.serviceChief.rank || ''} ${s.serviceChief.war_name || s.serviceChief.name || ''}`.trim() : null;
-                        const driverLabel = s.driver ? `${s.driver.rank || ''} ${s.driver.war_name || s.driver.name || ''}`.trim() : null;
-                        const membersLabels = Array.isArray(s.musicians)
-                          ? s.musicians
-                              .filter((m: any) => m.id !== s.serviceChief?.id && m.id !== s.driver?.id)
-                              .map((m: any) => `${m.rank || ''} ${m.war_name || m.name || ''}`.trim())
-                          : [];
-
+                      {horasRankingList.map((item, index) => {
+                        const percent = maxOperationalHours > 0 ? Math.round((item.totalHoras / maxOperationalHours) * 100) : 0;
                         return (
-                          <tr key={s.id} className="hover:bg-white/[0.03] transition-colors">
-                            <td className="py-3 px-3 font-bold text-white whitespace-nowrap">
-                              <div>{fmtDate(s.date)}</div>
-                              <span className="text-[10px] text-gray-400 font-normal">
-                                {s.time} às {s.endTime || '19:00'} ({s.durationHours || 8}h)
-                              </span>
-                            </td>
-                            <td className="py-3 px-3 text-blue-300 font-semibold">
-                              {s.format || 'Viatura (RPA)'}
-                            </td>
-                            <td className="py-3 px-3 text-white font-bold">
-                              {(s.opm || s.location || '').split(' (')[0]}
-                            </td>
-                            <td className="py-3 px-3 text-amber-400 font-bold whitespace-nowrap">
-                              {s.viatura || '—'}
+                          <tr key={item.musician.id} className="hover:bg-white/[0.03] transition-colors">
+                            <td className="py-3 px-3 font-bold text-gray-500">
+                              #{index + 1}
                             </td>
                             <td className="py-3 px-3">
-                              <div className="flex flex-col gap-0.5">
-                                {chiefLabel && (
-                                  <span className="text-white font-bold">
-                                    ⭐ <span className="text-amber-300">{chiefLabel}</span> (Cmt)
-                                  </span>
-                                )}
-                                {driverLabel && (
-                                  <span className="text-indigo-300 font-medium">
-                                    🚘 {driverLabel} (Mot)
-                                  </span>
-                                )}
-                                {membersLabels.length > 0 && (
-                                  <span className="text-gray-300">
-                                    👮 {membersLabels.join(', ')}
-                                  </span>
-                                )}
+                              <span className="font-bold text-white">
+                                {item.musician.rank} {item.musician.war_name || item.musician.name}
+                              </span>
+                              <span className="text-[10px] text-gray-400 ml-1.5">
+                                {item.musician.re ? `(RE ${item.musician.re})` : ''}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 text-center font-black text-indigo-400 text-sm">
+                              {item.totalHoras}h
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <span className="px-2 py-0.5 rounded-full bg-white/5 font-bold text-white">
+                                {item.totalEscalas}
+                              </span>
+                            </td>
+                            <td className="py-3 px-3 min-w-[140px]">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-blue-400 rounded-full"
+                                    style={{ width: `${Math.min(percent, 100)}%` }}
+                                  />
+                                </div>
+                                <span className="text-[10px] text-gray-400 font-bold">{percent}%</span>
                               </div>
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <MilitaryStatusBadge status={item.currentStatus} size="xs" />
                             </td>
                           </tr>
                         );
@@ -1037,8 +1139,324 @@ export default function AdminReportsPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </section>
+              </section>
+            )}
+
+            {/* 3. VISÃO: EFETIVO (EMPREGADOS VS NÃO EMPREGADOS) OU VISÃO GERAL */}
+            {(activeOperationalTab === 'efetivo' || activeOperationalTab === 'todos') && (
+              <section className="bg-[#121620] border border-white/10 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-emerald-400 text-[22px]">badge</span>
+                      Controle de Efetivo em Escalas Operacionais
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Total de escalas operacionais e horas acumuladas no período por militar
+                    </p>
+                  </div>
+
+                  {/* Sub-abas: Empregados vs Não Empregados */}
+                  <div className="flex items-center gap-1.5 self-start sm:self-auto bg-black/40 p-1 rounded-xl border border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setEfetivoEmpregadoSubTab('empregados')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        efetivoEmpregadoSubTab === 'empregados'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Empregados ({empregadosList.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEfetivoEmpregadoSubTab('nao_empregados')}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        efetivoEmpregadoSubTab === 'nao_empregados'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Sem Escala ({naoEmpregadosList.length})
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tabela do Efetivo */}
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                        <th className="py-3 px-3 font-extrabold">Militar</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Escalas</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Horas Acumuladas</th>
+                        <th className="py-3 px-3 font-extrabold hidden md:table-cell">Última Escala Operacional</th>
+                        <th className="py-3 px-3 font-extrabold text-center">Situação</th>
+                        <th className="py-3 px-3 font-extrabold text-right">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {(efetivoEmpregadoSubTab === 'empregados' ? empregadosList : naoEmpregadosList)
+                        .filter(({ musician }) => {
+                          if (operationalSearch.trim()) {
+                            const q = operationalSearch.toLowerCase();
+                            const name = (musician.name || '').toLowerCase();
+                            const warName = (musician.war_name || '').toLowerCase();
+                            const re = (musician.re || '').toLowerCase();
+                            return name.includes(q) || warName.includes(q) || re.includes(q);
+                          }
+                          return true;
+                        })
+                        .map(({ musician, totalEscalas, totalHoras, ultimaEscala, currentStatus, scales: userOpScales }) => {
+                          const isExpanded = expandedOperationalMusicianId === musician.id;
+                          const hasScales = totalEscalas > 0;
+                          const percentHours = Math.round((totalHoras / maxOperationalHours) * 100);
+
+                          return (
+                            <React.Fragment key={musician.id}>
+                              <tr className={`hover:bg-white/[0.03] transition-colors ${hasScales ? 'bg-blue-500/[0.02]' : ''}`}>
+                                <td className="py-3 px-3">
+                                  <div className="flex items-center gap-2.5">
+                                    {musician.photo_url ? (
+                                      <div
+                                        className="size-8 rounded-full bg-cover bg-center border border-white/10 shrink-0"
+                                        style={{ backgroundImage: `url(${musician.photo_url})` }}
+                                      />
+                                    ) : (
+                                      <div className="size-8 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold text-[11px] uppercase shrink-0">
+                                        {(musician.war_name || musician.name || 'M')[0]}
+                                      </div>
+                                    )}
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="font-bold text-white truncate">
+                                        {musician.rank || ''} {musician.war_name || musician.name || ''}
+                                      </span>
+                                      <span className="text-[10px] text-gray-400 truncate">
+                                        {musician.re ? `RE ${musician.re}` : 'Efetivo'} • {musician.instrument || 'Banda'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </td>
+
+                                {/* Quantidade de Escalas */}
+                                <td className="py-3 px-3 text-center">
+                                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-black ${
+                                    totalEscalas > 0
+                                      ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                      : 'bg-white/5 text-gray-500'
+                                  }`}>
+                                    {totalEscalas}
+                                  </span>
+                                </td>
+
+                                {/* Horas Acumuladas */}
+                                <td className="py-3 px-3 text-center">
+                                  <div className="flex flex-col items-center gap-1">
+                                    <span className="font-extrabold text-white text-xs">
+                                      {totalHoras}h
+                                    </span>
+                                    {totalHoras > 0 && (
+                                      <div className="w-16 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                          className="h-full bg-blue-500 rounded-full"
+                                          style={{ width: `${Math.min(percentHours, 100)}%` }}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+
+                                {/* Última Escala */}
+                                <td className="py-3 px-3 hidden md:table-cell text-gray-300">
+                                  {ultimaEscala ? (
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-white">
+                                        {fmtDate(ultimaEscala.date)} ({ultimaEscala.time || '07:00'})
+                                      </span>
+                                      <span className="text-[10px] text-gray-400 truncate">
+                                        {(ultimaEscala.opm || ultimaEscala.location || '').split(' (')[0]} • {ultimaEscala.format || 'RPA'}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="text-gray-500 italic">Sem escalas no período</span>
+                                  )}
+                                </td>
+
+                                {/* Situação Militar */}
+                                <td className="py-3 px-3 text-center">
+                                  <MilitaryStatusBadge 
+                                    status={currentStatus} 
+                                    size="xs"
+                                  />
+                                </td>
+
+                                {/* Ação: Expandir detalhes */}
+                                <td className="py-3 px-3 text-right">
+                                  {hasScales ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedOperationalMusicianId(isExpanded ? null : musician.id)}
+                                      className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-blue-400 font-bold text-[11px] transition-colors inline-flex items-center gap-1"
+                                    >
+                                      <span>{isExpanded ? 'Recolher' : 'Detalhar'}</span>
+                                      <span className="material-symbols-outlined text-[14px]">
+                                        {isExpanded ? 'expand_less' : 'expand_more'}
+                                      </span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-[11px] text-gray-600">—</span>
+                                  )}
+                                </td>
+                              </tr>
+
+                              {/* Linha de Detalhamento das Escalas do Militar */}
+                              {isExpanded && hasScales && (
+                                <tr className="bg-blue-950/20 border-b border-blue-500/20">
+                                  <td colSpan={6} className="p-4">
+                                    <div className="flex flex-col gap-2.5">
+                                      <span className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+                                        <span className="material-symbols-outlined text-[16px]">list_alt</span>
+                                        Detalhamento dos Serviços Operacionais de {musician.rank} {musician.war_name || musician.name}:
+                                      </span>
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                                        {userOpScales.map((s: any) => {
+                                          const isChief = s.serviceChief?.id === musician.id;
+                                          const isDriver = s.driver?.id === musician.id;
+                                          const funcao = isChief ? 'Comandante da Equipe' : isDriver ? 'Motorista / Condutor' : 'Patrulheiro / Componente';
+
+                                          return (
+                                            <div key={s.id} className="bg-[#121620] border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-sm">
+                                              <div className="flex items-center justify-between">
+                                                <span className="font-extrabold text-white text-xs">
+                                                  {fmtDate(s.date)}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">
+                                                  {s.durationHours || 8}h ({s.time} - {s.endTime || '19:00'})
+                                                </span>
+                                              </div>
+                                              <div className="text-xs text-gray-300">
+                                                <span className="font-semibold text-white">OPM:</span> {(s.opm || s.location || '').split(' (')[0]}
+                                              </div>
+                                              <div className="text-[11px] text-gray-400 flex items-center justify-between">
+                                                <span>{s.format || 'Viatura (RPA)'}</span>
+                                                {s.viatura && <span className="font-bold text-amber-400">{s.viatura}</span>}
+                                              </div>
+                                              <div className="text-[10px] text-indigo-400 font-bold border-t border-white/5 pt-1 mt-0.5">
+                                                Função: {funcao}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {/* 4. VISÃO: HISTÓRICO DE ESCALAS OPERACIONAIS OU VISÃO GERAL */}
+            {(activeOperationalTab === 'escalas' || activeOperationalTab === 'todos') && (
+              <section className="bg-[#121620] border border-blue-500/30 rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col gap-4">
+                <div className="border-b border-white/10 pb-3 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-black text-white flex items-center gap-2">
+                      <span className="material-symbols-outlined text-blue-400 text-[22px]">history</span>
+                      Histórico Geral de Escalas Operacionais
+                    </h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Todas as guarnições e viaturas escaladas para policiamento no período
+                    </p>
+                  </div>
+                  <span className="text-xs text-blue-400 font-bold bg-blue-500/10 px-3 py-1 rounded-full border border-blue-500/20">
+                    {operationalScales.length} escala(s)
+                  </span>
+                </div>
+
+                {operationalScales.length === 0 ? (
+                  <div className="py-12 flex flex-col items-center justify-center text-center gap-2 text-gray-500">
+                    <span className="material-symbols-outlined text-4xl text-gray-600">local_police</span>
+                    <p className="text-sm font-semibold">Nenhuma escala operacional cadastrada neste período.</p>
+                    <Link href="/admin/scales/operational">
+                      <button type="button" className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all">
+                        Cadastrar Primeira Escala Operacional
+                      </button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-3 px-3 font-extrabold">Data / Horário</th>
+                          <th className="py-3 px-3 font-extrabold">Modalidade</th>
+                          <th className="py-3 px-3 font-extrabold">OPM Apoiada</th>
+                          <th className="py-3 px-3 font-extrabold">Viatura</th>
+                          <th className="py-3 px-3 font-extrabold">Guarnição Escalada</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {operationalScales.map((s: any) => {
+                          const chiefLabel = s.serviceChief ? `${s.serviceChief.rank || ''} ${s.serviceChief.war_name || s.serviceChief.name || ''}`.trim() : null;
+                          const driverLabel = s.driver ? `${s.driver.rank || ''} ${s.driver.war_name || s.driver.name || ''}`.trim() : null;
+                          const membersLabels = Array.isArray(s.musicians)
+                            ? s.musicians
+                                .filter((m: any) => m.id !== s.serviceChief?.id && m.id !== s.driver?.id)
+                                .map((m: any) => `${m.rank || ''} ${m.war_name || m.name || ''}`.trim())
+                            : [];
+
+                          return (
+                            <tr key={s.id} className="hover:bg-white/[0.03] transition-colors">
+                              <td className="py-3 px-3 font-bold text-white whitespace-nowrap">
+                                <div>{fmtDate(s.date)}</div>
+                                <span className="text-[10px] text-gray-400 font-normal">
+                                  {s.time} às {s.endTime || '19:00'} ({s.durationHours || 8}h)
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 text-blue-300 font-semibold">
+                                {s.format || 'Viatura (RPA)'}
+                              </td>
+                              <td className="py-3 px-3 text-white font-bold">
+                                {(s.opm || s.location || '').split(' (')[0]}
+                              </td>
+                              <td className="py-3 px-3 text-amber-400 font-bold whitespace-nowrap">
+                                {s.viatura || '—'}
+                              </td>
+                              <td className="py-3 px-3">
+                                <div className="flex flex-col gap-0.5">
+                                  {chiefLabel && (
+                                    <span className="text-white font-bold">
+                                      ⭐ <span className="text-amber-300">{chiefLabel}</span> (Cmt)
+                                    </span>
+                                  )}
+                                  {driverLabel && (
+                                    <span className="text-indigo-300 font-medium">
+                                      🚘 {driverLabel} (Mot)
+                                    </span>
+                                  )}
+                                  {membersLabels.length > 0 && (
+                                    <span className="text-gray-300">
+                                      👮 {membersLabels.join(', ')}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            )}
 
           </div>
         ) : (
@@ -1096,51 +1514,119 @@ export default function AdminReportsPage() {
           </div>
         </section>
 
-        {/* 4 Cards de Estatísticas / Visão Geral (KPIs) */}
+        {/* 4 Cards de Estatísticas / Visão Geral (KPIs) Clicáveis como Botões de Tabela */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <div className="bg-[#121620] border border-white/10 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-blue-400">event</span>
-              Serviços no Mês
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+          
+          {/* Card 1: Serviços no Mês */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTableModal('mus_servicos');
+              setModalSearch('');
+            }}
+            className="text-left bg-[#121620] border border-blue-500/20 hover:border-blue-500/60 rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group"
+            title="Clique para abrir tabela detalhada com todos os Serviços Musicais do Mês"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-blue-400 transition-colors">
+                <span className="material-symbols-outlined text-[16px] text-blue-400">event</span>
+                Serviços no Mês
+              </span>
+              <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-blue-400 transition-colors">
+                open_in_new
+              </span>
+            </div>
+            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1 group-hover:text-blue-300 transition-colors">
               {stats.totalServicos}
             </span>
-            <span className="text-[11px] text-gray-400">Escalas distintas publicadas</span>
-          </div>
+            <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+              <span className="truncate">Escalas publicadas</span>
+              <span className="text-[10px] text-blue-400 font-bold group-hover:underline shrink-0">Abrir Tabela</span>
+            </div>
+          </button>
 
-          <div className="bg-[#121620] border border-white/10 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-purple-400">group_work</span>
-              Participações
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+          {/* Card 2: Participações */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTableModal('mus_participacoes');
+              setModalSearch('');
+            }}
+            className="text-left bg-[#121620] border border-purple-500/20 hover:border-purple-500/60 rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group"
+            title="Clique para abrir tabela detalhada de Participações do Efetivo"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-purple-400 transition-colors">
+                <span className="material-symbols-outlined text-[16px] text-purple-400">group_work</span>
+                Participações
+              </span>
+              <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-purple-400 transition-colors">
+                open_in_new
+              </span>
+            </div>
+            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1 group-hover:text-purple-300 transition-colors">
               {stats.totalEscalacoes}
             </span>
-            <span className="text-[11px] text-gray-400">Homens-serviço escalados</span>
-          </div>
+            <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+              <span className="truncate">Homens-serviço</span>
+              <span className="text-[10px] text-purple-400 font-bold group-hover:underline shrink-0">Abrir Tabela</span>
+            </div>
+          </button>
 
-          <div className="bg-[#121620] border border-white/10 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-amber-400">calculate</span>
-              Média / Músico
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">
+          {/* Card 3: Média / Músico */}
+          <button
+            type="button"
+            onClick={() => {
+              setSortBy(sortBy === 'mais_escalados' ? 'menos_escalados' : 'mais_escalados');
+            }}
+            className="text-left bg-[#121620] border border-amber-500/20 hover:border-amber-500/60 rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group"
+            title="Clique para ordenar entre Mais e Menos Escalados"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-amber-400 transition-colors">
+                <span className="material-symbols-outlined text-[16px] text-amber-400">calculate</span>
+                Média / Músico
+              </span>
+              <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-amber-400 transition-colors">
+                sort
+              </span>
+            </div>
+            <span className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1 group-hover:text-amber-300 transition-colors">
               {stats.mediaPorMusico}
             </span>
-            <span className="text-[11px] text-gray-400">Escalas por integrante</span>
-          </div>
+            <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+              <span className="truncate">Escalas por integrante</span>
+              <span className="text-[10px] text-amber-400 font-bold group-hover:underline shrink-0">Alternar Ordem</span>
+            </div>
+          </button>
 
-          <div className="bg-[#121620] border border-white/10 rounded-2xl p-4 flex flex-col gap-1 shadow-lg">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[16px] text-emerald-400">verified</span>
-              Taxa de Ciência
-            </span>
-            <span className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-1">
+          {/* Card 4: Taxa de Ciência */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTableModal('mus_ciencia');
+              setModalSearch('');
+            }}
+            className="text-left bg-[#121620] border border-emerald-500/20 hover:border-emerald-500/60 rounded-2xl p-4 flex flex-col gap-1 shadow-lg transition-all cursor-pointer active:scale-95 group"
+            title="Clique para abrir tabela de Controle de Confirmação e Ciência das Escalas"
+          >
+            <div className="flex items-center justify-between w-full">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 group-hover:text-emerald-400 transition-colors">
+                <span className="material-symbols-outlined text-[16px] text-emerald-400">verified</span>
+                Taxa de Ciência
+              </span>
+              <span className="material-symbols-outlined text-gray-500 text-[16px] group-hover:text-emerald-400 transition-colors">
+                open_in_new
+              </span>
+            </div>
+            <span className="text-2xl sm:text-3xl font-black text-emerald-400 tracking-tight mt-1 group-hover:text-emerald-300 transition-colors">
               {stats.taxaConfirmacaoGeral}%
             </span>
-            <span className="text-[11px] text-gray-400">Escalas visualizadas</span>
-          </div>
+            <div className="text-[11px] text-gray-400 flex items-center justify-between mt-0.5">
+              <span className="truncate">Escalas visualizadas</span>
+              <span className="text-[10px] text-emerald-400 font-bold group-hover:underline shrink-0">Ver Pendências</span>
+            </div>
+          </button>
         </section>
 
         {/* Barra de Filtros e Busca */}
@@ -1504,6 +1990,432 @@ export default function AdminReportsPage() {
 
         <div className="h-6"></div>
       </main>
+
+      {/* ============================================================== */}
+      {/* MODAL DE CONTROLE EM FORMA DE TABELA (ACIONADO PELOS BOTÕES)   */}
+      {/* ============================================================== */}
+      <AnimatePresence>
+        {activeTableModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-[#121620] border border-white/10 rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+            >
+              {/* Header do Modal */}
+              <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-4 bg-[#161a24]">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[22px]">
+                      {activeTableModal === 'op_escalas' ? 'local_police' :
+                       activeTableModal === 'op_horas' ? 'schedule' :
+                       activeTableModal === 'op_efetivo' ? 'groups' :
+                       activeTableModal === 'op_unidades' ? 'domain' :
+                       activeTableModal === 'mus_servicos' ? 'event' :
+                       activeTableModal === 'mus_participacoes' ? 'group_work' : 'verified'}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-white leading-tight">
+                      {activeTableModal === 'op_escalas' && 'Tabela de Escalas Operacionais'}
+                      {activeTableModal === 'op_horas' && 'Tabela de Carga Horária & Ranking Operacional'}
+                      {activeTableModal === 'op_efetivo' && 'Tabela de Efetivo em Escalas Operacionais'}
+                      {activeTableModal === 'op_unidades' && 'Tabela de Apoio por Unidade (OPM)'}
+                      {activeTableModal === 'mus_servicos' && 'Tabela de Serviços Musicais do Mês'}
+                      {activeTableModal === 'mus_participacoes' && 'Tabela de Participações do Efetivo Musical'}
+                      {activeTableModal === 'mus_ciencia' && 'Tabela de Confirmações & Ciência das Escalas'}
+                    </h3>
+                    <p className="text-xs text-gray-400">
+                      Visualização analítica para controle e gestão do comando
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors border border-white/5"
+                    title="Imprimir esta tabela"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">print</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTableModal(null)}
+                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-colors border border-white/5"
+                    title="Fechar janela"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Barra de Filtros Internos do Modal */}
+              <div className="px-5 py-3 border-b border-white/5 bg-[#121620] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-[18px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Buscar registro nesta tabela..."
+                    value={modalSearch}
+                    onChange={(e) => setModalSearch(e.target.value)}
+                    className="w-full bg-[#161a24] border border-white/10 text-white rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {activeTableModal === 'op_efetivo' && (
+                  <div className="flex items-center gap-1.5 bg-black/40 p-1 rounded-xl border border-white/5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setEfetivoEmpregadoSubTab('empregados')}
+                      className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                        efetivoEmpregadoSubTab === 'empregados'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Empregados ({empregadosList.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEfetivoEmpregadoSubTab('nao_empregados')}
+                      className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                        efetivoEmpregadoSubTab === 'nao_empregados'
+                          ? 'bg-amber-600 text-white shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Sem Escala ({naoEmpregadosList.length})
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Conteúdo da Tabela do Modal */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 no-scrollbar">
+
+                {/* 1. MODAL: ESCALAS OPERACIONAIS */}
+                {activeTableModal === 'op_escalas' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Data / Horário</th>
+                          <th className="py-2.5 px-3 font-extrabold">Modalidade</th>
+                          <th className="py-2.5 px-3 font-extrabold">OPM Apoiada</th>
+                          <th className="py-2.5 px-3 font-extrabold">Viatura</th>
+                          <th className="py-2.5 px-3 font-extrabold">Guarnição / Efetivo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {operationalScales
+                          .filter((s: any) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            const opm = (s.opm || s.location || '').toLowerCase();
+                            const vtr = (s.viatura || '').toLowerCase();
+                            const fmt = (s.format || '').toLowerCase();
+                            return opm.includes(q) || vtr.includes(q) || fmt.includes(q);
+                          })
+                          .map((s: any) => {
+                            const chiefLabel = s.serviceChief ? `${s.serviceChief.rank || ''} ${s.serviceChief.war_name || s.serviceChief.name || ''}`.trim() : null;
+                            const driverLabel = s.driver ? `${s.driver.rank || ''} ${s.driver.war_name || s.driver.name || ''}`.trim() : null;
+                            const members = Array.isArray(s.musicians)
+                              ? s.musicians.map((m: any) => `${m.rank || ''} ${m.war_name || m.name || ''}`.trim())
+                              : [];
+
+                            return (
+                              <tr key={s.id} className="hover:bg-white/[0.03]">
+                                <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">
+                                  {fmtDate(s.date)} • {s.time} às {s.endTime || '19:00'} ({s.durationHours || 8}h)
+                                </td>
+                                <td className="py-2.5 px-3 text-blue-300 font-semibold">{s.format || 'RPA'}</td>
+                                <td className="py-2.5 px-3 font-bold text-white">{(s.opm || s.location || '').split(' (')[0]}</td>
+                                <td className="py-2.5 px-3 text-amber-400 font-bold">{s.viatura || '—'}</td>
+                                <td className="py-2.5 px-3 text-gray-300">
+                                  <div className="flex flex-col gap-0.5">
+                                    {chiefLabel && <span className="text-white font-bold">⭐ {chiefLabel} (Cmt)</span>}
+                                    {driverLabel && <span className="text-indigo-300">🚘 {driverLabel} (Mot)</span>}
+                                    <span className="text-gray-400 text-[11px]">{members.join(', ')}</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 2. MODAL: CARGA HORÁRIA & RANKING */}
+                {activeTableModal === 'op_horas' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Posição</th>
+                          <th className="py-2.5 px-3 font-extrabold">Militar</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Horas Cumpridas</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Escalas</th>
+                          <th className="py-2.5 px-3 font-extrabold">Proporção Carga</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Situação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {horasRankingList
+                          .filter(({ musician }) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            return (musician.name || '').toLowerCase().includes(q) || (musician.war_name || '').toLowerCase().includes(q);
+                          })
+                          .map((item, idx) => {
+                            const percent = maxOperationalHours > 0 ? Math.round((item.totalHoras / maxOperationalHours) * 100) : 0;
+                            return (
+                              <tr key={item.musician.id} className="hover:bg-white/[0.03]">
+                                <td className="py-2.5 px-3 font-bold text-gray-400">#{idx + 1}</td>
+                                <td className="py-2.5 px-3 font-bold text-white">
+                                  {item.musician.rank} {item.musician.war_name || item.musician.name}
+                                </td>
+                                <td className="py-2.5 px-3 text-center font-black text-indigo-400 text-sm">{item.totalHoras}h</td>
+                                <td className="py-2.5 px-3 text-center font-bold">{item.totalEscalas}</td>
+                                <td className="py-2.5 px-3 min-w-[150px]">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(percent, 100)}%` }} />
+                                    </div>
+                                    <span className="text-[10px] text-gray-400">{percent}%</span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <MilitaryStatusBadge status={item.currentStatus} size="xs" />
+                                </td>
+                              </tr>
+                            );
+                          })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 3. MODAL: EFETIVO EMPREGADO */}
+                {activeTableModal === 'op_efetivo' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Militar</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Escalas</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Horas</th>
+                          <th className="py-2.5 px-3 font-extrabold">Último Serviço</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Situação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {(efetivoEmpregadoSubTab === 'empregados' ? empregadosList : naoEmpregadosList)
+                          .filter(({ musician }) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            return (musician.name || '').toLowerCase().includes(q) || (musician.war_name || '').toLowerCase().includes(q);
+                          })
+                          .map((item) => (
+                            <tr key={item.musician.id} className="hover:bg-white/[0.03]">
+                              <td className="py-2.5 px-3 font-bold text-white">
+                                {item.musician.rank} {item.musician.war_name || item.musician.name}
+                                <span className="text-[10px] text-gray-400 block font-normal">{item.musician.re ? `RE ${item.musician.re}` : 'Efetivo'}</span>
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-bold">{item.totalEscalas}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-indigo-400">{item.totalHoras}h</td>
+                              <td className="py-2.5 px-3 text-gray-300">
+                                {item.ultimaEscala ? `${fmtDate(item.ultimaEscala.date)} • ${(item.ultimaEscala.opm || '').split(' (')[0]}` : '—'}
+                              </td>
+                              <td className="py-2.5 px-3 text-center">
+                                <MilitaryStatusBadge status={item.currentStatus} size="xs" />
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 4. MODAL: UNIDADES APOIADAS (OPMs) */}
+                {activeTableModal === 'op_unidades' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Unidade / OPM</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Escalas</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Horas Prestadas</th>
+                          <th className="py-2.5 px-3 font-extrabold">Viaturas Empregadas</th>
+                          <th className="py-2.5 px-3 font-extrabold">Efetivo Alocado</th>
+                          <th className="py-2.5 px-3 font-extrabold text-right">Último Apoio</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {opmBreakdown
+                          .filter(item => {
+                            if (!modalSearch.trim()) return true;
+                            return item.opm.toLowerCase().includes(modalSearch.toLowerCase());
+                          })
+                          .map((item) => (
+                            <tr key={item.opm} className="hover:bg-white/[0.03]">
+                              <td className="py-2.5 px-3 font-black text-white text-sm">{item.opm}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-amber-400">{item.totalScales}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-indigo-400">{item.totalHours}h</td>
+                              <td className="py-2.5 px-3 text-amber-300">{Array.from(item.viaturas).join(', ') || 'A pé'}</td>
+                              <td className="py-2.5 px-3 text-gray-300">
+                                {Array.from(item.musicians.values()).map(m => `${m.rank} ${m.war_name || m.name}`).join(', ')}
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-gray-400">{item.lastDate ? fmtDate(item.lastDate) : '—'}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 5. MODAL: SERVIÇOS MUSICAIS */}
+                {activeTableModal === 'mus_servicos' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Data</th>
+                          <th className="py-2.5 px-3 font-extrabold">Horário</th>
+                          <th className="py-2.5 px-3 font-extrabold">Formato / Título</th>
+                          <th className="py-2.5 px-3 font-extrabold">Local</th>
+                          <th className="py-2.5 px-3 font-extrabold">Chefe do Serviço</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Efetivo</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {monthScales
+                          .filter((s: any) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            return (s.title || '').toLowerCase().includes(q) || (s.format || '').toLowerCase().includes(q) || (s.location || '').toLowerCase().includes(q);
+                          })
+                          .map((s: any) => (
+                            <tr key={s.id} className="hover:bg-white/[0.03]">
+                              <td className="py-2.5 px-3 font-bold text-white">{fmtDate(s.date)}</td>
+                              <td className="py-2.5 px-3 text-gray-300">{s.time || s.departureTime || '—'}</td>
+                              <td className="py-2.5 px-3 font-semibold text-blue-300">{s.title || s.format || 'Escala'}</td>
+                              <td className="py-2.5 px-3 text-gray-300">{s.location || 'Sede'}</td>
+                              <td className="py-2.5 px-3 text-amber-300">{s.serviceChief ? `${s.serviceChief.rank || ''} ${s.serviceChief.war_name || s.serviceChief.name || ''}` : '—'}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-white">{Array.isArray(s.musicians) ? s.musicians.length : 0}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 6. MODAL: PARTICIPAÇÕES */}
+                {activeTableModal === 'mus_participacoes' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Militar</th>
+                          <th className="py-2.5 px-3 font-extrabold">Instrumento</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Total Escalas</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Apresentações</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Ensaios</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Expediente</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Ciência</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {reportData
+                          .filter(({ musician }) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            return (musician.name || '').toLowerCase().includes(q) || (musician.war_name || '').toLowerCase().includes(q);
+                          })
+                          .map((item) => (
+                            <tr key={item.musician.id} className="hover:bg-white/[0.03]">
+                              <td className="py-2.5 px-3 font-bold text-white">
+                                {item.musician.rank} {item.musician.war_name || item.musician.name}
+                              </td>
+                              <td className="py-2.5 px-3 text-gray-300">{item.musician.instrument || 'Banda'}</td>
+                              <td className="py-2.5 px-3 text-center font-black text-blue-400 text-sm">{item.totalScales}</td>
+                              <td className="py-2.5 px-3 text-center">{item.countApresentacoes}</td>
+                              <td className="py-2.5 px-3 text-center">{item.countEnsaios}</td>
+                              <td className="py-2.5 px-3 text-center">{item.countExpediente}</td>
+                              <td className="py-2.5 px-3 text-center font-bold text-emerald-400">{item.confirmationRate}%</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* 7. MODAL: CIÊNCIA / CONFIRMAÇÃO */}
+                {activeTableModal === 'mus_ciencia' && (
+                  <div className="overflow-x-auto no-scrollbar">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-white/10 text-gray-400 uppercase tracking-wider text-[11px]">
+                          <th className="py-2.5 px-3 font-extrabold">Militar</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Escalas</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Cientes</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Pendentes</th>
+                          <th className="py-2.5 px-3 font-extrabold text-center">Taxa</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {reportData
+                          .filter(({ musician }) => {
+                            if (!modalSearch.trim()) return true;
+                            const q = modalSearch.toLowerCase();
+                            return (musician.name || '').toLowerCase().includes(q) || (musician.war_name || '').toLowerCase().includes(q);
+                          })
+                          .map((item) => (
+                            <tr key={item.musician.id} className="hover:bg-white/[0.03]">
+                              <td className="py-2.5 px-3 font-bold text-white">
+                                {item.musician.rank} {item.musician.war_name || item.musician.name}
+                              </td>
+                              <td className="py-2.5 px-3 text-center font-bold">{item.totalScales}</td>
+                              <td className="py-2.5 px-3 text-center text-emerald-400 font-bold">{item.confirmedCount}</td>
+                              <td className="py-2.5 px-3 text-center text-amber-400 font-bold">{item.pendingCount}</td>
+                              <td className="py-2.5 px-3 text-center">
+                                <span className={`px-2 py-0.5 rounded-full font-black text-xs ${
+                                  item.confirmationRate === 100
+                                    ? 'bg-emerald-500/20 text-emerald-300'
+                                    : 'bg-amber-500/20 text-amber-300'
+                                }`}>
+                                  {item.confirmationRate}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Rodapé do Modal */}
+              <div className="px-5 py-3 border-t border-white/10 bg-[#161a24] flex items-center justify-between text-xs text-gray-400">
+                <span>PMPR • Banda de Música • Relatório Gerencial</span>
+                <button
+                  type="button"
+                  onClick={() => setActiveTableModal(null)}
+                  className="px-4 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

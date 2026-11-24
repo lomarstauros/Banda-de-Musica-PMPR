@@ -308,6 +308,8 @@ export default function AdminNewScalePage() {
   };
 
   const toggleMulti = (field: 'administrativo' | 'permanencia' | 'obra', id: string) => {
+    const m = musicians.find(x => x.id === id);
+    if (m && !isMusicianAvailable(m, sharedDate)) return;
     if (!expediente[field].includes(id) && blockIfConflict(`exp:${field}`, id)) return;
     setExpediente(prev => ({
       ...prev,
@@ -1415,9 +1417,14 @@ export default function AdminNewScalePage() {
                           const available = isMusicianAvailable(m, sharedDate);
                           const checked = expediente[group].includes(m.id);
                           return (
-                            <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors cursor-pointer ${!available ? 'opacity-40' : checked ? 'bg-primary/5' : ''}`}>
-                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary" />
-                              <span className="text-xs font-medium dark:text-white">{getMusicianLabel(m.id)}</span>
+                            <label key={m.id} className={`flex items-center gap-3 px-3 py-1.5 transition-colors ${!available ? 'opacity-50 cursor-not-allowed bg-gray-100/50 dark:bg-gray-800/30' : checked ? 'bg-primary/5 cursor-pointer' : 'cursor-pointer'}`}>
+                              <input type="checkbox" checked={checked} disabled={!available} onChange={() => toggleMulti(group, m.id)} className="size-3.5 rounded border-gray-300 text-primary disabled:opacity-50" />
+                              <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
+                                <span className={`text-xs font-medium leading-tight ${!available ? 'text-gray-400' : 'dark:text-white'}`}>{getMusicianLabel(m.id)}</span>
+                                {!available && (
+                                  <MilitaryStatusBadge status={m.militaryStatus || 'Afastado'} size="xs" />
+                                )}
+                              </div>
                             </label>
                           );
                         })}

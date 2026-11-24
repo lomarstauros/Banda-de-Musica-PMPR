@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useEffect, useState, useMemo } from 'react';
 import { useFirebase } from '@/components/providers/firebase-provider';
 import { doc, getDoc, collection, query, orderBy, limit, getDocs, onSnapshot, where, writeBatch, serverTimestamp } from 'firebase/firestore';
@@ -28,8 +28,11 @@ export default function DashboardPage() {
     statusEndDate?: string;
     role?: string;
   } | null>(() => authProfile);
-  const [nextScales, setNextScales] = useState<any[]>([]);
-  const [historyScales, setHistoryScales] = useState<any[]>([]);
+
+  // Escalas brutas visíveis e relógio em tempo real
+  const [rawVisibleScales, setRawVisibleScales] = useState<any[]>([]);
+  const [currentDateTime, setCurrentDateTime] = useState<Date>(() => new Date());
+
   const [returningTomorrow, setReturningTomorrow] = useState<any[]>([]);
   const [loadingScales, setLoadingScales] = useState(true);
   const unreadCount = unreadNotificationsCount;
@@ -47,6 +50,140 @@ export default function DashboardPage() {
   const [activeScaleIndex, setActiveScaleIndex] = useState(0);
   const [listFilter, setListFilter] = useState<'todas' | 'pendentes'>('todas');
 
+  // Gestos de Touch / Swipe horizontal no celular
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [swipeDirection, setSwipeDirection] = useState<number>(0);
+
+  // Timer leve a cada 30s para atualizar o relógio e avançar a escala assim que seu horário passar
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentDateTime(new Date());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  /**
+   * Verifica se uma escala já passou do seu horário de início.
+   * Se a escala já passou do horário de início hoje (ou de datas anteriores),
+   * ela deixa de ser exibida como a primeira/próxima escala da tela inicial.
+   */
+  const isScaleStartedOrPast = (scale: any, now: Date): boolean => {
+    if (!scale || !scale.date) return false;
+    const sDate = normalizeDateToYMD(scale.date);
+    if (!sDate) return false;
+
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    const todayYmd = `${y}-${m}-${d}`;
+
+    // 1. Data anterior a hoje -> já passou
+    if (sDate < todayYmd) return true;
+
+    // 2. Data posterior a hoje (amanhã em diante) -> ainda não iniciou
+    if (sDate > todayYmd) return false;
+
+    // 3. Data é HOJE: compara a hora atual com o horário de início da escala
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const rawTime = String(scale.startTime || scale.time || scale.departureTime || '').trim();
+    if (!rawTime) {
+      // Sem horário de início cadastrado, permanece até o fim do dia
+      return false;
+    }
+
+    const match = rawTime.match(/(\d{1,2}):(\d{2})/);
+    if (!match) return false;
+
+    const scaleMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+    // Assim que a hora atual alcançar ou passar do início da escala, ela já iniciou
+    return currentMinutes >= scaleMinutes;
+  };
+
+  // Cálculo reativo de Próximas Escalas (ordenadas pelo próximo horário) e Escalas Passadas
+  const { futureScales, pastScales } = useMemo(() => {
+    const future: any[] = [];
+    const past: any[] = [];
+
+    rawVisibleScales.forEach(s => {
+      if (isScaleStartedOrPast(s, currentDateTime)) {
+        past.push(s);
+      } else {
+        future.push(s);
+      }
+    });
+
+    // Próximas escalas: data mais próxima e horário mais próximo primeiro
+    future.sort((a, b) => {
+      const dateA = normalizeDateToYMD(a?.date);
+      const dateB = normalizeDateToYMD(b?.date);
+      const dateComp = String(dateA).localeCompare(String(dateB));
+      if (dateComp !== 0) return dateComp;
+      const timeA = String(a?.startTime || a?.time || a?.departureTime || '00:00');
+      const timeB = String(b?.startTime || b?.time || b?.departureTime || '00:00');
+      return timeA.localeCompare(timeB);
+    });
+
+    // Escalas anteriores: da mais recente para a mais antiga
+    past.sort((a, b) => {
+      const dateA = normalizeDateToYMD(a?.date);
+      const dateB = normalizeDateToYMD(b?.date);
+      const dateComp = String(dateB).localeCompare(String(dateA));
+      if (dateComp !== 0) return dateComp;
+      const timeA = String(a?.startTime || a?.time || a?.departureTime || '00:00');
+      const timeB = String(b?.startTime || b?.time || b?.departureTime || '00:00');
+      return timeB.localeCompare(timeA);
+    });
+
+    return { futureScales: future, pastScales: past };
+  }, [rawVisibleScales, currentDateTime]);
+
+  const nextScales = futureScales;
+  const historyScales = pastScales;
+
+  // Garante que o activeScaleIndex não aponte para um índice inexistente se escalas forem concluídas
+  useEffect(() => {
+    if (activeScaleIndex >= nextScales.length && nextScales.length > 0) {
+      setActiveScaleIndex(0);
+    }
+  }, [nextScales.length, activeScaleIndex]);
+
+  // Handlers para rolagem / swipe com o dedo no celular
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartY(e.touches[0].clientY);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchStartX - touchEndX;
+    const diffY = touchStartY - touchEndY;
+
+    // Detecta arrasto predominantemente horizontal com distância mínima de 40px
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX > 0) {
+        // Deslizar para a ESQUERDA -> Avança para a próxima escala
+        if (activeScaleIndex < nextScales.length - 1) {
+          setSwipeDirection(1);
+          setActiveScaleIndex(prev => prev + 1);
+        }
+      } else {
+        // Deslizar para a DIREITA -> Volta para a escala anterior
+        if (activeScaleIndex > 0) {
+          setSwipeDirection(-1);
+          setActiveScaleIndex(prev => prev - 1);
+        }
+      }
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -60,9 +197,11 @@ export default function DashboardPage() {
       const cachedRaw = sessionStorage.getItem(cacheKey);
       if (cachedRaw) {
         const cached = JSON.parse(cachedRaw);
-        if (cached && Array.isArray(cached.futureScales)) {
-          setNextScales(cached.futureScales);
-          setHistoryScales(cached.pastScales || []);
+        if (cached && Array.isArray(cached.visibleScales)) {
+          setRawVisibleScales(cached.visibleScales);
+          setLoadingScales(false);
+        } else if (cached && Array.isArray(cached.futureScales)) {
+          setRawVisibleScales([...cached.futureScales, ...(cached.pastScales || [])]);
           setLoadingScales(false);
         }
       }
@@ -128,49 +267,13 @@ export default function DashboardPage() {
             return Array.isArray(scale.musicians) && scale.musicians.some((m: any) => m?.id === user.uid);
           });
 
-          const todayStr = getTodayYMD();
-
-          // Próximas escalas: data >= data atual (hoje em diante), ordenadas do mais próximo ao mais distante
-          const futureScales = visibleScales
-            .filter(s => {
-              const sDate = normalizeDateToYMD(s?.date);
-              return sDate && sDate >= todayStr;
-            })
-            .sort((a, b) => {
-              const dateA = normalizeDateToYMD(a?.date);
-              const dateB = normalizeDateToYMD(b?.date);
-              const dateComp = String(dateA).localeCompare(String(dateB));
-              if (dateComp !== 0) return dateComp;
-              const timeA = String(a?.startTime || a?.departureTime || '00:00');
-              const timeB = String(b?.startTime || b?.departureTime || '00:00');
-              return timeA.localeCompare(timeB);
-            });
-
-          // Escalas anteriores: data < data atual, ordenadas da mais recente para a mais antiga
-          const pastScales = visibleScales
-            .filter(s => {
-              const sDate = normalizeDateToYMD(s?.date);
-              return !sDate || sDate < todayStr;
-            })
-            .sort((a, b) => {
-              const dateA = normalizeDateToYMD(a?.date);
-              const dateB = normalizeDateToYMD(b?.date);
-              const dateComp = String(dateB).localeCompare(String(dateA));
-              if (dateComp !== 0) return dateComp;
-              const timeA = String(a?.startTime || a?.departureTime || '00:00');
-              const timeB = String(b?.startTime || b?.departureTime || '00:00');
-              return timeB.localeCompare(timeA);
-            });
-
-          setNextScales(futureScales);
-          setHistoryScales(pastScales);
+          setRawVisibleScales(visibleScales);
           setActiveScaleIndex(0);
 
           // Salva em cache de sessão para renderização imediata nos próximos acessos
           try {
             sessionStorage.setItem(`dashboard_scales_${user.uid}`, JSON.stringify({
-              futureScales,
-              pastScales
+              visibleScales
             }));
           } catch {}
 
@@ -484,17 +587,23 @@ export default function DashboardPage() {
                       {activeScaleIndex + 1} de {nextScales.length}
                     </span>
                     <button
-                      onClick={() => setActiveScaleIndex(prev => Math.max(0, prev - 1))}
+                      onClick={() => {
+                        setSwipeDirection(-1);
+                        setActiveScaleIndex(prev => Math.max(0, prev - 1));
+                      }}
                       disabled={activeScaleIndex === 0}
-                      className="size-8 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors"
+                      className="size-8 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors cursor-pointer"
                       title="Anterior"
                     >
                       <span className="material-symbols-outlined text-[18px]">chevron_left</span>
                     </button>
                     <button
-                      onClick={() => setActiveScaleIndex(prev => Math.min(nextScales.length - 1, prev + 1))}
+                      onClick={() => {
+                        setSwipeDirection(1);
+                        setActiveScaleIndex(prev => Math.min(nextScales.length - 1, prev + 1));
+                      }}
                       disabled={activeScaleIndex === nextScales.length - 1}
-                      className="size-8 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors"
+                      className="size-8 rounded-full bg-[#161a24] border border-white/10 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 disabled:hover:text-gray-400 transition-colors cursor-pointer"
                       title="Próxima"
                     >
                       <span className="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -564,7 +673,20 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 /* Card Principal da Escala Ativa (Opção 2 - Military Dark Clean) */
-                <div className="relative rounded-3xl bg-[#0b101b]/95 border border-white/[0.08] p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6 backdrop-blur-2xl">
+                <div 
+                  onTouchStart={handleTouchStart}
+                  onTouchEnd={handleTouchEnd}
+                  className="relative rounded-3xl bg-[#0b101b]/95 border border-white/[0.08] p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6 backdrop-blur-2xl touch-pan-y overflow-hidden select-none"
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                      key={currentFeaturedScale.id || activeScaleIndex}
+                      initial={{ opacity: 0, x: swipeDirection > 0 ? 30 : swipeDirection < 0 ? -30 : 0 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: swipeDirection > 0 ? -30 : swipeDirection < 0 ? 30 : 0 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="flex flex-col gap-5 sm:gap-6"
+                    >
                   
                   {/* Header do Card */}
                   <div className="flex flex-col gap-3">
@@ -707,19 +829,30 @@ export default function DashboardPage() {
                       </Link>
                     </div>
                   </div>
+                </motion.div>
+              </AnimatePresence>
 
                   {/* Carrossel Dots se houver mais de uma escala */}
                   {nextScales.length > 1 && (
-                    <div className="flex items-center justify-center gap-1.5 pt-2">
-                      {nextScales.map((_, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setActiveScaleIndex(idx)}
-                          className={`size-2 rounded-full transition-all ${
-                            idx === activeScaleIndex ? 'w-6 bg-blue-500' : 'bg-white/20 hover:bg-white/40'
-                          }`}
-                        />
-                      ))}
+                    <div className="flex flex-col items-center justify-center gap-1.5 pt-2 border-t border-white/[0.04]">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {nextScales.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setSwipeDirection(idx > activeScaleIndex ? 1 : -1);
+                              setActiveScaleIndex(idx);
+                            }}
+                            className={`size-2 rounded-full transition-all cursor-pointer ${
+                              idx === activeScaleIndex ? 'w-6 bg-blue-500' : 'bg-white/20 hover:bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="sm:hidden text-[10px] text-slate-500 font-medium flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">swipe</span>
+                        Deslize para o lado para alternar escalas
+                      </span>
                     </div>
                   )}
                 </div>

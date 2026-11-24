@@ -92,11 +92,10 @@ export const getEffectiveMilitaryLeave = (
     const endYmd = normalizeDateToYMD(musician.statusEndDate);
     const isIndef = !!musician.statusIndefinite || !endYmd;
 
-    const hasStarted = !startYmd || targetYmd >= startYmd;
+    // Se a data de verificação já passou da data de término, o afastamento se encerrou
     const hasEnded = !isIndef && !!endYmd && targetYmd > endYmd;
 
-    // Se já iniciou e não encerrou (ou se não tem datas e é indeterminado)
-    if (hasStarted && !hasEnded) {
+    if (!hasEnded) {
       return {
         status: mainStatus,
         startDate: musician.statusStartDate || '',
@@ -193,9 +192,31 @@ export const isMusicianAvailable = (
   musician: MusicianProfile,
   targetDate: string | Date | null | undefined
 ): boolean => {
-  if (!targetDate) return true;
-  const activeLeave = getEffectiveMilitaryLeave(musician, targetDate);
-  return activeLeave === null;
+  if (!musician) return false;
+
+  // 1. Se o status principal do militar for diretamente um afastamento (Licença, Férias, etc.)
+  const mainStatus = (musician.militaryStatus || '').trim();
+  if (mainStatus && mainStatus.toLowerCase() !== 'ativo') {
+    // Se não há data alvo especificada, o militar com status de afastamento está bloqueado
+    if (!targetDate) return false;
+
+    const targetYmd = normalizeDateToYMD(targetDate);
+    const endYmd = normalizeDateToYMD(musician.statusEndDate);
+    const isIndef = !!musician.statusIndefinite || !endYmd;
+
+    // Se ainda não passou da data de término, está indisponível
+    if (isIndef || !endYmd || targetYmd <= endYmd) {
+      return false;
+    }
+  }
+
+  // 2. Se há data alvo informada, verifica afastamentos em vigor (inclusive em leaveHistory)
+  if (targetDate) {
+    const activeLeave = getEffectiveMilitaryLeave(musician, targetDate);
+    return activeLeave === null;
+  }
+
+  return true;
 };
 
 /**
@@ -204,10 +225,20 @@ export const isMusicianAvailable = (
  */
 export const getCurrentMilitaryStatus = (musician: MusicianProfile): string | null => {
   const activeLeave = getEffectiveMilitaryLeave(musician);
-  if (!activeLeave) return null;
-
-  if (activeLeave.status === 'Adido' && activeLeave.adidoTo) {
-    return `Adido (${activeLeave.adidoTo})`;
+  if (activeLeave) {
+    if (activeLeave.status === 'Adido' && activeLeave.adidoTo) {
+      return `Adido (${activeLeave.adidoTo})`;
+    }
+    return activeLeave.status;
   }
-  return activeLeave.status;
+
+  const ms = (musician?.militaryStatus || '').trim();
+  if (ms && ms.toLowerCase() !== 'ativo') {
+    if (ms === 'Adido' && musician.adidoTo) {
+      return `Adido (${musician.adidoTo})`;
+    }
+    return ms;
+  }
+
+  return null;
 };

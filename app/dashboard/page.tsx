@@ -771,10 +771,6 @@ export default function DashboardPage() {
                   {/* Badges e Ações */}
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <span className="size-2 rounded-full bg-emerald-500"></span>
-                        Tudo pronto
-                      </span>
                       {currentFeaturedScale.musicians?.length > 0 && (
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/[0.04] text-slate-300 border border-white/[0.08]">
                           <span className="material-symbols-outlined text-[16px]">groups</span>
@@ -784,45 +780,21 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Botões de Ação com Estilo Clean Moderno */}
-                    <div className="grid grid-cols-12 sm:flex sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                       <button 
                         onClick={(e) => {
                           e.preventDefault();
                           generateScalePDF(currentFeaturedScale);
                         }}
                         title="Baixar PDF Oficial"
-                        className="col-span-3 sm:col-auto flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-bold text-xs shrink-0 shadow-sm"
+                        className="flex items-center justify-center gap-1 px-3.5 py-2.5 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 transition-all font-bold text-xs shrink-0 shadow-sm cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[18px]">download</span>
                         <span>PDF</span>
                       </button>
 
-                      <button
-                        onClick={(e) => handleVerify(e, currentFeaturedScale)}
-                        disabled={verifying === currentFeaturedScale.id}
-                        className={`col-span-4 sm:col-auto flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl font-bold text-xs transition-all border shrink-0 ${
-                          viewedScales[currentFeaturedScale.id]?.confirmed
-                            ? 'bg-blue-600 border-blue-500/50 text-white shadow-md shadow-blue-900/40'
-                            : 'bg-white/[0.04] border-white/[0.08] text-slate-300 hover:border-blue-500/50 hover:text-white'
-                        }`}
-                      >
-                        {verifying === currentFeaturedScale.id ? (
-                          <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
-                        ) : viewedScales[currentFeaturedScale.id]?.confirmed ? (
-                          <>
-                            <span className="material-symbols-outlined text-[18px] filled">check_circle</span>
-                            <span>Ciente</span>
-                          </>
-                        ) : (
-                          <>
-                            <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                            <span className="truncate">Ciência</span>
-                          </>
-                        )}
-                      </button>
-
-                      <Link href={`/scales/${currentFeaturedScale.id}`} className="col-span-5 sm:col-auto min-w-0">
-                        <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-900/50 border border-blue-400/30 transition-all active:scale-95 truncate">
+                      <Link href={`/scales/${currentFeaturedScale.id}`} className="flex-1 sm:flex-none min-w-0">
+                        <button className="w-full flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-900/50 border border-blue-400/30 transition-all active:scale-95 truncate cursor-pointer">
                           <span className="truncate">Visualizar Escala Completa</span>
                           <span className="material-symbols-outlined text-[16px] shrink-0">arrow_forward</span>
                         </button>
@@ -940,20 +912,10 @@ export default function DashboardPage() {
                           </span>
                         </div>
 
-                        {/* Status tag and Open button */}
+                        {/* Botão Abrir */}
                         <div className="flex items-center gap-2 shrink-0">
-                          {!isFolga && !isConfirmed ? (
-                            <span className="hidden sm:inline-block text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase">
-                              Pendente
-                            </span>
-                          ) : !isFolga && isConfirmed ? (
-                            <span className="hidden sm:inline-block text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 uppercase">
-                              Ciente
-                            </span>
-                          ) : null}
-
                           <Link href={`/scales/${scale.id}`}>
-                            <button className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-blue-600 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/[0.08] hover:border-blue-500/50 shadow-sm active:scale-95">
+                            <button className="px-3.5 py-1.5 rounded-xl bg-white/[0.04] hover:bg-blue-600 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/[0.08] hover:border-blue-500/50 shadow-sm active:scale-95 cursor-pointer">
                               Abrir
                             </button>
                           </Link>

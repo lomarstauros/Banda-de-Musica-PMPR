@@ -5,6 +5,7 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from './firebase';
 import { PMPR_LOGO, BANDA_LOGO } from './pdf-logos';
 import { normalizeSpaces } from './utils';
+import { fmtDate, getTodayYMD } from './format-date';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -74,7 +75,7 @@ const getWarNameSegments = (contentRaw: string, warNameRaw: string) => {
  * Formata o título da escala para visualização e PDF, aplicando numeração e formação musical quando apropriado
  */
 export const formatScaleSummaryTitle = (scale: any, index?: number): string => {
-  const prefix = typeof index === 'number' ? `${index + 1} - ` : '';
+  const prefix = typeof index === 'number' ? `${index + 1}º SERVIÇO - ` : '';
   const isAdmin = scale.format === 'Expediente Administrativo' || (scale.title && scale.title.toLowerCase().includes('expediente administrativo'));
 
   if (isAdmin) {
@@ -183,6 +184,64 @@ const drawScalePage = (
     doc.setFont('helvetica', 'normal');
   };
 
+  // ── FAIXA AZUL PADRONIZADA PARA CADA SERVIÇO (1º, 2º, 3º...) ───────────────
+  const drawServiceBanner = (boxY: number) => {
+    const prefix = scale.classification === 'provisoria' ? '[PROVISÓRIA] ' : '';
+    const quantServiceTitle = formatScaleSummaryTitle(scale, options.scaleIndex).toUpperCase();
+    const serviceTime = scale.startTime 
+      ? ` às ${scale.startTime}` 
+      : (scale.tripDetails?.departureFromCuritiba ? ` (Saída: ${scale.tripDetails.departureFromCuritiba})` : '');
+    const bannerText = `${prefix}${quantServiceTitle}${serviceTime}`;
+
+    const maxTextWidth = (pageWidth - 2 * margin) - 8; // 4mm de respiro lateral
+    doc.setFont('helvetica', 'bold');
+    
+    // Auto-ajuste de tamanho de fonte para caber perfeitamente na caixa
+    let fontSize = 9.5;
+    doc.setFontSize(fontSize);
+    let lines = doc.splitTextToSize(bannerText, maxTextWidth);
+
+    if (lines.length > 1) {
+      doc.setFontSize(8.5);
+      const testLines = doc.splitTextToSize(bannerText, maxTextWidth);
+      if (testLines.length <= 2) {
+        fontSize = 8.5;
+        lines = testLines;
+      } else {
+        fontSize = 7.5;
+        doc.setFontSize(fontSize);
+        lines = doc.splitTextToSize(bannerText, maxTextWidth);
+      }
+    }
+
+    const lineHeight = fontSize * 0.42; // Altura aproximada da linha em mm
+    const paddingY = 2.5; // Respiro vertical interno
+    const boxHeight = Math.max(8, (lines.length * lineHeight) + (paddingY * 2));
+
+    if (scale.classification === 'provisoria') {
+      doc.setFillColor(220, 38, 38); // Fundo vermelho para escala provisória
+    } else {
+      doc.setFillColor(19, 91, 236); // Cor Primária #135bec
+    }
+    doc.rect(margin, boxY, pageWidth - 2 * margin, boxHeight, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(fontSize);
+
+    // Centraliza o bloco de texto vertical e horizontalmente dentro da caixa
+    const totalTextHeight = lines.length * lineHeight;
+    const firstLineY = boxY + ((boxHeight - totalTextHeight) / 2) + (lineHeight * 0.78);
+    lines.forEach((lineText: string, idx: number) => {
+      doc.text(lineText, pageWidth / 2, firstLineY + (idx * lineHeight), { align: 'center' });
+    });
+    
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setDrawColor(0);
+    return boxY + boxHeight + 4; // Garante que a tabela comece perfeitamente abaixo da faixa
+  };
+
   // ── LOGOS & CABEÇALHO (Somente se solicitado) ----------------------------
   if (showHeader) {
     try {
@@ -236,67 +295,16 @@ const drawScalePage = (
       doc.text('*** ESCALA PROVISÓRIA ***', pageWidth / 2, curY, { align: 'center' });
       doc.setTextColor(0, 0, 0); // Reset color
       doc.setFont('helvetica', 'normal');
-      curY += 10;
+      curY += 8;
     } else {
       curY += 2;
     }
+
+    // Faixa azul padronizada também para o 1º serviço
+    curY = drawServiceBanner(curY);
   } else {
     // ── BARRA SEPARADORA PARA NOVOS SERVIÇOS --------------------------------
-    const prefix = scale.classification === 'provisoria' ? '[PROVISÓRIA] ' : '';
-    const quantServiceTitle = formatScaleSummaryTitle(scale, options.scaleIndex).toUpperCase();
-    const serviceTime = scale.startTime 
-      ? ` às ${scale.startTime}` 
-      : (scale.tripDetails?.departureFromCuritiba ? ` (Saída: ${scale.tripDetails.departureFromCuritiba})` : '');
-    const bannerText = `${prefix}${quantServiceTitle}${serviceTime}`;
-
-    const maxTextWidth = (pageWidth - 2 * margin) - 8; // 4mm de respiro lateral
-    doc.setFont('helvetica', 'bold');
-    
-    // Auto-ajuste de tamanho de fonte para caber perfeitamente na caixa
-    let fontSize = 9.5;
-    doc.setFontSize(fontSize);
-    let lines = doc.splitTextToSize(bannerText, maxTextWidth);
-
-    if (lines.length > 1) {
-      doc.setFontSize(8.5);
-      const testLines = doc.splitTextToSize(bannerText, maxTextWidth);
-      if (testLines.length <= 2) {
-        fontSize = 8.5;
-        lines = testLines;
-      } else {
-        fontSize = 7.5;
-        doc.setFontSize(fontSize);
-        lines = doc.splitTextToSize(bannerText, maxTextWidth);
-      }
-    }
-
-    const lineHeight = fontSize * 0.42; // Altura aproximada da linha em mm
-    const paddingY = 2.5; // Respiro vertical interno
-    const boxHeight = Math.max(8, (lines.length * lineHeight) + (paddingY * 2));
-    const boxY = curY - 9;
-
-    if (scale.classification === 'provisoria') {
-      doc.setFillColor(220, 38, 38); // Fundo vermelho para escala provisória
-    } else {
-      doc.setFillColor(19, 91, 236); // Cor Primária #135bec
-    }
-    doc.rect(margin, boxY, pageWidth - 2 * margin, boxHeight, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(fontSize);
-
-    // Centraliza o bloco de texto vertical e horizontalmente dentro da caixa
-    const totalTextHeight = lines.length * lineHeight;
-    const firstLineY = boxY + ((boxHeight - totalTextHeight) / 2) + (lineHeight * 0.78);
-    lines.forEach((lineText: string, idx: number) => {
-      doc.text(lineText, pageWidth / 2, firstLineY + (idx * lineHeight), { align: 'center' });
-    });
-    
-    doc.setTextColor(0, 0, 0);
-    doc.setFont('helvetica', 'normal');
-    doc.setDrawColor(0);
-    curY = boxY + boxHeight + 4; // Garante que a tabela comece perfeitamente abaixo da faixa
+    curY = drawServiceBanner(curY - 9);
   }
 
   // ── REFERÊNCIA -----------------------------------------------------------
@@ -641,7 +649,17 @@ export const generateScalePDF = async (scale: any, allProfiles: any[] = []) => {
     drawScalePage(doc, scale, profilesMap);
 
     // ── DOWNLOAD ────
-    const filename = `Escala_${scale.date || 'sem_data'}_${(scale.title || 'escala').replace(/\s+/g, '_')}.pdf`;
+    const d = scale.date ? fmtDate(scale.date).replace(/\//g, '-') : 'data';
+    const shortTitle = (scale.title || '')
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .join('_')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '')
+      .slice(0, 15);
+    const filename = shortTitle ? `Escala_${d}_${shortTitle}.pdf` : `Escala_${d}.pdf`;
     downloadPDF(doc, filename);
 
   } catch (err) {
@@ -734,8 +752,8 @@ export const generateDailyScalesPDF = async (
       });
     });
 
-    const dateStr = sortedScales[0].date || 'sem_data';
-    const filename = `Escalas_${dateStr}.pdf`;
+    const d = sortedScales[0]?.date ? fmtDate(sortedScales[0].date).replace(/\//g, '-') : 'data';
+    const filename = `Escalas_${d}.pdf`;
     if (options?.action === 'view') {
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);
@@ -980,7 +998,7 @@ export const generateForecastsPDF = async (
     doc.text(signerRole, blockCenterX, sigY, { align: 'center' });
 
     // Output
-    const filename = `Previsao_de_Servicos_${new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = `Previsoes_${fmtDate(getTodayYMD()).replace(/\//g, '-')}.pdf`;
     if (options?.action === 'view') {
       const pdfBlob = doc.output('blob');
       const url = URL.createObjectURL(pdfBlob);

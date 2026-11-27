@@ -258,6 +258,37 @@ export default function AdminScalesListPage() {
 
   const isManager = userRole === 'admin' || userRole === 'master' || user?.email === 'heliomardejesus87@gmail.com';
 
+  // Verifica se o militar logado está escalado em uma escala específica
+  const isUserInScale = (scaleItem: any, userId?: string | null): boolean => {
+    if (!scaleItem || !userId) return false;
+    // 1. Efetivo de músicos escalados
+    if (Array.isArray(scaleItem.musicians)) {
+      if (scaleItem.musicians.some((m: any) => (typeof m === 'object' ? m?.id : m) === userId)) {
+        return true;
+      }
+    }
+    // 2. Chefe do serviço
+    if (scaleItem.serviceChief) {
+      const chiefId = typeof scaleItem.serviceChief === 'object' ? scaleItem.serviceChief?.id : scaleItem.serviceChief;
+      if (chiefId === userId) return true;
+    }
+    // 3. Expediente administrativo e comissões
+    if (scaleItem.expediente) {
+      const exp = scaleItem.expediente;
+      const keyRoles = [
+        exp.regenteMaestroId,
+        exp.regenteId,
+        exp.sargenteacaoId,
+        exp.arquivoId,
+        exp.p4FinancasTransporteId,
+      ];
+      if (keyRoles.includes(userId)) return true;
+      const inGroup = (arr: any) => Array.isArray(arr) && arr.some((item: any) => (typeof item === 'object' ? item?.id : item) === userId);
+      if (inGroup(exp.administrativo) || inGroup(exp.permanencia) || inGroup(exp.obra)) return true;
+    }
+    return false;
+  };
+
   const handleJumpToForecastDate = (forecastDate: string) => {
     const ymd = normalizeDateToYMD(forecastDate);
     if (!ymd) return;
@@ -623,9 +654,39 @@ export default function AdminScalesListPage() {
 
                 const isExpanded = expandedScaleIds.includes(scale.id);
                 const sortedMusicians = [...(scale.musicians || [])].filter(Boolean).sort(sortByRankThenName);
+                const isUserEscalado = isUserInScale(scale, user?.uid);
 
                 return (
-                  <div key={scale.id} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all">
+                  <div 
+                    key={scale.id} 
+                    className={`bg-white dark:bg-gray-900 rounded-2xl border p-4 flex flex-col gap-3 transition-all relative overflow-hidden ${
+                      isUserEscalado 
+                        ? 'border-2 border-blue-500/80 dark:border-blue-500 shadow-xl shadow-blue-500/15 ring-2 ring-blue-500/20' 
+                        : 'border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md'
+                    }`}
+                  >
+                    {/* Banner grande e visual avisando que o militar está escalado nesta escala */}
+                    {isUserEscalado && (
+                      <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3 sm:p-3.5 flex items-center justify-between shadow-md shadow-blue-600/30 border border-blue-400/40">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                          <div className="size-10 sm:size-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                            <span className="material-symbols-outlined text-[24px] sm:text-[26px] text-white">person_check</span>
+                          </div>
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
+                              Atenção Militar
+                            </span>
+                            <h4 className="text-sm sm:text-base font-black tracking-tight text-white leading-tight truncate">
+                              VOCÊ ESTÁ NESSA ESCALA!
+                            </h4>
+                          </div>
+                        </div>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/25 text-[11px] font-black uppercase tracking-wider backdrop-blur-md border border-white/40 shadow-sm shrink-0">
+                          <span className="material-symbols-outlined text-[15px] text-emerald-300">verified</span>
+                          <span>Escalado</span>
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">

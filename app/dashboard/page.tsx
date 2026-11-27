@@ -395,6 +395,37 @@ export default function DashboardPage() {
   // Escala em destaque selecionada
   const currentFeaturedScale = nextScales[activeScaleIndex] || nextScales[0] || null;
 
+  // Verifica se o militar logado está escalado em uma escala específica
+  const isUserInScale = (scaleItem: any, userId?: string | null): boolean => {
+    if (!scaleItem || !userId) return false;
+    // 1. Efetivo de músicos escalados
+    if (Array.isArray(scaleItem.musicians)) {
+      if (scaleItem.musicians.some((m: any) => (typeof m === 'object' ? m?.id : m) === userId)) {
+        return true;
+      }
+    }
+    // 2. Chefe do serviço
+    if (scaleItem.serviceChief) {
+      const chiefId = typeof scaleItem.serviceChief === 'object' ? scaleItem.serviceChief?.id : scaleItem.serviceChief;
+      if (chiefId === userId) return true;
+    }
+    // 3. Expediente administrativo e comissões
+    if (scaleItem.expediente) {
+      const exp = scaleItem.expediente;
+      const keyRoles = [
+        exp.regenteMaestroId,
+        exp.regenteId,
+        exp.sargenteacaoId,
+        exp.arquivoId,
+        exp.p4FinancasTransporteId,
+      ];
+      if (keyRoles.includes(userId)) return true;
+      const inGroup = (arr: any) => Array.isArray(arr) && arr.some((item: any) => (typeof item === 'object' ? item?.id : item) === userId);
+      if (inGroup(exp.administrativo) || inGroup(exp.permanencia) || inGroup(exp.obra)) return true;
+    }
+    return false;
+  };
+
   // Formatação de data em badge (DOM 01/11)
   const formatBadgeDate = (dateStr: string) => {
     try {
@@ -673,20 +704,50 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 /* Card Principal da Escala Ativa (Opção 2 - Military Dark Clean) */
-                <div 
-                  onTouchStart={handleTouchStart}
-                  onTouchEnd={handleTouchEnd}
-                  className="relative rounded-3xl bg-[#0b101b]/95 border border-white/[0.08] p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6 backdrop-blur-2xl touch-pan-y overflow-hidden select-none"
-                >
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={currentFeaturedScale.id || activeScaleIndex}
-                      initial={{ opacity: 0, x: swipeDirection > 0 ? 30 : swipeDirection < 0 ? -30 : 0 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: swipeDirection > 0 ? -30 : swipeDirection < 0 ? 30 : 0 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="flex flex-col gap-5 sm:gap-6"
+                (() => {
+                  const isCurrentScaleEscalado = isUserInScale(currentFeaturedScale, user?.uid);
+
+                  return (
+                    <div 
+                      onTouchStart={handleTouchStart}
+                      onTouchEnd={handleTouchEnd}
+                      className={`relative rounded-3xl bg-[#0b101b]/95 p-5 sm:p-7 shadow-2xl flex flex-col gap-5 sm:gap-6 backdrop-blur-2xl touch-pan-y overflow-hidden select-none transition-all ${
+                        isCurrentScaleEscalado
+                          ? 'border-2 border-blue-500/80 shadow-xl shadow-blue-500/15 ring-2 ring-blue-500/20'
+                          : 'border border-white/[0.08]'
+                      }`}
                     >
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={currentFeaturedScale.id || activeScaleIndex}
+                          initial={{ opacity: 0, x: swipeDirection > 0 ? 30 : swipeDirection < 0 ? -30 : 0 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: swipeDirection > 0 ? -30 : swipeDirection < 0 ? 30 : 0 }}
+                          transition={{ duration: 0.18, ease: "easeOut" }}
+                          className="flex flex-col gap-5 sm:gap-6"
+                        >
+                          {/* Banner Chamativo: VOCÊ ESTÁ NESSA ESCALA! */}
+                          {isCurrentScaleEscalado && (
+                            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3.5 sm:p-4 flex items-center justify-between shadow-xl shadow-blue-600/30 border border-blue-400/40">
+                              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                                <div className="size-10 sm:size-11 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30 shadow-inner">
+                                  <span className="material-symbols-outlined text-[24px] sm:text-[26px] text-white">person_check</span>
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-200">
+                                    Aviso de Escalação
+                                  </span>
+                                  <h4 className="text-sm sm:text-base font-black tracking-tight text-white leading-tight truncate">
+                                    VOCÊ ESTÁ NESSA ESCALA!
+                                  </h4>
+                                </div>
+                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/25 text-[11px] font-black uppercase tracking-wider backdrop-blur-md border border-white/40 shadow-sm shrink-0">
+                                <span className="material-symbols-outlined text-[15px] text-emerald-300">verified</span>
+                                <span>Escalado</span>
+                              </span>
+                            </div>
+                          )}
                   
                   {/* Header do Card */}
                   <div className="flex flex-col gap-3">
@@ -828,6 +889,8 @@ export default function DashboardPage() {
                     </div>
                   )}
                 </div>
+                  );
+                })()
               )}
             </div>
 
@@ -886,11 +949,16 @@ export default function DashboardPage() {
                     const { dayOfWeek, dateFormatted } = formatBadgeDate(scale.date);
                     const isConfirmed = viewedScales[scale.id]?.confirmed;
                     const isFolga = scale.classification === 'folga';
+                    const isUserEscalado = isUserInScale(scale, user?.uid);
 
                     return (
                       <div
                         key={scale.id}
-                        className="bg-[#0b101b]/90 hover:bg-[#101524] border border-white/[0.08] hover:border-blue-500/40 rounded-2xl p-3.5 sm:p-4 transition-all duration-200 flex items-center justify-between gap-3 sm:gap-4 group shadow-md"
+                        className={`bg-[#0b101b]/90 hover:bg-[#101524] rounded-2xl p-3.5 sm:p-4 transition-all duration-200 flex items-center justify-between gap-3 sm:gap-4 group shadow-md ${
+                          isUserEscalado && !isFolga
+                            ? 'border border-blue-500/50 shadow-blue-500/5'
+                            : 'border border-white/[0.08] hover:border-blue-500/40'
+                        }`}
                       >
                         {/* Micro-Card Date badge */}
                         <div className="flex flex-col items-center justify-center size-13 rounded-2xl bg-white/[0.04] border border-white/[0.08] shrink-0 shadow-inner group-hover:border-blue-500/30 transition-colors">
@@ -904,9 +972,17 @@ export default function DashboardPage() {
 
                         {/* Middle info */}
                         <div className="flex flex-col flex-1 min-w-0">
-                          <h4 className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">
-                            {isFolga ? 'Folga' : scale.title}
-                          </h4>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h4 className="text-sm font-bold text-white truncate group-hover:text-blue-400 transition-colors">
+                              {isFolga ? 'Folga' : scale.title}
+                            </h4>
+                            {!isFolga && isUserEscalado && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-300 border border-blue-500/30 shrink-0">
+                                <span className="material-symbols-outlined text-[11px]">person_check</span>
+                                Escalado
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[11px] text-slate-400 truncate mt-0.5">
                             {isFolga ? 'Sem serviço escalado' : `${scale.format || 'Evento'} • ${scale.startTime || scale.departureTime || 'Horário a definir'}`}
                           </span>

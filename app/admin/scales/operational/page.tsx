@@ -13,19 +13,20 @@ import { useFirebase } from '@/components/providers/firebase-provider';
 import { MilitaryStatusBadge } from '@/components/ui/military-status-badge';
 
 const OPM_OPTIONS = [
-  '12º BPM (Curitiba - Centro)',
-  '20º BPM (Curitiba - Leste)',
-  '23º BPM (Curitiba - CIC)',
-  '13º BPM (Curitiba - Sul)',
-  '17º BPM (São José dos Pinhais)',
-  '22º BPM (Colombo)',
-  'BPTran (Batalhão de Polícia de Trânsito)',
-  'BPRv (Batalhão de Polícia Rodoviária)',
-  'RPMon (Regimento de Polícia Montada)',
-  'BOPE (Batalhão de Operações Especiais)',
-  'BPMOA (Batalhão de Polícia Militar de Operações Aéreas)',
+  '12º BPM',
+  '13º BPM',
+  '17º BPM',
+  '20º BPM',
+  '22º BPM',
+  '23º BPM',
+  '33º BPM',
+  'BOPE',
+  'BPMOA',
+  'BPRv',
+  'BPTran',
   'Casa Militar da Governadoria',
-  'Quartel do Comando Geral (QCG)',
+  'Quartel do Comando Geral',
+  'RPMon',
   'Outra Unidade...'
 ];
 
@@ -440,7 +441,7 @@ export default function AdminNewOperationalScalePage() {
                     <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Especifique a Unidade:</span>
                     <input
                       type="text"
-                      placeholder="Ex: 1º BPM (Ponta Grossa)"
+                      placeholder="Ex: 1º BPM"
                       value={customOpm}
                       onChange={e => setCustomOpm(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500"
